@@ -60,6 +60,9 @@ class MainActivity : ComponentActivity() {
             var sleepGoalMinutes by remember {
                 mutableStateOf(appSettings.sleepGoalMinutes)
             }
+            var goalsEnabled by remember {
+                mutableStateOf(appSettings.goalsEnabled)
+            }
             var dashboardWidgets by remember {
                 mutableStateOf(appSettings.dashboardWidgets)
             }
@@ -225,6 +228,7 @@ class MainActivity : ComponentActivity() {
                 historyReadAvailable = historyReadAvailable,
                 themeMode = themeMode,
                 sleepGoalMinutes = sleepGoalMinutes,
+                goalsEnabled = goalsEnabled,
                 dashboardWidgets = dashboardWidgets,
                 displayName = displayName,
                 maxSmartWindowMinutes = maxSmartWindowMinutes,
@@ -330,6 +334,10 @@ class MainActivity : ComponentActivity() {
                 onSleepGoalChange = { minutes ->
                     sleepGoalMinutes = minutes
                     appSettings.sleepGoalMinutes = minutes
+                },
+                onGoalsEnabledChange = { enabled ->
+                    goalsEnabled = enabled
+                    appSettings.goalsEnabled = enabled
                 },
                 onDashboardWidgetsChange = { widgets ->
                     dashboardWidgets = widgets
