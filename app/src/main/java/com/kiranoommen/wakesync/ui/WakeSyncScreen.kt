@@ -192,24 +192,8 @@ fun WakeSyncScreen(
                 )
             }
 
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                if (darkTheme) {
-                    drawCircle(
-                        color = IndigoGlow.copy(alpha = 0.15f),
-                        radius = size.minDimension * 0.58f,
-                        center = Offset(size.width * 0.06f, size.height * 0.08f)
-                    )
-                    drawCircle(
-                        color = Cyan.copy(alpha = 0.12f),
-                        radius = size.minDimension * 0.60f,
-                        center = Offset(size.width * 0.94f, size.height * 0.90f)
-                    )
-                    drawCircle(
-                        color = Sunrise.copy(alpha = 0.06f),
-                        radius = size.minDimension * 0.38f,
-                        center = Offset(size.width * 0.90f, size.height * 0.24f)
-                    )
-                } else {
+            if (!darkTheme) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
                     drawCircle(
                         color = Lavender.copy(alpha = 0.08f),
                         radius = size.minDimension * 0.48f,
