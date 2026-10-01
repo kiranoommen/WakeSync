@@ -50,13 +50,13 @@ object SleepAnalytics {
             .sortedByDescending { it.end }
             .map { analyzeNight(it) }
 
-        val avgSleep = sorted.map { it.asleepMinutes }.averageOrNull()?.roundToInt()?.toLong() ?: 0L
-        val avgEfficiency = sorted.mapNotNull { it.efficiencyPercent }.averageOrNull()?.roundToInt()
+        val avgSleep = sorted.map { it.asleepMinutes }.averageLongOrNull()?.roundToInt()?.toLong() ?: 0L
+        val avgEfficiency = sorted.mapNotNull { it.efficiencyPercent }.averageIntOrNull()?.roundToInt()
         val debt = sorted.sumOf { max(0L, targetSleepMinutes.toLong() - it.asleepMinutes) }
         val regularity = sleepRegularityIndex(nights)
-        val avgDeep = sorted.map { it.deepPercent }.averageOrNull()?.roundToInt()
-        val avgRem = sorted.map { it.remPercent }.averageOrNull()?.roundToInt()
-        val avgScore = sorted.map { it.score }.averageOrNull()?.roundToInt()
+        val avgDeep = sorted.map { it.deepPercent }.averageIntOrNull()?.roundToInt()
+        val avgRem = sorted.map { it.remPercent }.averageIntOrNull()?.roundToInt()
+        val avgScore = sorted.map { it.score }.averageIntOrNull()?.roundToInt()
 
         return PeriodAnalytics(
             nights = sorted,
@@ -67,10 +67,10 @@ object SleepAnalytics {
             averageScore = avgScore,
             averageDeepPercent = avgDeep,
             averageRemPercent = avgRem,
-            averageHrvMs = nights.mapNotNull { it.averageHrvMs }.averageOrNull(),
+            averageHrvMs = nights.mapNotNull { it.averageHrvMs }.averageDoubleOrNull(),
             averageRestingHeartRateBpm = nights
                 .mapNotNull { it.restingHeartRateBpm?.toDouble() }
-                .averageOrNull()
+                .averageDoubleOrNull()
         )
     }
 
@@ -294,17 +294,17 @@ object SleepAnalytics {
             .filter { it.type == type }
             .sumOf { Duration.between(it.start, it.end).toMinutes().coerceAtLeast(0) }
 
-    private fun Iterable<Int>.averageOrNull(): Double? {
+    private fun Iterable<Int>.averageIntOrNull(): Double? {
         val list = toList()
         return if (list.isEmpty()) null else list.average()
     }
 
-    private fun Iterable<Long>.averageOrNull(): Double? {
+    private fun Iterable<Long>.averageLongOrNull(): Double? {
         val list = toList()
         return if (list.isEmpty()) null else list.average()
     }
 
-    private fun Iterable<Double>.averageOrNull(): Double? {
+    private fun Iterable<Double>.averageDoubleOrNull(): Double? {
         val list = toList()
         return if (list.isEmpty()) null else list.average()
     }
