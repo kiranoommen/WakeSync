@@ -8,7 +8,7 @@ class AppSettingsStore(context: Context) {
         context.getSharedPreferences("wakesync_settings", Context.MODE_PRIVATE)
 
     var themeMode: String
-        get() = prefs.getString(KEY_THEME, THEME_SYSTEM) ?: THEME_SYSTEM
+        get() = prefs.getString(KEY_THEME, THEME_DARK) ?: THEME_DARK
         set(value) {
             prefs.edit().putString(KEY_THEME, value).apply()
         }
