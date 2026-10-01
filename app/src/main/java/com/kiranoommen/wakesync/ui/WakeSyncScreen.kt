@@ -547,8 +547,10 @@ private fun HomeTab(
 
             dashboardWidgets.forEach { widget ->
                 when (widget) {
-                    AppSettingsStore.WIDGET_GOAL -> if (goalsEnabled) item {
-                        GoalStreakCard(
+                    AppSettingsStore.WIDGET_GOAL -> {
+                        if (goalsEnabled) {
+                            item {
+                                GoalStreakCard(
                             analytics = dashboardAnalytics,
                             sleepGoalMinutes = sleepGoalMinutes,
                             onInfo = {
@@ -558,8 +560,10 @@ private fun HomeTab(
                                     measurement = "Progress is latest estimated sleep minutes divided by your selected target. The streak counts consecutive recent nights at or above that target.",
                                     importance = "A personal target helps make duration trends actionable without pretending one number is perfect for everyone."
                                 )
-                            }
-                        )
+                                }
+                            )
+                        }
+                    }
                     }
 
                     AppSettingsStore.WIDGET_SLEEP -> {
