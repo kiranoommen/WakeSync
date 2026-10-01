@@ -2652,9 +2652,9 @@ private fun AlarmsTab(
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Weekly alarm overview",
-                        meaning = "A quick seven-day view of the active wake schedule assigned to each weekday.",
-                        measurement = "WakeSync checks enabled recurring schedules for each day and shows the earliest active wake-by time when more than one schedule overlaps.",
-                        importance = "The overview makes gaps, weekends off, and different weekday times obvious without opening every schedule."
+                        meaning = "A rolling seven-day view beginning today, rather than a fixed Monday-to-Sunday calendar block.",
+                        measurement = "WakeSync maps each of the next seven dates to enabled recurring schedules and shows the earliest Guardrail Wake Time if schedules overlap.",
+                        importance = "The rolling view makes the next actual alarms, days off and changing weekday times obvious at a glance."
                     )
                 }
             )
@@ -3433,6 +3433,7 @@ private fun SettingsTab(
                 ) {
                     listOf(
                         10,
+                        15,
                         20,
                         30,
                         45
@@ -4183,10 +4184,18 @@ private fun AlarmEditorDialog(
                 }
 
                 item {
-                    Text(
-                        text = "Smart Wake Window",
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Column {
+                        Text(
+                            text = "Smart Wake Window",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 3.dp),
+                            text = "Early interval before the Guardrail Wake Time. WakeSync uses its on-device prediction to choose a gentler wake point; the guardrail remains the hard deadline.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 item {
