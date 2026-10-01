@@ -110,6 +110,8 @@ fun WakeSyncScreen(
     themeMode: String,
     sleepGoalMinutes: Int,
     dashboardWidgets: List<String>,
+    maxSmartWindowMinutes: Int,
+    retainGeneratedExports: Boolean,
     errorMessage: String?,
     onConnect: () -> Unit,
     onRefresh: () -> Unit,
@@ -123,7 +125,10 @@ fun WakeSyncScreen(
     onRequestHistoryAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
-    onDashboardWidgetsChange: (List<String>) -> Unit
+    onDashboardWidgetsChange: (List<String>) -> Unit,
+    onMaxSmartWindowChange: (Int) -> Unit,
+    onRetainGeneratedExportsChange: (Boolean) -> Unit,
+    onClearGeneratedExports: () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
     val darkTheme = when (themeMode) {
@@ -234,9 +239,27 @@ fun WakeSyncScreen(
                                 loading = loading,
                                 sleepGoalMinutes = sleepGoalMinutes,
                                 onRefresh = onRefresh,
-                                onShareCsv = { SleepExporter.shareCsv(context, it) },
-                                onSharePdf = { SleepExporter.sharePdf(context, it) },
-                                onShareStory = { SleepExporter.shareStoryCard(context, it) }
+                                onShareCsv = {
+                                    SleepExporter.shareCsv(
+                                        context,
+                                        it,
+                                        retainGeneratedExports
+                                    )
+                                },
+                                onSharePdf = {
+                                    SleepExporter.sharePdf(
+                                        context,
+                                        it,
+                                        retainGeneratedExports
+                                    )
+                                },
+                                onShareStory = {
+                                    SleepExporter.shareStoryCard(
+                                        context,
+                                        it,
+                                        retainGeneratedExports
+                                    )
+                                }
                             )
 
                             AppTab.SETTINGS -> SettingsTab(
@@ -247,13 +270,18 @@ fun WakeSyncScreen(
                                 historyReadAvailable = historyReadAvailable,
                                 themeMode = themeMode,
                                 sleepGoalMinutes = sleepGoalMinutes,
+                                maxSmartWindowMinutes = maxSmartWindowMinutes,
+                                retainGeneratedExports = retainGeneratedExports,
                                 nights = nights,
                                 onConnect = onConnect,
                                 onRequestExactAlarmAccess = onRequestExactAlarmAccess,
                                 onRequestAnalyticsAccess = onRequestAnalyticsAccess,
                                 onRequestHistoryAccess = onRequestHistoryAccess,
                                 onThemeModeChange = onThemeModeChange,
-                                onSleepGoalChange = onSleepGoalChange
+                                onSleepGoalChange = onSleepGoalChange,
+                                onMaxSmartWindowChange = onMaxSmartWindowChange,
+                                onRetainGeneratedExportsChange = onRetainGeneratedExportsChange,
+                                onClearGeneratedExports = onClearGeneratedExports
                             )
                         }
                     }
@@ -270,6 +298,7 @@ fun WakeSyncScreen(
             AlarmEditorDialog(
                 schedule = schedule,
                 isNew = creatingNew,
+                maxSmartWindowMinutes = maxSmartWindowMinutes,
                 onDismiss = {
                     editingSchedule = null
                     creatingNew = false
@@ -1669,13 +1698,18 @@ private fun SettingsTab(
     historyReadAvailable: Boolean,
     themeMode: String,
     sleepGoalMinutes: Int,
+    maxSmartWindowMinutes: Int,
+    retainGeneratedExports: Boolean,
     nights: List<SleepNight>,
     onConnect: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
-    onSleepGoalChange: (Int) -> Unit
+    onSleepGoalChange: (Int) -> Unit,
+    onMaxSmartWindowChange: (Int) -> Unit,
+    onRetainGeneratedExportsChange: (Boolean) -> Unit,
+    onClearGeneratedExports: () -> Unit
 ) {
     val source = nights.firstOrNull()?.sourcePackage ?: "No source detected yet"
 
@@ -1840,6 +1874,7 @@ private fun PreferenceCard(
 private fun AlarmEditorDialog(
     schedule: AlarmSchedule,
     isNew: Boolean,
+    maxSmartWindowMinutes: Int,
     onDismiss: () -> Unit,
     onSave: (AlarmSchedule) -> Unit,
     onDelete: (AlarmSchedule) -> Unit
@@ -1928,7 +1963,9 @@ private fun AlarmEditorDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                    listOf(0, 10, 20, 30, 45).forEach { minutes ->
+                    listOf(0, 10, 20, 30, 45)
+                        .filter { it == 0 || it <= maxSmartWindowMinutes }
+                        .forEach { minutes ->
                         FilterChip(
                             selected = draft.smartWindowMinutes == minutes,
                             onClick = {
