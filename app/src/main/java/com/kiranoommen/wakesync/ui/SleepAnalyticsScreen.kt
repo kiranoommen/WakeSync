@@ -1,6 +1,7 @@
 package com.kiranoommen.wakesync.ui
 
 import android.app.DatePickerDialog
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -39,6 +40,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +49,7 @@ import com.kiranoommen.wakesync.domain.NightAnalytics
 import com.kiranoommen.wakesync.domain.PeriodAnalytics
 import com.kiranoommen.wakesync.domain.SleepAnalytics
 import com.kiranoommen.wakesync.model.SleepNight
+import com.kiranoommen.wakesync.model.SleepStageType
 import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Indigo
 import com.kiranoommen.wakesync.ui.theme.Lavender
@@ -323,8 +327,17 @@ private fun ScoreHero(
 @Composable
 private fun ScoreRing(score: Int, modifier: Modifier) {
     val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    val animatedScore by animateFloatAsState(
+        targetValue = score.coerceIn(0, 100).toFloat(),
+        label = "sleepScore"
+    )
 
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier.semantics {
+            contentDescription = "Sleep performance score " + score + " out of 100"
+        },
+        contentAlignment = Alignment.Center
+    ) {
         Canvas(modifier = Modifier.fillMaxWidth().height(126.dp)) {
             val stroke = 11.dp.toPx()
             val diameter = size.minDimension - stroke
@@ -345,7 +358,7 @@ private fun ScoreRing(score: Int, modifier: Modifier) {
             drawArc(
                 color = Amber,
                 startAngle = -90f,
-                sweepAngle = 360f * score.coerceIn(0, 100) / 100f,
+                sweepAngle = 360f * animatedScore / 100f,
                 useCenter = false,
                 topLeft = origin,
                 size = Size(diameter, diameter),
@@ -390,7 +403,21 @@ private fun InsightCard(text: String) {
 
 @Composable
 private fun StageDistributionCard(night: NightAnalytics) {
-    val sleepTotal = (night.deepPercent + night.lightPercent + night.remPercent).coerceAtLeast(1)
+    val deepMinutes = stageMinutes(night.night, SleepStageType.DEEP)
+    val lightMinutes = stageMinutes(night.night, SleepStageType.LIGHT)
+    val remMinutes = stageMinutes(night.night, SleepStageType.REM)
+    val awakeMinutes = stageMinutes(night.night, SleepStageType.AWAKE)
+    val stageTotal = (deepMinutes + lightMinutes + remMinutes + awakeMinutes).coerceAtLeast(1L)
+
+    fun pct(value: Long): Int =
+        (value.toDouble() / stageTotal.toDouble() * 100.0)
+            .roundToInt()
+            .coerceIn(0, 100)
+
+    val deepPct = pct(deepMinutes)
+    val lightPct = pct(lightMinutes)
+    val remPct = pct(remMinutes)
+    val awakePct = pct(awakeMinutes)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -420,7 +447,7 @@ private fun StageDistributionCard(night: NightAnalytics) {
                 var x = 0f
 
                 fun add(percent: Int, color: Color) {
-                    val w = size.width * percent.toFloat() / sleepTotal.toFloat()
+                    val w = size.width * percent.toFloat() / 100f
                     drawRoundRect(
                         color = color,
                         topLeft = Offset(x, y),
@@ -430,25 +457,20 @@ private fun StageDistributionCard(night: NightAnalytics) {
                     x += w
                 }
 
-                add(night.deepPercent, Indigo)
-                add(night.lightPercent, Lavender)
-                add(night.remPercent, Amber)
+                add(deepPct, Indigo)
+                add(lightPct, Lavender)
+                add(remPct, Amber)
+                add(awakePct, MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StageLegend("Deep", night.deepPercent, Indigo)
-                StageLegend("Light", night.lightPercent, Lavender)
-                StageLegend("REM", night.remPercent, Amber)
-                StageLegend(
-                    "Awake",
-                    if (night.totalMinutes > 0) {
-                        (night.awakeMinutes.toDouble() / night.totalMinutes * 100.0).roundToInt()
-                    } else 0,
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                StageLegend("Deep", deepPct, Indigo)
+                StageLegend("Light", lightPct, Lavender)
+                StageLegend("REM", remPct, Amber)
+                StageLegend("Awake", awakePct, MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Row(
@@ -514,7 +536,12 @@ private fun TrendCard(
             )
 
             if (nights.isNotEmpty()) {
-                TrendChart(nights, selectedIndex) { selectedIndex = it }
+                TrendChart(
+                    nights = nights,
+                    previous = previous,
+                    selectedIndex = selectedIndex,
+                    onSelect = { selectedIndex = it }
+                )
 
                 val selected = nights[selectedIndex.coerceIn(0, nights.lastIndex)]
                 Row(
@@ -534,6 +561,13 @@ private fun TrendCard(
             }
 
             if (previous != null && previous.isNotEmpty() && nights.isNotEmpty()) {
+                Text(
+                    modifier = Modifier.padding(top = 8.dp),
+                    text = "Muted bars show the previous equivalent period.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
                 val currentAvg = nights.map { it.asleepMinutes }.average().roundToInt()
                 val previousAvg = previous.map { it.asleepMinutes }.average().roundToInt()
                 val delta = currentAvg - previousAvg
@@ -555,6 +589,7 @@ private fun TrendCard(
 @Composable
 private fun TrendChart(
     nights: List<NightAnalytics>,
+    previous: List<NightAnalytics>?,
     selectedIndex: Int,
     onSelect: (Int) -> Unit
 ) {
@@ -568,6 +603,10 @@ private fun TrendChart(
             .fillMaxWidth()
             .height(190.dp)
             .padding(top = 16.dp)
+            .semantics {
+                contentDescription =
+                    "Sleep duration bars and sleep efficiency line for the selected period. Tap a day for details."
+            }
             .pointerInput(nights) {
                 detectTapGestures { offset ->
                     if (nights.isNotEmpty()) {
@@ -596,6 +635,24 @@ private fun TrendChart(
                 strokeWidth = 1.dp.toPx()
             )
         }
+
+        previous
+            ?.take(nights.size)
+            ?.forEachIndexed { index, night ->
+                val centerX = widthPer * index + widthPer / 2f
+                val previousHeight =
+                    night.asleepMinutes.toFloat() / maxMinutes.toFloat() * size.height * 0.82f
+
+                drawRoundRect(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f),
+                    topLeft = Offset(
+                        centerX - barWidth * 0.68f,
+                        size.height - previousHeight
+                    ),
+                    size = Size(barWidth * 1.36f, previousHeight),
+                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                )
+            }
 
         nights.forEachIndexed { index, night ->
             val centerX = widthPer * index + widthPer / 2f
@@ -1011,6 +1068,19 @@ private fun MiniMetric(modifier: Modifier, label: String, value: String) {
         }
     }
 }
+
+private fun stageMinutes(
+    night: SleepNight,
+    type: SleepStageType
+): Long =
+    night.stages
+        .asSequence()
+        .filter { it.type == type }
+        .sumOf {
+            java.time.Duration.between(it.start, it.end)
+                .toMinutes()
+                .coerceAtLeast(0)
+        }
 
 private fun sortedNights(
     nights: List<NightAnalytics>,
