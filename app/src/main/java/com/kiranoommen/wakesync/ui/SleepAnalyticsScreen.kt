@@ -2832,8 +2832,18 @@ private fun MetricLine(
 @Composable
 fun ScoreBreakdownSheet(
     analytics: PeriodAnalytics,
+    dailyNight: NightAnalytics? = null,
     onDismiss: () -> Unit
 ) {
+    val breakdown =
+        if (dailyNight != null) {
+            SleepAnalytics.scoreBreakdownForNight(
+                dailyNight,
+                analytics.regularityScore
+            )
+        } else {
+            analytics.scoreBreakdown
+        }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(
@@ -2855,7 +2865,12 @@ fun ScoreBreakdownSheet(
                 Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = "Score Pillar Breakdown",
+                text =
+                    if (dailyNight != null) {
+                        "Daily Score Breakdown"
+                    } else {
+                        "Score Pillar Breakdown"
+                    },
                 style =
                     MaterialTheme.typography.headlineMedium,
                 fontWeight =
@@ -2871,19 +2886,19 @@ fun ScoreBreakdownSheet(
 
             PillarRow(
                 "Duration · 40%",
-                analytics.scoreBreakdown.duration
+                breakdown.duration
             )
             PillarRow(
                 "Efficiency · 25%",
-                analytics.scoreBreakdown.efficiency
+                breakdown.efficiency
             )
             PillarRow(
                 "Regularity · 20%",
-                analytics.scoreBreakdown.regularity
+                breakdown.regularity
             )
             PillarRow(
                 "Latency · 15%",
-                analytics.scoreBreakdown.latency
+                breakdown.latency
             )
 
             Text(
