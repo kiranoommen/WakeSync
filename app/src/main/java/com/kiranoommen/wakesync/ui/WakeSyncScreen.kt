@@ -452,6 +452,7 @@ private fun HomeTab(
     val next = remember(schedules) { nextSchedule(schedules) }
     val nearestSkipped = remember(schedules) { nearestUpcomingSkipped(schedules) }
     var showCustomize by remember { mutableStateOf(false) }
+    var showScoreBreakdown by remember { mutableStateOf(false) }
     var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
     val dashboardAnalytics = remember(nights, sleepGoalMinutes) {
         SleepAnalytics.analyze(nights.take(14), sleepGoalMinutes)
@@ -466,6 +467,9 @@ private fun HomeTab(
                 MorningBriefingCard(
                     analytics = dashboardAnalytics,
                     displayName = displayName,
+                    onScoreClick = {
+                        showScoreBreakdown = true
+                    },
                     onInfo = {
                         infoSheet = MetricInfo(
                             title = "Morning briefing",
@@ -670,12 +674,22 @@ private fun HomeTab(
         info = infoSheet,
         onDismiss = { infoSheet = null }
     )
+
+    if (showScoreBreakdown) {
+        ScoreBreakdownSheet(
+            analytics = dashboardAnalytics,
+            onDismiss = {
+                showScoreBreakdown = false
+            }
+        )
+    }
 }
 
 @Composable
 private fun MorningBriefingCard(
     analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
     displayName: String,
+    onScoreClick: () -> Unit,
     onInfo: () -> Unit
 ) {
     val hour = LocalTime.now().hour
@@ -778,7 +792,8 @@ private fun MorningBriefingCard(
                             .padding(start = 14.dp)
                             .size(92.dp),
                         score = score,
-                        color = statusColor
+                        color = statusColor,
+                        onClick = onScoreClick
                     )
                 }
             }
@@ -790,7 +805,8 @@ private fun MorningBriefingCard(
 private fun HomeScoreGauge(
     modifier: Modifier,
     score: Int,
-    color: Color
+    color: Color,
+    onClick: () -> Unit
 ) {
     val progress by animateFloatAsState(
         targetValue = score.coerceIn(0, 100) / 100f,
@@ -804,10 +820,19 @@ private fun HomeScoreGauge(
         MaterialTheme.colorScheme.onSurface
             .copy(alpha = 0.08f)
 
-    Box(
+    Card(
+        onClick = onClick,
         modifier = modifier,
-        contentAlignment = Alignment.Center
+        shape = CircleShape,
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
     ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val stroke = 8.dp.toPx()
             val diameter =
@@ -870,6 +895,7 @@ private fun HomeScoreGauge(
                 color =
                     MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
         }
     }
 }
