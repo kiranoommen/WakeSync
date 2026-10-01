@@ -67,7 +67,13 @@ class MainActivity : ComponentActivity() {
                 }
 
             fun persist(input: List<AlarmSchedule>) {
-                val updated = withRecommendations(input)
+                val today = java.time.LocalDate.now()
+                val cleaned = input.map { schedule ->
+                    schedule.copy(
+                        skippedDates = schedule.futureSkippedDates(today)
+                    )
+                }
+                val updated = withRecommendations(cleaned)
                 schedules = updated
                 alarmStore.save(updated)
                 alarmScheduler.scheduleAll(updated)
@@ -183,17 +189,34 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 onSkipNext = { schedule ->
-                    val next = schedule.nextDeadline()
-                    if (next != null) {
+                    val nextBase = schedule.nextBaseDeadline()
+                    if (nextBase != null) {
+                        val dateKey = nextBase.toLocalDate().toString()
+                        val updatedSkips =
+                            if (schedule.skippedDates.contains(dateKey)) {
+                                schedule.skippedDates - dateKey
+                            } else {
+                                schedule.skippedDates + dateKey
+                            }
+
                         val updatedSchedule = schedule.copy(
-                            skippedDates = schedule.skippedDates + next.toLocalDate().toString()
+                            skippedDates = updatedSkips
                         )
+
                         persist(
                             schedules.map {
                                 if (it.id == schedule.id) updatedSchedule else it
                             }
                         )
                     }
+                },
+                onClearSkips = { schedule ->
+                    val updatedSchedule = schedule.copy(skippedDates = emptySet())
+                    persist(
+                        schedules.map {
+                            if (it.id == schedule.id) updatedSchedule else it
+                        }
+                    )
                 },
                 onRequestExactAlarmAccess = {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
