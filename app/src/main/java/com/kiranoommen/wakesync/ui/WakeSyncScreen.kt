@@ -476,6 +476,7 @@ private fun AlarmScheduleCard(
     onSkip: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    var showDisableChoice by remember { mutableStateOf(false) }
     val time = String.format(
         "%d:%02d %s",
         if (schedule.hour % 12 == 0) 12 else schedule.hour % 12,
@@ -513,7 +514,13 @@ private fun AlarmScheduleCard(
 
                 Switch(
                     checked = schedule.enabled,
-                    onCheckedChange = onToggle
+                    onCheckedChange = { checked ->
+                        if (checked) {
+                            onToggle(true)
+                        } else {
+                            showDisableChoice = true
+                        }
+                    }
                 )
             }
 
@@ -548,6 +555,43 @@ private fun AlarmScheduleCard(
                 }
             }
         }
+    }
+
+    if (showDisableChoice) {
+        AlertDialog(
+            onDismissRequest = { showDisableChoice = false },
+            title = { Text("Skip once or turn schedule off?") },
+            text = {
+                Text(
+                    "Skip once keeps this recurring schedule active and automatically resumes it on the next matching day."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onSkip()
+                        showDisableChoice = false
+                    }
+                ) {
+                    Text("Skip once")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            onToggle(false)
+                            showDisableChoice = false
+                        }
+                    ) {
+                        Text("Turn off")
+                    }
+                    TextButton(onClick = { showDisableChoice = false }) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
 }
 
