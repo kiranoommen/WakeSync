@@ -2,20 +2,55 @@
 
 ## Goal
 
-Choose a wake time inside a user-defined acceptable window that is more likely to coincide with an easier waking point.
+Choose a wake time inside a **user-controlled smart window** that may reduce sleep inertia without stealing unnecessary sleep.
 
 Example:
 
-- earliest acceptable wake: 6:20 AM
-- must be awake by: 7:00 AM
+- wake-by deadline: 7:00 AM
+- smart window: 20 minutes
+- WakeSync may alarm between 6:40 and 7:00 AM
+- 7:00 AM is the hard deadline
 
-WakeSync may choose any recommendation inside that 40-minute interval.
+## Scientific guardrails
 
-## Important constraint
+WakeSync must not assume that everyone has fixed 90-minute sleep cycles.
 
-WakeSync should not claim that consumer wearables measure sleep stages with clinical precision.
+Normal sleep cycles vary within a night and between people. Consumer wearables also estimate sleep stages rather than measure them with clinical polysomnography.
 
-The algorithm is a personalized estimate built from wearable-provided stage data and the user's own history.
+The algorithm therefore treats sleep-stage data as a useful signal, not ground truth.
+
+Research basis:
+
+- Slow-wave/deep sleep awakenings are often associated with more sleep inertia than lighter-stage awakenings.
+- Circadian timing and prior sleep loss also affect sleep inertia.
+- Consumer wearables can provide useful longitudinal estimates, but sleep-stage classification remains imperfect.
+- Adequate sleep duration matters more than optimizing a single stage transition.
+
+## User-controlled smart window
+
+The user chooses how early WakeSync is allowed to wake them.
+
+Recommended presets:
+
+- **10 min — Tight**
+- **20 min — Balanced** (default product setting)
+- **30 min — Flexible**
+- **45 min — Wide**
+- **Off — exact wake-by time only**
+
+The 20-minute default is a product choice, not a claim of a scientifically universal optimum.
+
+WakeSync must never wake earlier than the selected window.
+
+## Deadline guarantee
+
+The wake-by time is always authoritative.
+
+If WakeSync cannot find a favorable point inside the smart window:
+
+> Alarm at the wake-by deadline anyway.
+
+This behavior should be enabled by design rather than hidden behind an advanced toggle. If a user does not want an alarm that day, they should disable or skip that day's schedule.
 
 ## V1 approach
 
@@ -28,76 +63,75 @@ For each night derive:
 - sleep onset;
 - final wake time;
 - total sleep;
-- stage transitions;
+- sleep-stage transitions;
 - timing of late-night Deep / Light / REM / Awake;
 - source package;
-- optional morning feedback.
+- optional alarm-dismissal and wake-feedback history.
 
 ### Step 2 — Normalize nights by sleep onset
 
-Instead of comparing clock time alone, represent each stage transition as minutes since sleep onset.
+Represent stage transitions as minutes since sleep onset instead of relying only on clock time.
 
-This allows a 10 PM night and a midnight night to be compared meaningfully.
+This makes nights with different bedtimes comparable.
 
-### Step 3 — Estimate favorable wake periods
+### Step 3 — Score candidate wake moments
 
-For the final 60–90 minutes of historical sleep, score each minute based on:
+Within the user's allowed smart window, rank candidate times using:
 
-- Awake: highest base score
-- Light: high score
-- REM: moderate score
-- Deep: strong penalty
-- proximity to natural end of prior sleep sessions
-- prior successful wake feedback at similar relative timing
+- likely Awake / Light sleep: positive signal;
+- likely Deep sleep: negative signal;
+- REM: neutral-to-moderate signal rather than a hard rule;
+- proximity to natural historical wake transitions;
+- consistency across recent nights;
+- amount of sleep preserved;
+- prior successful alarm-dismissal or feedback patterns.
 
-Example baseline weights:
+The algorithm should include an **earliness penalty** so it does not wake the user 40–45 minutes early merely to avoid a predicted deep-sleep period.
 
-- Awake: +1.0
-- Light: +0.8
-- REM: +0.35
-- Deep: -1.0
+### Step 4 — Protect sleep duration
 
-These are implementation defaults, not medical claims.
+If the user appears sleep-deprived or the night's sleep opportunity is short, WakeSync should prefer preserving sleep and choose a later candidate unless there is a strong reason not to.
 
-### Step 4 — Project tonight
+Do not present this as diagnosis.
 
-Given tonight's estimated sleep onset, shift the learned relative timing forward into clock time.
+### Step 5 — Choose an alarm point
 
-Only consider candidate times inside the user's acceptable wake window.
+V1 should select the best-scoring time inside the allowed window.
 
-### Step 5 — Choose a window, not a magic minute
+If confidence is weak, prefer the later candidate.
 
-Return an interval, usually 10–20 minutes, centered around the highest-scoring region.
-
-Example:
-
-> Best wake window: 6:34–6:49 AM
-
-If the historical signal is weak, widen the window and lower confidence.
+If no candidate is clearly favorable, alarm at the deadline.
 
 ## Confidence
 
-Initial confidence should depend on:
+Confidence should depend on:
 
 - number of usable nights;
 - consistency of stage timing;
 - consistency of source data;
-- presence of recent data;
-- prior wake feedback.
+- recency of data;
+- quality/completeness of the current night's available data;
+- prior alarm-dismissal or optional feedback patterns.
 
 Suggested labels:
 
 - Learning
-- Moderate confidence
+- Moderate pattern
 - Strong pattern
 
-Avoid presenting a fake precise percentage before the model has enough validation.
+Avoid fake precision such as "93% accurate" unless validated against appropriate data.
 
-## Safety / UX behavior
+## Predictive vs live mode
 
-If the user specifies “must be awake by 7:00 AM”, WakeSync must always trigger the final alarm by that time even if the predicted window is poor.
+### Predictive mode
 
-Wake-window optimization can move the alarm earlier, never later than the deadline.
+Use history and current-night timing to estimate the best wake point when live stage updates are unavailable.
+
+### Live mode
+
+Only use current sleep stage if the connected ecosystem provides sufficiently fresh overnight data.
+
+Never imply live detection when the data is actually delayed or finalized after waking.
 
 ## Future versions
 
@@ -105,10 +139,10 @@ Potential additions:
 
 - heart rate / HRV;
 - movement;
-- sleep debt;
-- day-of-week patterns;
-- adaptive wake-feedback weighting;
-- separate weekday/weekend models;
-- on-device ML after enough data exists.
+- sleep-duration protection preference;
+- day-of-week models;
+- separate workday / weekend patterns;
+- adaptive weighting from alarm behavior;
+- local machine learning after enough user data exists.
 
 V1 should remain explainable and deterministic so behavior can be validated.
