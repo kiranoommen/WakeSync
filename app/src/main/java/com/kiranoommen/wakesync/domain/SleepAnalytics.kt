@@ -248,6 +248,38 @@ object SleepAnalytics {
         )
     }
 
+    fun scoreBreakdownForNight(
+        night: NightAnalytics,
+        regularityScore: Int?
+    ): ScoreBreakdown =
+        ScoreBreakdown(
+            duration =
+                durationScore(
+                    night.asleepMinutes
+                )
+                    .roundToInt()
+                    .coerceIn(0, 100),
+            efficiency =
+                (
+                    night.efficiencyPercent
+                        ?.let(::efficiencyScore)
+                        ?: 50.0
+                    )
+                    .roundToInt()
+                    .coerceIn(0, 100),
+            regularity =
+                (regularityScore ?: 50)
+                    .coerceIn(0, 100),
+            latency =
+                (
+                    night.onsetLatencyMinutes
+                        ?.let(::latencyScore)
+                        ?: 50.0
+                    )
+                    .roundToInt()
+                    .coerceIn(0, 100)
+        )
+
     fun sleepRegularityIndex(nights: List<SleepNight>): Int? {
         if (nights.size < 3) return null
 
