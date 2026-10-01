@@ -478,6 +478,22 @@ private fun HomeTab(
                     onScoreClick = {
                         showScoreBreakdown = true
                     },
+                    onStatusClick = {
+                        infoSheet =
+                            if (
+                                goalsEnabled &&
+                                dashboardAnalytics.sleepDebtMinutes > 0
+                            ) {
+                                sleepDebtInfo()
+                            } else {
+                                MetricInfo(
+                                    title = "Daily recovery status",
+                                    meaning = "A quick label based on the current WakeSync Sleep Score and, when targets are enabled, recent sleep debt.",
+                                    measurement = "The Daily Score is separate from cumulative Sleep Debt.",
+                                    importance = "Use the label as a summary, then open the score breakdown for the underlying components."
+                                )
+                            }
+                    },
                     onInfo = {
                         infoSheet = MetricInfo(
                             title = "Morning briefing",
@@ -1604,6 +1620,7 @@ private fun MorningBriefingCard(
     displayName: String,
     goalsEnabled: Boolean,
     onScoreClick: () -> Unit,
+    onStatusClick: () -> Unit,
     onInfo: () -> Unit
 ) {
     val hour = LocalTime.now().hour
@@ -1691,9 +1708,13 @@ private fun MorningBriefingCard(
                         }
 
                         Card(
+                            onClick = onStatusClick,
                             modifier = Modifier.padding(top = 13.dp),
                             shape = RoundedCornerShape(999.dp),
-                            border = BorderStroke(1.dp, statusColor.copy(alpha = 0.32f)),
+                            border = BorderStroke(
+                                1.dp,
+                                statusColor.copy(alpha = 0.32f)
+                            ),
                             colors = CardDefaults.cardColors(
                                 containerColor = statusColor.copy(alpha = 0.12f),
                                 contentColor = statusColor
