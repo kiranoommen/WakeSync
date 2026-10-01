@@ -1711,7 +1711,7 @@ private fun WeeklyAlarmOverview(
                             .asSequence()
                             .filter {
                                 it.enabled &&
-                                    it.days.contains(day)
+                                    it.days.contains(day.value)
                             }
                             .minByOrNull {
                                 it.hour * 60 +
