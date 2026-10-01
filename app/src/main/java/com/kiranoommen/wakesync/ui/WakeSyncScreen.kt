@@ -152,7 +152,7 @@ fun WakeSyncScreen(
                     Brush.verticalGradient(
                         listOf(
                             colors.background,
-                            if (darkTheme) Color(0xFF111A36) else Color(0xFFF2F0FF),
+                            if (darkTheme) Color(0xFF0A0E1D) else Color(0xFFF2F0FF),
                             colors.background
                         )
                     )
@@ -166,7 +166,7 @@ fun WakeSyncScreen(
                         center = Offset(size.width * 0.06f, size.height * 0.08f)
                     )
                     drawCircle(
-                        color = Cyan.copy(alpha = 0.15f),
+                        color = Cyan.copy(alpha = 0.12f),
                         radius = size.minDimension * 0.60f,
                         center = Offset(size.width * 0.94f, size.height * 0.90f)
                     )
