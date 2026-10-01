@@ -109,7 +109,8 @@ fun WakeSyncScreen(
             ) {
                 AppHeader(tab)
 
-                when (tab) {
+                Box(modifier = Modifier.weight(1f)) {
+                    when (tab) {
                     AppTab.HOME -> HomeTab(
                         sdkStatus = sdkStatus,
                         hasPermission = hasPermission,
@@ -147,6 +148,7 @@ fun WakeSyncScreen(
                         onConnect = onConnect,
                         onRequestExactAlarmAccess = onRequestExactAlarmAccess
                     )
+                    }
                 }
 
                 BottomNav(
@@ -218,7 +220,7 @@ private fun HomeTab(
     val next = remember(schedules) { nextSchedule(schedules) }
 
     LazyColumn(
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
@@ -423,7 +425,7 @@ private fun AlarmsTab(
     onSkipNext: (AlarmSchedule) -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
@@ -556,7 +558,7 @@ private fun SleepTab(
     onRefresh: () -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
@@ -608,7 +610,7 @@ private fun SettingsTab(
     val source = nights.firstOrNull()?.sourcePackage ?: "No source detected yet"
 
     LazyColumn(
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
