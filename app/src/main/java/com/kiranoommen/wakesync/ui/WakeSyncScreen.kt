@@ -660,6 +660,9 @@ private fun HomeTab(
     if (showScoreBreakdown) {
         ScoreBreakdownSheet(
             analytics = dashboardAnalytics,
+            dailyNight =
+                dashboardAnalytics.nights
+                    .firstOrNull(),
             onDismiss = {
                 showScoreBreakdown = false
             }
@@ -1636,7 +1639,10 @@ private fun MorningBriefingCard(
         } else {
             greetingBase + ", " + displayName
         }
-    val score = analytics.averageScore ?: 0
+    val score =
+        analytics.nights.firstOrNull()?.score
+            ?: analytics.averageScore
+            ?: 0
     val status = when {
         goalsEnabled && analytics.sleepDebtMinutes >= 120 ->
             "⚡ Sleep Debt Detected"
