@@ -1960,9 +1960,9 @@ private fun RecoveryCard(
                         analytics.averageHrvMs == null &&
                         analytics.averageRestingHeartRateBpm == null
                     ) {
-                        "Grant optional recovery access in Settings if your Health Connect source provides these records."
+                        "HRV = Heart Rate Variability. RHR = Resting Heart Rate. Grant optional recovery access in Settings if your Health Connect source provides these records."
                     } else {
-                        "Use recovery metrics relative to your own baseline."
+                        "HRV = Heart Rate Variability · RHR = Resting Heart Rate. Use both primarily relative to your own baseline."
                     },
                 style =
                     MaterialTheme.typography.bodySmall,
@@ -3272,7 +3272,7 @@ private fun scoreStatus(
         score >= 75 ->
             "Strong recovery"
         score >= 60 ->
-            "Sleep debt detected"
+            "Fair recovery"
         else ->
             "Recovery needs attention"
     }
