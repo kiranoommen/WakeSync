@@ -2068,6 +2068,9 @@ private fun BentoCard(
                     .copy(alpha = 0.68f),
             contentColor =
                 MaterialTheme.colorScheme.onSurface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp
         )
     ) {
         Box(
