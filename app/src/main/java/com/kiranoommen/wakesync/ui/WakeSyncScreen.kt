@@ -1,6 +1,7 @@
 package com.kiranoommen.wakesync.ui
 
 import android.app.TimePickerDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -522,6 +523,7 @@ private fun GoalStreakCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, Amber.copy(alpha = 0.22f)),
         colors = CardDefaults.cardColors(
             containerColor = Amber.copy(alpha = 0.10f),
             contentColor = MaterialTheme.colorScheme.onSurface
@@ -575,6 +577,7 @@ private fun HomeInsightCard(text: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, Lavender.copy(alpha = 0.22f)),
         colors = CardDefaults.cardColors(
             containerColor = Lavender.copy(alpha = 0.10f),
             contentColor = MaterialTheme.colorScheme.onSurface
@@ -709,6 +712,7 @@ private fun NextWakeCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent,
             contentColor = Color.White
@@ -951,8 +955,10 @@ private fun AlarmScheduleCard(
             .fillMaxWidth()
             .clickable(onClick = onEdit),
         shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.55f)),
         colors = CardDefaults.cardColors(
-            containerColor = colors.surface.copy(alpha = 0.86f)
+            containerColor = colors.surface.copy(alpha = 0.86f),
+            contentColor = colors.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
@@ -1560,8 +1566,10 @@ private fun BottomNav(
             .fillMaxWidth()
             .padding(bottom = 8.dp, top = 8.dp),
         shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.55f)),
         colors = CardDefaults.cardColors(
-            containerColor = colors.surface.copy(alpha = 0.94f)
+            containerColor = colors.surface.copy(alpha = 0.94f),
+            contentColor = colors.onSurface
         )
     ) {
         Row(
