@@ -285,6 +285,32 @@ object SleepExporter {
             paint
         )
 
+        val dates = analytics.nights
+            .map { it.date }
+            .sorted()
+        if (dates.isNotEmpty()) {
+            paint.textSize = 26f
+            paint.color = Color.rgb(
+                148,
+                163,
+                184
+            )
+            val rangeLabel =
+                dates.first().format(
+                    DateTimeFormatter.ofPattern("MMM d")
+                ) +
+                    " – " +
+                    dates.last().format(
+                        DateTimeFormatter.ofPattern("MMM d")
+                    )
+            canvas.drawText(
+                rangeLabel,
+                90f,
+                250f,
+                paint
+            )
+        }
+
         val score = analytics.averageScore ?: 0
         paint.color = scoreColorForStory(score)
         paint.style = Paint.Style.STROKE
