@@ -552,113 +552,47 @@ private fun HomeTab(
         if (hasPermission) {
             item {
                 SectionHeader(
-                    title = "Your dashboard",
+                    title = "Your Dashboard",
                     action = "Customize",
-                    onAction = { showCustomize = true }
+                    onAction = {
+                        showCustomize = true
+                    }
                 )
             }
 
-            dashboardWidgets.forEach { widget ->
-                when (widget) {
-                    AppSettingsStore.WIDGET_GOAL -> {
-                        if (goalsEnabled) {
-                            item {
-                                GoalStreakCard(
-                            analytics = dashboardAnalytics,
-                            sleepGoalMinutes = sleepGoalMinutes,
-                            onInfo = {
-                                infoSheet = MetricInfo(
-                                    title = "Sleep goal & streak",
-                                    meaning = "Your latest sleep progress toward the personal nightly target and the number of consecutive tracked nights that met it.",
-                                    measurement = "Progress is latest estimated sleep minutes divided by your selected target. The streak counts consecutive recent nights at or above that target.",
-                                    importance = "A personal target helps make duration trends actionable without pretending one number is perfect for everyone."
-                                )
-                                }
-                            )
-                        }
+            item {
+                DashboardBentoGrid(
+                    widgets = dashboardWidgets,
+                    analytics = dashboardAnalytics,
+                    nights = nights,
+                    schedules = schedules,
+                    loading = loading,
+                    goalsEnabled = goalsEnabled,
+                    sleepGoalMinutes = sleepGoalMinutes,
+                    onEditSchedule = onEditSchedule,
+                    onSkipNext = onSkipNext,
+                    onGoAlarms = onGoAlarms,
+                    onInfo = {
+                        infoSheet = it
                     }
-                    }
-
-                    AppSettingsStore.WIDGET_SLEEP -> {
-                        if (loading) {
-                            item {
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(120.dp),
-                                    shape = RoundedCornerShape(20.dp),
-                                    border = BorderStroke(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.outlineVariant
-                                    ),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor =
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.70f)
-                                    )
-                                ) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(color = Cyan)
-                                    }
-                                }
-                            }
-                        } else if (nights.isNotEmpty()) {
-                            item {
-                                SleepMetricRow(
-                                    night = nights.first(),
-                                    goalsEnabled = goalsEnabled,
-                                    onInfo = { metric ->
-                                        infoSheet = metric
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    AppSettingsStore.WIDGET_INSIGHT -> item {
-                        HomeInsightCard(
-                            text = if (goalsEnabled) {
-                                SleepAnalytics.insightFor(
-                                    dashboardAnalytics,
-                                    sleepGoalMinutes
-                                )
-                            } else {
-                                "You averaged " +
-                                    formatMinutes(
-                                        dashboardAnalytics.averageSleepMinutes
-                                    ) +
-                                    " of sleep with " +
-                                    (
-                                        dashboardAnalytics.averageEfficiencyPercent
-                                            ?.let { it.toString() + "%" }
-                                            ?: "unavailable"
-                                        ) +
-                                    " estimated efficiency recently."
-                            },
-                            onInfo = {
-                                infoSheet = MetricInfo(
-                                    title = "WakeSync Insight",
-                                    meaning = "A plain-language observation derived from your recent local sleep trend.",
-                                    measurement = "WakeSync compares duration, regularity and stage trends on-device. Your raw health data is not sent to a cloud AI service.",
-                                    importance = "The goal is to surface useful repeatable patterns rather than overreact to a single night."
-                                )
-                            }
-                        )
-                    }
-                }
+                )
             }
 
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.End
                 ) {
-                    TextButton(onClick = onRefresh) {
+                    TextButton(
+                        onClick = onRefresh
+                    ) {
                         Text(
-                            text = "Refresh sleep data",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text =
+                                "Refresh sleep data",
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
