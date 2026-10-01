@@ -97,6 +97,15 @@ private enum class SleepSort {
     DURATION
 }
 
+private enum class LogRange(
+    val label: String
+) {
+    ALL("All"),
+    WEEK("7 Days"),
+    MONTH("30 Days"),
+    CUSTOM("Custom Range")
+}
+
 private val SleepScoreGreen = Color(0xFF10B981)
 private val SleepScoreCyan = Color(0xFF06B6D4)
 private val SleepScoreAmber = Color(0xFFF59E0B)
@@ -109,6 +118,7 @@ fun SleepAnalyticsScreen(
     nights: List<SleepNight>,
     loading: Boolean,
     targetSleepMinutes: Int,
+    goalsEnabled: Boolean,
     onRefresh: () -> Unit,
     onShareCsv: (List<NightAnalytics>) -> Unit,
     onSharePdf: (PeriodAnalytics) -> Unit,
@@ -153,6 +163,13 @@ fun SleepAnalyticsScreen(
     val analytics = remember(currentNights, targetSleepMinutes) {
         SleepAnalytics.analyze(
             currentNights,
+            targetSleepMinutes
+        )
+    }
+
+    val allAnalytics = remember(nights, targetSleepMinutes) {
+        SleepAnalytics.analyze(
+            nights,
             targetSleepMinutes
         )
     }
@@ -236,6 +253,7 @@ fun SleepAnalyticsScreen(
                 analytics = analytics,
                 previous = previousAnalytics,
                 targetSleepMinutes = targetSleepMinutes,
+                goalsEnabled = goalsEnabled,
                 onScoreClick = { showScoreBreakdown = true },
                 onInfo = {
                     infoSheet = MetricInfo(
@@ -248,10 +266,14 @@ fun SleepAnalyticsScreen(
             )
 
             InsightCard(
-                text = SleepAnalytics.insightFor(
-                    analytics,
-                    targetSleepMinutes
-                ),
+                text = if (goalsEnabled) {
+                    SleepAnalytics.insightFor(
+                        analytics,
+                        targetSleepMinutes
+                    )
+                } else {
+                    pureSleepInsight(analytics)
+                },
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "WakeSync Insight",
@@ -262,19 +284,17 @@ fun SleepAnalyticsScreen(
                 }
             )
 
-            analytics.nights.firstOrNull()?.let { latest ->
-                HypnogramCard(
-                    night = latest,
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Sleep hypnogram",
-                            meaning = "A timeline showing when the wearable classified you as Awake, REM, Light or Deep sleep.",
-                            measurement = "Built directly from the stage intervals provided in the Health Connect sleep session.",
-                            importance = "The shape helps you see fragmentation and stage transitions. Consumer wearable stages are estimates, not polysomnography."
-                        )
-                    }
-                )
-            }
+            HypnogramCard(
+                analytics = analytics,
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Sleep hypnogram & range metrics",
+                        meaning = "Latency is time taken to fall asleep. WASO (Wake After Sleep Onset) is minutes spent awake after initially falling asleep. Efficiency is the percentage of the sleep-session window spent asleep.",
+                        measurement = "The hypnogram uses Health Connect sleep-stage intervals. Range averages use the selected period's nightly latency, WASO and estimated efficiency values.",
+                        importance = "These metrics help separate short sleep from difficulty falling asleep, fragmented sleep, or low sleep continuity. Consumer wearable stages remain estimates."
+                    )
+                }
+            )
 
             TrendCard(
                 nights = analytics.nights
@@ -309,15 +329,15 @@ fun SleepAnalyticsScreen(
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Biometric recovery",
-                        meaning = "HRV and resting heart rate add autonomic and cardiovascular context when your source provides them.",
-                        measurement = "WakeSync reads optional HRV and resting-heart-rate records from Health Connect and summarizes the values associated with recent nights.",
+                        meaning = "HRV means Heart Rate Variability: beat-to-beat timing variation used as a recovery trend. RHR means Resting Heart Rate: your resting pulse rate.",
+                        measurement = "WakeSync reads optional HRV and RHR records from Health Connect and summarizes the values associated with recent nights.",
                         importance = "These metrics are usually most useful relative to your own baseline, not a universal good/bad threshold."
                     )
                 }
             )
 
             SleepLogCard(
-                analytics = analytics,
+                analytics = allAnalytics,
                 sort = sort,
                 onSort = { sort = it },
                 onNightSelected = { selectedNight = it },
@@ -365,6 +385,7 @@ fun SleepAnalyticsScreen(
         NightBreakdownSheet(
             night = selectedNight!!,
             targetSleepMinutes = targetSleepMinutes,
+            goalsEnabled = goalsEnabled,
             onDismiss = {
                 selectedNight = null
             }
