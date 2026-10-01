@@ -54,9 +54,9 @@ fun InfoTrigger(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                modifier = Modifier.padding(top = 4.dp),
-                text = "ⓘ",
+                text = "i",
                 style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
