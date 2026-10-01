@@ -469,8 +469,12 @@ private fun HomeTab(
                         infoSheet = MetricInfo(
                             title = "Morning briefing",
                             meaning = "A quick status view of your latest sleep period and recent recovery trend.",
-                            measurement = "WakeSync uses your recent Sleep Score, sleep-debt estimate and selected personal sleep target.",
-                            importance = "The briefing helps you see whether today looks recovered or sleep-debt heavy without digging through charts."
+                            measurement = if (goalsEnabled) {
+                                "WakeSync uses your recent Sleep Score, sleep-debt estimate and selected personal sleep target."
+                            } else {
+                                "WakeSync uses recent sleep duration, efficiency, stages and consistency without target/debt indicators."
+                            },
+                            importance = "The briefing gives a quick recovery snapshot without requiring you to dig through charts."
                         )
                     }
                 )
@@ -3185,7 +3189,10 @@ private fun BottomNav(
             .fillMaxWidth()
             .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 20.dp),
         shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
+        border = BorderStroke(
+            1.dp,
+            colors.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
             containerColor = colors.surface.copy(alpha = 0.90f),
             contentColor = colors.onSurface
@@ -3212,7 +3219,7 @@ private fun BottomNav(
                     label = "navScale" + tab.name
                 )
                 val contentColor by animateColorAsState(
-                    targetValue = if (active) Color.White else colors.onSurfaceVariant,
+                    targetValue = if (active) colors.onSurface else colors.onSurfaceVariant,
                     label = "navColor" + tab.name
                 )
 
