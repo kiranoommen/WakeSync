@@ -20,9 +20,14 @@ object SleepExporter {
 
     fun shareCsv(
         context: Context,
-        nights: List<NightAnalytics>
+        nights: List<NightAnalytics>,
+        retain: Boolean = false
     ) {
-        val file = File(context.cacheDir, "wakesync-sleep.csv")
+        val file = exportFile(
+            context = context,
+            fileName = "wakesync-sleep.csv",
+            retain = retain
+        )
         val zone = ZoneId.systemDefault()
         val time = DateTimeFormatter.ofPattern("h:mm a")
 
@@ -65,9 +70,14 @@ object SleepExporter {
 
     fun sharePdf(
         context: Context,
-        analytics: PeriodAnalytics
+        analytics: PeriodAnalytics,
+        retain: Boolean = false
     ) {
-        val file = File(context.cacheDir, "wakesync-sleep-summary.pdf")
+        val file = exportFile(
+            context = context,
+            fileName = "wakesync-sleep-summary.pdf",
+            retain = retain
+        )
         val document = PdfDocument()
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
@@ -184,11 +194,13 @@ object SleepExporter {
 
     fun shareStoryCard(
         context: Context,
-        analytics: PeriodAnalytics
+        analytics: PeriodAnalytics,
+        retain: Boolean = false
     ) {
-        val file = File(
-            context.cacheDir,
-            "wakesync-story.png"
+        val file = exportFile(
+            context = context,
+            fileName = "wakesync-story.png",
+            retain = retain
         )
 
         val width = 1080
@@ -433,6 +445,72 @@ object SleepExporter {
             chooserTitle =
                 "Share WakeSync story card"
         )
+    }
+
+
+    fun clearGeneratedExports(
+        context: Context
+    ) {
+        File(
+            context.filesDir,
+            "exports"
+        ).deleteRecursively()
+
+        listOf(
+            "wakesync-sleep.csv",
+            "wakesync-sleep-summary.pdf",
+            "wakesync-story.png"
+        ).forEach { name ->
+            File(
+                context.cacheDir,
+                name
+            ).delete()
+        }
+    }
+
+    private fun exportFile(
+        context: Context,
+        fileName: String,
+        retain: Boolean
+    ): File {
+        return if (retain) {
+            val directory = File(
+                context.filesDir,
+                "exports"
+            ).apply {
+                mkdirs()
+            }
+
+            val dot = fileName.lastIndexOf('.')
+            val base =
+                if (dot > 0) {
+                    fileName.substring(
+                        0,
+                        dot
+                    )
+                } else {
+                    fileName
+                }
+            val extension =
+                if (dot > 0) {
+                    fileName.substring(dot)
+                } else {
+                    ""
+                }
+
+            File(
+                directory,
+                base +
+                    "-" +
+                    System.currentTimeMillis() +
+                    extension
+            )
+        } else {
+            File(
+                context.cacheDir,
+                fileName
+            )
+        }
     }
 
     private fun scoreColorForStory(
