@@ -4373,38 +4373,33 @@ private fun BottomNav(
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
-            data class NavItem(
-                val tab: AppTab,
-                val label: String,
-                val icon: androidx.compose.ui.graphics.vector.ImageVector
-            )
-
             val tabs = listOf(
-                NavItem(
+                Triple(
                     AppTab.HOME,
                     "Home",
                     Icons.Default.Home
                 ),
-                NavItem(
+                Triple(
                     AppTab.ALARMS,
                     "Alarms",
                     Icons.Default.AccessAlarm
                 ),
-                NavItem(
+                Triple(
                     AppTab.SLEEP,
                     "Sleep",
                     Icons.Default.Bedtime
                 ),
-                NavItem(
+                Triple(
                     AppTab.SETTINGS,
                     "Settings",
                     Icons.Default.Settings
                 )
             )
 
-            tabs.forEach { item ->
+            tabs.forEach {
+                    (tab, label, icon) ->
                 val active =
-                    selected == item.tab
+                    selected == tab
                 val scale by
                     animateFloatAsState(
                         targetValue =
@@ -4419,7 +4414,7 @@ private fun BottomNav(
                         ),
                         label =
                             "navScale" +
-                                item.tab.name
+                                tab.name
                     )
                 val contentColor by
                     animateColorAsState(
@@ -4431,12 +4426,12 @@ private fun BottomNav(
                             },
                         label =
                             "navColor" +
-                                item.tab.name
+                                tab.name
                     )
 
                 Card(
                     onClick = {
-                        onSelected(item.tab)
+                        onSelected(tab)
                     },
                     modifier = Modifier
                         .scale(scale)
@@ -4482,9 +4477,9 @@ private fun BottomNav(
                             Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = item.icon,
+                            imageVector = icon,
                             contentDescription =
-                                item.label,
+                                label,
                             modifier =
                                 Modifier.size(24.dp),
                             tint = contentColor
@@ -4494,7 +4489,7 @@ private fun BottomNav(
                                 Modifier.padding(
                                     top = 2.dp
                                 ),
-                            text = item.label,
+                            text = label,
                             style =
                                 MaterialTheme.typography.labelSmall,
                             fontWeight =
