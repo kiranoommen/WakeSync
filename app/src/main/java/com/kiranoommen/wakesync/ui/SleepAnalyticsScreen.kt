@@ -1978,9 +1978,60 @@ private fun SleepLogCard(
     onNightSelected: (NightAnalytics) -> Unit,
     onInfo: () -> Unit
 ) {
+    var logRange by remember {
+        mutableStateOf(LogRange.ALL)
+    }
+    var customStart by remember {
+        mutableStateOf<LocalDate?>(null)
+    }
+    var customEnd by remember {
+        mutableStateOf<LocalDate?>(null)
+    }
+    var showCustomRange by remember {
+        mutableStateOf(false)
+    }
+
+    val latestDate =
+        analytics.nights.maxOfOrNull { it.date }
+            ?: LocalDate.now()
+
+    val filteredNights = remember(
+        analytics.nights,
+        logRange,
+        customStart,
+        customEnd
+    ) {
+        analytics.nights.filter { night ->
+            when (logRange) {
+                LogRange.ALL ->
+                    true
+
+                LogRange.WEEK ->
+                    !night.date.isBefore(
+                        latestDate.minusDays(6)
+                    )
+
+                LogRange.MONTH ->
+                    !night.date.isBefore(
+                        latestDate.minusDays(29)
+                    )
+
+                LogRange.CUSTOM -> {
+                    val start =
+                        customStart ?: latestDate.minusDays(6)
+                    val end =
+                        customEnd ?: latestDate
+
+                    !night.date.isBefore(start) &&
+                        !night.date.isAfter(end)
+                }
+            }
+        }
+    }
+
     val rows =
         sortedNights(
-            analytics.nights,
+            filteredNights,
             sort
         )
 
@@ -1991,12 +2042,86 @@ private fun SleepLogCard(
                 onInfo = onInfo
             )
 
+            Text(
+                modifier = Modifier.padding(top = 10.dp),
+                text = "Date range",
+                style =
+                    MaterialTheme.typography.bodySmall,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             Row(
                 modifier = Modifier
                     .horizontalScroll(
                         rememberScrollState()
                     )
-                    .padding(top = 8.dp),
+                    .padding(top = 7.dp),
+                horizontalArrangement =
+                    Arrangement.spacedBy(7.dp)
+            ) {
+                LogRange.values().forEach { item ->
+                    FilterChip(
+                        selected =
+                            logRange == item,
+                        onClick = {
+                            if (
+                                item ==
+                                LogRange.CUSTOM
+                            ) {
+                                showCustomRange = true
+                            } else {
+                                logRange = item
+                            }
+                        },
+                        label = {
+                            Text(item.label)
+                        }
+                    )
+                }
+            }
+
+            if (
+                logRange == LogRange.CUSTOM &&
+                customStart != null &&
+                customEnd != null
+            ) {
+                Text(
+                    modifier = Modifier.padding(top = 6.dp),
+                    text =
+                        customStart!!.format(
+                            DateTimeFormatter.ofPattern(
+                                "MMM d"
+                            )
+                        ) +
+                            " – " +
+                            customEnd!!.format(
+                                DateTimeFormatter.ofPattern(
+                                    "MMM d"
+                                )
+                            ),
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                modifier = Modifier.padding(top = 12.dp),
+                text = "Sort by",
+                style =
+                    MaterialTheme.typography.bodySmall,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(
+                        rememberScrollState()
+                    )
+                    .padding(top = 7.dp),
                 horizontalArrangement =
                     Arrangement.spacedBy(6.dp)
             ) {
@@ -2024,6 +2149,16 @@ private fun SleepLogCard(
                     }
             }
 
+            if (rows.isEmpty()) {
+                Text(
+                    modifier = Modifier.padding(top = 16.dp),
+                    text =
+                        "No sleep records match this date filter.",
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             rows.forEach { night ->
                 Card(
                     onClick = {
@@ -2033,7 +2168,7 @@ private fun SleepLogCard(
                         .fillMaxWidth()
                         .padding(top = 8.dp),
                     shape =
-                        RoundedCornerShape(18.dp),
+                        RoundedCornerShape(16.dp),
                     border = BorderStroke(
                         1.dp,
                         MaterialTheme.colorScheme.outlineVariant
@@ -2051,16 +2186,19 @@ private fun SleepLogCard(
                 ) {
                     Row(
                         modifier =
-                            Modifier.padding(
-                                horizontal = 13.dp,
-                                vertical = 11.dp
-                            ),
-                        horizontalArrangement =
-                            Arrangement.SpaceBetween,
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 13.dp,
+                                    vertical = 11.dp
+                                ),
                         verticalAlignment =
                             Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(
+                            modifier =
+                                Modifier.weight(1f)
+                        ) {
                             Text(
                                 text =
                                     night.date.format(
@@ -2069,7 +2207,9 @@ private fun SleepLogCard(
                                         )
                                     ),
                                 fontWeight =
-                                    FontWeight.Bold
+                                    FontWeight.Bold,
+                                color =
+                                    MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 modifier =
@@ -2094,36 +2234,82 @@ private fun SleepLogCard(
                             )
                         }
 
-                        Row(
-                            verticalAlignment =
-                                Alignment.CenterVertically
+                        Spacer(
+                            modifier =
+                                Modifier.width(12.dp)
+                        )
+
+                        Card(
+                            shape =
+                                RoundedCornerShape(999.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                scoreColor(
+                                    night.score
+                                ).copy(
+                                    alpha = 0.30f
+                                )
+                            ),
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        scoreColor(
+                                            night.score
+                                        ).copy(
+                                            alpha = 0.12f
+                                        ),
+                                    contentColor =
+                                        scoreColor(
+                                            night.score
+                                        )
+                                )
                         ) {
-                            Text(
-                                text =
-                                    night.score.toString(),
-                                style =
-                                    MaterialTheme.typography.titleLarge,
-                                fontWeight =
-                                    FontWeight.ExtraBold,
-                                color =
-                                    scoreColor(
-                                        night.score
-                                    )
-                            )
                             Text(
                                 modifier =
                                     Modifier.padding(
-                                        start = 8.dp
+                                        horizontal = 11.dp,
+                                        vertical = 7.dp
                                     ),
-                                text = "›",
-                                color =
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                text =
+                                    night.score.toString(),
+                                style =
+                                    MaterialTheme.typography.titleMedium,
+                                fontWeight =
+                                    FontWeight.ExtraBold
                             )
                         }
+
+                        Text(
+                            modifier =
+                                Modifier.padding(
+                                    start = 8.dp
+                                ),
+                            text = "›",
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
         }
+    }
+
+    if (showCustomRange) {
+        CustomRangeSheet(
+            initialStart =
+                customStart ?: latestDate.minusDays(6),
+            initialEnd =
+                customEnd ?: latestDate,
+            onDismiss = {
+                showCustomRange = false
+            },
+            onApply = { start, end ->
+                customStart = start
+                customEnd = end
+                logRange = LogRange.CUSTOM
+                showCustomRange = false
+            }
+        )
     }
 }
 
