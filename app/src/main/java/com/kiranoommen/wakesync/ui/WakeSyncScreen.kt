@@ -2396,7 +2396,7 @@ private fun SettingsTab(
                         title = "Health Connect data source",
                         meaning = "WakeSync reads sleep records through Android Health Connect rather than talking directly to every wearable vendor.",
                         measurement = "The source package attached to the latest sleep session identifies which connected app wrote the record.",
-                        importance = "One Health Connect integration lets WakeSync support Fitbit and other compatible Android health ecosystems with the same privacy model."
+                        importance = "One Health Connect integration keeps WakeSync wearable-agnostic across supported Android health ecosystems."
                     )
                 }
             ) {
@@ -2415,9 +2415,7 @@ private fun SettingsTab(
                         Text(
                             text =
                                 if (hasPermission) {
-                                    sourceFriendlyName(
-                                        source
-                                    )
+                                    "Health Connect Integration"
                                 } else {
                                     "Health Connect"
                                 },
@@ -2439,6 +2437,18 @@ private fun SettingsTab(
                                 } else {
                                     "Sleep permission not granted"
                                 },
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            modifier =
+                                Modifier.padding(
+                                    top = 7.dp
+                                ),
+                            text =
+                                "Compatible with Pixel Watch, Galaxy Watch, Garmin, Oura, Fitbit, and all Health Connect wearables.",
                             style =
                                 MaterialTheme.typography.bodySmall,
                             color =
@@ -3994,13 +4004,10 @@ private fun nearestUpcomingSkipped(
         .minByOrNull { it.second }
 }
 
-private fun sourceFriendlyName(packageName: String): String =
-    when {
-        packageName.contains("fitbit", ignoreCase = true) -> "Fitbit via Health Connect"
-        packageName.contains("samsung", ignoreCase = true) -> "Samsung Health via Health Connect"
-        packageName.isBlank() -> "Health Connect"
-        else -> packageName
-    }
+private fun sourceFriendlyName(
+    packageName: String
+): String =
+    "Health Connect Integration"
 
 private fun defaultSchedule(): AlarmSchedule =
     AlarmSchedule(
