@@ -3214,88 +3214,181 @@ private fun BottomNav(
     onSelected: (AppTab) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val isDark =
+        colors.background.luminance() < 0.5f
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 20.dp),
-        shape = RoundedCornerShape(20.dp),
+            .padding(
+                start = 8.dp,
+                end = 8.dp,
+                top = 8.dp,
+                bottom = 20.dp
+            ),
+        shape = RoundedCornerShape(999.dp),
         border = BorderStroke(
             1.dp,
-            colors.outlineVariant
+            if (isDark) {
+                Color.White.copy(alpha = 0.10f)
+            } else {
+                colors.outlineVariant
+            }
         ),
         colors = CardDefaults.cardColors(
-            containerColor = colors.surface.copy(alpha = 0.90f),
+            containerColor =
+                if (isDark) {
+                    Color(0xD9141926)
+                } else {
+                    Color(0xF2F8FAFC)
+                },
             contentColor = colors.onSurface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 10.dp
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 7.dp, vertical = 7.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement =
+                Arrangement.SpaceEvenly,
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
-            val tabs = listOf(
-                Triple(AppTab.HOME, "⌂", "Home"),
-                Triple(AppTab.ALARMS, "◷", "Alarms"),
-                Triple(AppTab.SLEEP, "☾", "Sleep"),
-                Triple(AppTab.SETTINGS, "⚙", "Settings")
+            data class NavItem(
+                val tab: AppTab,
+                val label: String,
+                val icon: androidx.compose.ui.graphics.vector.ImageVector
             )
 
-            tabs.forEach { (tab, icon, label) ->
-                val active = selected == tab
-                val scale by animateFloatAsState(
-                    targetValue = if (active) 1.04f else 1f,
-                    label = "navScale" + tab.name
+            val tabs = listOf(
+                NavItem(
+                    AppTab.HOME,
+                    "Home",
+                    Icons.Default.Home
+                ),
+                NavItem(
+                    AppTab.ALARMS,
+                    "Alarms",
+                    Icons.Default.AccessAlarm
+                ),
+                NavItem(
+                    AppTab.SLEEP,
+                    "Sleep",
+                    Icons.Default.Bedtime
+                ),
+                NavItem(
+                    AppTab.SETTINGS,
+                    "Settings",
+                    Icons.Default.Settings
                 )
-                val contentColor by animateColorAsState(
-                    targetValue = if (active) colors.onSurface else colors.onSurfaceVariant,
-                    label = "navColor" + tab.name
-                )
+            )
+
+            tabs.forEach { item ->
+                val active =
+                    selected == item.tab
+                val scale by
+                    animateFloatAsState(
+                        targetValue =
+                            if (active) {
+                                1.03f
+                            } else {
+                                1f
+                            },
+                        animationSpec = spring(
+                            stiffness = 300f,
+                            dampingRatio = 0.78f
+                        ),
+                        label =
+                            "navScale" +
+                                item.tab.name
+                    )
+                val contentColor by
+                    animateColorAsState(
+                        targetValue =
+                            if (active) {
+                                colors.onSurface
+                            } else {
+                                colors.onSurfaceVariant
+                            },
+                        label =
+                            "navColor" +
+                                item.tab.name
+                    )
 
                 Card(
-                    onClick = { onSelected(tab) },
-                    modifier = Modifier.scale(scale),
-                    shape = RoundedCornerShape(22.dp),
-                    border = if (active) {
-                        BorderStroke(1.dp, Lavender.copy(alpha = 0.28f))
-                    } else {
-                        null
+                    onClick = {
+                        onSelected(item.tab)
                     },
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (active) {
-                            Lavender.copy(alpha = 0.16f)
+                    modifier = Modifier
+                        .scale(scale)
+                        .height(58.dp),
+                    shape =
+                        RoundedCornerShape(
+                            999.dp
+                        ),
+                    border =
+                        if (active) {
+                            BorderStroke(
+                                1.dp,
+                                Lavender.copy(
+                                    alpha = 0.24f
+                                )
+                            )
                         } else {
-                            Color.Transparent
+                            null
                         },
-                        contentColor = contentColor
-                    )
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                if (active) {
+                                    Lavender.copy(
+                                        alpha = 0.16f
+                                    )
+                                } else {
+                                    Color.Transparent
+                                },
+                            contentColor =
+                                contentColor
+                        )
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier
+                            .padding(
+                                horizontal = 14.dp,
+                                vertical = 7.dp
+                            ),
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally,
+                        verticalArrangement =
+                            Arrangement.Center
                     ) {
-                        Text(
-                            text = icon,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = contentColor
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription =
+                                item.label,
+                            modifier =
+                                Modifier.size(24.dp),
+                            tint = contentColor
                         )
                         Text(
-                            modifier = Modifier.padding(top = 1.dp),
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                            color = contentColor
-                        )
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 4.dp)
-                                .size(if (active) 4.dp else 0.dp)
-                                .background(
-                                    color = if (active) Sunrise else Color.Transparent,
-                                    shape = CircleShape
-                                )
+                            modifier =
+                                Modifier.padding(
+                                    top = 2.dp
+                                ),
+                            text = item.label,
+                            style =
+                                MaterialTheme.typography.labelSmall,
+                            fontWeight =
+                                if (active) {
+                                    FontWeight.Bold
+                                } else {
+                                    FontWeight.Medium
+                                },
+                            color =
+                                contentColor
                         )
                     }
                 }
