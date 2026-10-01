@@ -23,6 +23,7 @@ import com.kiranoommen.wakesync.alarm.AlarmScheduler
 import com.kiranoommen.wakesync.data.AlarmStore
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.HealthConnectManager
+import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.domain.WakeWindowEngine
 import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
@@ -61,6 +62,12 @@ class MainActivity : ComponentActivity() {
             }
             var dashboardWidgets by remember {
                 mutableStateOf(appSettings.dashboardWidgets)
+            }
+            var maxSmartWindowMinutes by remember {
+                mutableStateOf(appSettings.maxSmartWindowMinutes)
+            }
+            var retainGeneratedExports by remember {
+                mutableStateOf(appSettings.retainGeneratedExports)
             }
 
             val historyReadAvailable = healthConnectManager.historyReadAvailable()
@@ -216,6 +223,8 @@ class MainActivity : ComponentActivity() {
                 themeMode = themeMode,
                 sleepGoalMinutes = sleepGoalMinutes,
                 dashboardWidgets = dashboardWidgets,
+                maxSmartWindowMinutes = maxSmartWindowMinutes,
+                retainGeneratedExports = retainGeneratedExports,
                 errorMessage = errorMessage,
                 onConnect = {
                     healthPermissionLauncher.launch(
@@ -226,8 +235,15 @@ class MainActivity : ComponentActivity() {
                     refreshSleep()
                 },
                 onSaveSchedule = { schedule ->
+                    val cappedWindow = schedule.smartWindowMinutes
+                        .coerceAtMost(maxSmartWindowMinutes)
+                    val capped = schedule.copy(
+                        smartWindowMinutes = cappedWindow,
+                        smartOffsetMinutes = schedule.smartOffsetMinutes
+                            .coerceAtMost(cappedWindow)
+                    )
                     val next = schedules
-                        .filterNot { it.id == schedule.id } + schedule
+                        .filterNot { it.id == capped.id } + capped
                     persist(next)
                 },
                 onDeleteSchedule = { schedule ->
@@ -314,6 +330,33 @@ class MainActivity : ComponentActivity() {
                 onDashboardWidgetsChange = { widgets ->
                     dashboardWidgets = widgets
                     appSettings.dashboardWidgets = widgets
+                },
+                onMaxSmartWindowChange = { minutes ->
+                    maxSmartWindowMinutes = minutes
+                    appSettings.maxSmartWindowMinutes = minutes
+
+                    persist(
+                        schedules.map { schedule ->
+                            val capped = schedule.smartWindowMinutes
+                                .coerceAtMost(minutes)
+                            schedule.copy(
+                                smartWindowMinutes = capped,
+                                smartOffsetMinutes = schedule.smartOffsetMinutes
+                                    .coerceAtMost(capped)
+                            )
+                        }
+                    )
+                },
+                onRetainGeneratedExportsChange = { retain ->
+                    retainGeneratedExports = retain
+                    appSettings.retainGeneratedExports = retain
+
+                    if (!retain) {
+                        SleepExporter.clearGeneratedExports(this@MainActivity)
+                    }
+                },
+                onClearGeneratedExports = {
+                    SleepExporter.clearGeneratedExports(this@MainActivity)
                 }
             )
         }
