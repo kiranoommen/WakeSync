@@ -58,10 +58,15 @@ Implement:
 
 ## Milestone 5 — Alarm behavior
 
-Implement reliable Android alarm scheduling.
+Implement reliable Android alarm scheduling with flexible per-day wake schedules.
 
 Requirements:
 
+- wake-by time is **not** one global setting;
+- users can assign different wake-by times to different weekdays;
+- days can be left off entirely (for example, weekends with no alarm);
+- support grouped schedules such as Mon/Tue/Thu/Fri at one time and Wed at another;
+- support one-time overrides for tomorrow without changing the recurring schedule;
 - final deadline alarm cannot be skipped by recommendation logic;
 - clear handling for battery optimization and exact alarms;
 - the user should **not** need to open WakeSync or tap "I'm awake" every morning;
@@ -69,6 +74,8 @@ Requirements:
 - optional wake-quality feedback can be offered later, but must not block or require morning use;
 - snooze strategy;
 - wake feedback.
+
+See [ALARM_SCHEDULING.md](ALARM_SCHEDULING.md).
 
 ## Milestone 6 — Real-world Fitbit testing
 
