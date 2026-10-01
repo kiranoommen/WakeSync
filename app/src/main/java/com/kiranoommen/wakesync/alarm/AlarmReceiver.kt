@@ -54,11 +54,14 @@ class AlarmReceiver : BroadcastReceiver() {
         context.getSystemService(NotificationManager::class.java)
             .notify(scheduleId.hashCode(), notification)
 
-        // Ensure the next recurring occurrence exists.
-        AlarmScheduler(context).scheduleNext(
-            schedule = schedule,
-            after = schedule.nextDeadline()?.plusMinutes(1) ?: java.time.ZonedDateTime.now().plusMinutes(1)
-        )
+        // Keep the current deadline backup intact when an early smart alarm fires.
+        // Once the hard deadline itself fires, move the recurring schedule forward.
+        if (kind == AlarmScheduler.KIND_DEADLINE) {
+            AlarmScheduler(context).scheduleNext(
+                schedule = schedule,
+                after = java.time.ZonedDateTime.now().plusMinutes(1)
+            )
+        }
     }
 
     private fun createChannel(context: Context) {
