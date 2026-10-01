@@ -566,7 +566,7 @@ private fun HomeTab(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(120.dp),
-                                    shape = RoundedCornerShape(28.dp),
+                                    shape = RoundedCornerShape(20.dp),
                                     border = BorderStroke(
                                         1.dp,
                                         MaterialTheme.colorScheme.outlineVariant
@@ -598,10 +598,24 @@ private fun HomeTab(
 
                     AppSettingsStore.WIDGET_INSIGHT -> item {
                         HomeInsightCard(
-                            text = SleepAnalytics.insightFor(
-                                dashboardAnalytics,
-                                sleepGoalMinutes
-                            ),
+                            text = if (goalsEnabled) {
+                                SleepAnalytics.insightFor(
+                                    dashboardAnalytics,
+                                    sleepGoalMinutes
+                                )
+                            } else {
+                                "You averaged " +
+                                    formatMinutes(
+                                        dashboardAnalytics.averageSleepMinutes
+                                    ) +
+                                    " of sleep with " +
+                                    (
+                                        dashboardAnalytics.averageEfficiencyPercent
+                                            ?.let { it.toString() + "%" }
+                                            ?: "unavailable"
+                                        ) +
+                                    " estimated efficiency recently."
+                            },
                             onInfo = {
                                 infoSheet = MetricInfo(
                                     title = "WakeSync Insight",
@@ -725,7 +739,7 @@ private fun MorningBriefingCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant
@@ -925,7 +939,7 @@ private fun GoalStreakCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(30.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant
@@ -1045,7 +1059,7 @@ private fun HomeInsightCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, Lavender.copy(alpha = 0.30f)),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
@@ -1612,7 +1626,7 @@ private fun AlarmScheduleCard(
             .fillMaxWidth()
             .scale(cardScale)
             .clickable(onClick = onEdit),
-        shape = RoundedCornerShape(30.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, colors.outlineVariant),
         colors = CardDefaults.cardColors(
             containerColor = colors.surface.copy(alpha = 0.72f),
@@ -1809,7 +1823,7 @@ private fun AlarmScheduleCard(
     if (showDisableChoice) {
         AlertDialog(
             onDismissRequest = { showDisableChoice = false },
-            shape = RoundedCornerShape(30.dp),
+            shape = RoundedCornerShape(20.dp),
             containerColor = colors.surface,
             titleContentColor = colors.onSurface,
             textContentColor = colors.onSurfaceVariant,
@@ -1966,71 +1980,93 @@ private fun SettingsTab(
                 title = "Targets & Goals",
                 onInfo = {
                     infoSheet = MetricInfo(
-                        title = "Sleep target",
-                        meaning = "Your personal nightly sleep-duration target.",
-                        measurement = "WakeSync compares estimated nightly sleep minutes with this selected target for goal progress and sleep-debt estimates.",
-                        importance = "A personal target makes trends actionable without treating one universal number as perfect for everyone."
+                        title = "Sleep targets & goals",
+                        meaning = "Optional personal targets for nightly sleep duration, goal progress and sleep-debt estimates.",
+                        measurement = "When enabled, WakeSync compares estimated nightly sleep minutes with your selected target. When disabled, target and debt indicators are hidden.",
+                        importance = "Some people find targets motivating; others prefer neutral duration and efficiency trends. WakeSync supports both."
                     )
                 }
             ) {
-                Text(
-                    text = "Sleep target",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                SettingsToggleRow(
+                    title = "Enable Sleep Targets & Goals",
+                    subtitle =
+                        if (goalsEnabled) {
+                            "Target progress and sleep-debt indicators are shown"
+                        } else {
+                            "WakeSync shows duration and efficiency without target/debt labels"
+                        },
+                    checked = goalsEnabled,
+                    enabled = true,
+                    onCheckedChange = onGoalsEnabledChange
                 )
 
-                Row(
-                    modifier = Modifier
-                        .horizontalScroll(
-                            rememberScrollState()
-                        )
-                        .padding(top = 10.dp),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(7.dp)
-                ) {
-                    listOf(
-                        420 to "7h",
-                        450 to "7.5h",
-                        480 to "8h",
-                        510 to "8.5h",
-                        540 to "9h"
-                    ).forEach { (minutes, label) ->
-                        FilterChip(
-                            selected =
-                                sleepGoalMinutes == minutes,
-                            onClick = {
-                                onSleepGoalChange(minutes)
-                            },
-                            label = {
-                                Text(
-                                    label,
-                                    fontWeight =
-                                        if (
-                                            sleepGoalMinutes ==
-                                            minutes
-                                        ) {
-                                            FontWeight.Bold
-                                        } else {
-                                            FontWeight.Medium
-                                        }
-                                )
-                            }
-                        )
+                if (goalsEnabled) {
+                    Text(
+                        text = "Sleep target",
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .horizontalScroll(
+                                rememberScrollState()
+                            )
+                            .padding(top = 6.dp),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(7.dp)
+                    ) {
+                        listOf(
+                            420 to "7h",
+                            450 to "7.5h",
+                            480 to "8h",
+                            510 to "8.5h",
+                            540 to "9h"
+                        ).forEach { (minutes, label) ->
+                            FilterChip(
+                                selected =
+                                    sleepGoalMinutes == minutes,
+                                onClick = {
+                                    onSleepGoalChange(minutes)
+                                },
+                                label = {
+                                    Text(
+                                        label,
+                                        fontWeight =
+                                            if (
+                                                sleepGoalMinutes ==
+                                                minutes
+                                            ) {
+                                                FontWeight.Bold
+                                            } else {
+                                                FontWeight.Medium
+                                            }
+                                    )
+                                }
+                            )
+                        }
                     }
-                }
 
-                Text(
-                    modifier =
-                        Modifier.padding(top = 8.dp),
-                    text =
-                        "Used for goal progress and sleep-debt estimates.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    Text(
+                        text =
+                            "Used for goal progress and sleep-debt estimates.",
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text(
+                        text =
+                            "Targets are off. Sleep views now emphasize actual sleep duration, efficiency, stages and consistency.",
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
@@ -2441,7 +2477,7 @@ private fun SettingsBentoCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
             borderColor
@@ -2933,7 +2969,7 @@ private fun BottomNav(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 20.dp),
-        shape = RoundedCornerShape(30.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
         colors = CardDefaults.cardColors(
             containerColor = colors.surface.copy(alpha = 0.90f),
@@ -3305,23 +3341,38 @@ private fun QuickMetricCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant
         ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
-            contentColor = MaterialTheme.colorScheme.onSurface
+            containerColor =
+                MaterialTheme.colorScheme.surface
+                    .copy(alpha = 0.68f),
+            contentColor =
+                MaterialTheme.colorScheme.onSurface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp
         )
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            InfoTrigger(
+                onClick = onInfo,
+                modifier = Modifier.align(Alignment.TopEnd)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 7.dp),
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
             ) {
                 Box(
                     modifier = Modifier
@@ -3331,21 +3382,25 @@ private fun QuickMetricCard(
                             shape = CircleShape
                         )
                 )
-                InfoTrigger(onClick = onInfo)
+                Text(
+                    modifier = Modifier.padding(top = 11.dp),
+                    text = value,
+                    style =
+                        MaterialTheme.typography.titleMedium,
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    color =
+                        MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    modifier = Modifier.padding(top = 3.dp),
+                    text = label,
+                    style =
+                        MaterialTheme.typography.labelSmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Text(
-                modifier = Modifier.padding(top = 14.dp),
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                modifier = Modifier.padding(top = 3.dp),
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
