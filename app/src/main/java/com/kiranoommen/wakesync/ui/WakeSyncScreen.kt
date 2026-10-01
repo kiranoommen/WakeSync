@@ -1909,21 +1909,24 @@ private fun PrivacyBanner() {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(999.dp),
+        border = BorderStroke(1.dp, colors.outlineVariant),
         colors = CardDefaults.cardColors(
-            containerColor = colors.surface.copy(alpha = 0.76f)
+            containerColor = colors.surface.copy(alpha = 0.64f),
+            contentColor = colors.onSurfaceVariant
         )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "🔒")
             Text(
-                text = "Processed on your device",
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                modifier = Modifier.padding(top = 3.dp),
-                text = "Read-only access. Your sleep data stays on this device.",
+                modifier = Modifier.padding(start = 9.dp),
+                text = "On-Device Processing · Private & Secure",
                 style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
+                color = colors.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
             )
         }
     }
@@ -2089,16 +2092,31 @@ private fun SleepMetricRow(night: SleepNight) {
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
     ) {
-        MetricCard(Modifier.weight(1f), "Total", formatMinutes(total), Amber)
-        MetricCard(Modifier.weight(1f), "Deep", formatMinutes(deep), Indigo)
-        MetricCard(Modifier.weight(1f), "REM", formatMinutes(rem), Lavender)
+        QuickMetricCard(
+            modifier = Modifier.weight(1f),
+            label = "Total Sleep",
+            value = formatMinutes(total),
+            accent = Cyan
+        )
+        QuickMetricCard(
+            modifier = Modifier.weight(1f),
+            label = "Deep Sleep",
+            value = formatMinutes(deep),
+            accent = Lavender
+        )
+        QuickMetricCard(
+            modifier = Modifier.weight(1f),
+            label = "REM Sleep",
+            value = formatMinutes(rem),
+            accent = Indigo
+        )
     }
 }
 
 @Composable
-private fun MetricCard(
+private fun QuickMetricCard(
     modifier: Modifier,
     label: String,
     value: String,
@@ -2106,17 +2124,38 @@ private fun MetricCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(26.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = accent.copy(alpha = 0.10f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
-        Column(modifier = Modifier.padding(horizontal = 11.dp, vertical = 12.dp)) {
-            Text(value, fontWeight = FontWeight.Bold)
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        color = accent,
+                        shape = CircleShape
+                    )
+            )
             Text(
-                modifier = Modifier.padding(top = 2.dp),
+                modifier = Modifier.padding(top = 14.dp),
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                modifier = Modifier.padding(top = 3.dp),
                 text = label,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
