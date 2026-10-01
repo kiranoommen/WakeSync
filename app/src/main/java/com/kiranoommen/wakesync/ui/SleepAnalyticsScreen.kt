@@ -216,13 +216,17 @@ private fun FilterBar(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.68f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -231,7 +235,16 @@ private fun FilterBar(
                     FilterChip(
                         selected = selected == item,
                         onClick = { onSelected(item) },
-                        label = { Text(item.label) }
+                        label = {
+                            Text(
+                                item.label,
+                                fontWeight = if (selected == item) {
+                                    FontWeight.Bold
+                                } else {
+                                    FontWeight.Medium
+                                }
+                            )
+                        }
                     )
                 }
             }
@@ -239,7 +252,7 @@ private fun FilterBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -248,14 +261,20 @@ private fun FilterBar(
                         text = rangeStart.format(DateTimeFormatter.ofPattern("MMM d")) +
                             " – " + rangeEnd.format(DateTimeFormatter.ofPattern("MMM d")),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
+                        modifier = Modifier.padding(top = 2.dp),
                         text = "Compare with previous period",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Switch(checked = compare, onCheckedChange = onCompareChanged)
+                Switch(
+                    checked = compare,
+                    onCheckedChange = onCompareChanged
+                )
             }
         }
     }
@@ -272,81 +291,112 @@ private fun ScoreHero(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(30.dp),
+        shape = RoundedCornerShape(32.dp),
+        border = BorderStroke(1.dp, Lavender.copy(alpha = 0.26f)),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Indigo, Lavender, Amber)
-                        )
-                    )
-            )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawCircle(
+                    color = Lavender.copy(alpha = 0.13f),
+                    radius = size.minDimension * 0.78f,
+                    center = Offset(size.width * 0.04f, size.height * 0.08f)
+                )
+                drawCircle(
+                    color = Sunrise.copy(alpha = 0.10f),
+                    radius = size.minDimension * 0.64f,
+                    center = Offset(size.width * 0.96f, size.height * 0.98f)
+                )
+            }
+
             Row(
                 modifier = Modifier.padding(18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-            ScoreRing(
-                score = score,
-                modifier = Modifier.width(126.dp).height(126.dp)
-            )
-
-            Column(modifier = Modifier.weight(1f).padding(start = 18.dp)) {
-                Text(
-                    text = "Sleep performance",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    modifier = Modifier.padding(top = 4.dp),
-                    text = when {
-                        score >= 90 -> "Excellent"
-                        score >= 80 -> "Strong"
-                        score >= 70 -> "Fair"
-                        else -> "Needs attention"
-                    },
-                    color = Amber,
-                    fontWeight = FontWeight.SemiBold
+                ScoreRing(
+                    score = score,
+                    modifier = Modifier
+                        .width(126.dp)
+                        .height(126.dp)
                 )
 
-                if (delta != null && previous.nights.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 18.dp)
+                ) {
+                    Text(
+                        text = "Sleep performance",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
                     Text(
                         modifier = Modifier.padding(top = 4.dp),
-                        text = (if (delta >= 0) "+" else "") + delta + " vs previous period",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = when {
+                            score >= 90 -> "Excellent"
+                            score >= 80 -> "Strong"
+                            score >= 70 -> "Fair"
+                            else -> "Needs attention"
+                        },
+                        color = Sunrise,
+                        fontWeight = FontWeight.Bold
                     )
-                }
 
-                Spacer(Modifier.height(12.dp))
-                MetricLine("Avg sleep", formatMinutes(analytics.averageSleepMinutes))
-                MetricLine(
-                    "Efficiency",
-                    analytics.averageEfficiencyPercent?.let { it.toString() + "%" } ?: "—"
-                )
-                MetricLine(
-                    "Sleep debt",
-                    if (analytics.sleepDebtMinutes > 0) {
-                        "-" + formatMinutes(analytics.sleepDebtMinutes)
-                    } else "0m"
-                )
-                MetricLine("Target", formatMinutes(targetSleepMinutes.toLong()))
-            }
+                    if (delta != null && previous.nights.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier.padding(top = 8.dp),
+                            shape = RoundedCornerShape(999.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (delta >= 0) {
+                                    Mint.copy(alpha = 0.12f)
+                                } else {
+                                    Sunrise.copy(alpha = 0.12f)
+                                },
+                                contentColor = if (delta >= 0) Mint else Sunrise
+                            )
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                                text = (if (delta >= 0) "+" else "") +
+                                    delta + " vs previous",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    MetricLine("Avg sleep", formatMinutes(analytics.averageSleepMinutes))
+                    MetricLine(
+                        "Efficiency",
+                        analytics.averageEfficiencyPercent?.let {
+                            it.toString() + "%"
+                        } ?: "—"
+                    )
+                    MetricLine(
+                        "Sleep debt",
+                        if (analytics.sleepDebtMinutes > 0) {
+                            "-" + formatMinutes(analytics.sleepDebtMinutes)
+                        } else {
+                            "0m"
+                        }
+                    )
+                    MetricLine("Target", formatMinutes(targetSleepMinutes.toLong()))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ScoreRing(score: Int, modifier: Modifier) {
-    val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+private fun ScoreRing(
+    score: Int,
+    modifier: Modifier
+) {
+    val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)
     val animatedScore by animateFloatAsState(
         targetValue = score.coerceIn(0, 100).toFloat(),
         label = "sleepScore"
@@ -354,11 +404,16 @@ private fun ScoreRing(score: Int, modifier: Modifier) {
 
     Box(
         modifier = modifier.semantics {
-            contentDescription = "Sleep performance score " + score + " out of 100"
+            contentDescription = "Sleep performance score " +
+                score + " out of 100"
         },
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.fillMaxWidth().height(126.dp)) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(126.dp)
+        ) {
             val stroke = 11.dp.toPx()
             val diameter = size.minDimension - stroke
             val origin = Offset(
@@ -376,7 +431,14 @@ private fun ScoreRing(score: Int, modifier: Modifier) {
                 style = Stroke(width = stroke, cap = StrokeCap.Round)
             )
             drawArc(
-                color = Amber,
+                brush = Brush.sweepGradient(
+                    listOf(
+                        Lavender,
+                        Sunrise,
+                        Cyan,
+                        Lavender
+                    )
+                ),
                 startAngle = -90f,
                 sweepAngle = 360f * animatedScore / 100f,
                 useCenter = false,
@@ -390,7 +452,8 @@ private fun ScoreRing(score: Int, modifier: Modifier) {
             Text(
                 text = score.toString(),
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = "/ 100",
@@ -405,21 +468,39 @@ private fun ScoreRing(score: Int, modifier: Modifier) {
 private fun InsightCard(text: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(1.dp, Lavender.copy(alpha = 0.30f)),
         colors = CardDefaults.cardColors(
-            containerColor = Lavender.copy(alpha = 0.10f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.68f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("WakeSync insight", fontWeight = FontWeight.Bold, color = Lavender)
-            Text(modifier = Modifier.padding(top = 7.dp), text = text)
-            Text(
-                modifier = Modifier.padding(top = 8.dp),
-                text = "Generated locally from your trend data.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawCircle(
+                    color = Lavender.copy(alpha = 0.12f),
+                    radius = size.minDimension * 0.68f,
+                    center = Offset(size.width * 0.94f, size.height * 0.08f)
+                )
+            }
+            Column(modifier = Modifier.padding(17.dp)) {
+                Text(
+                    text = "✨  WakeSync Insight",
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Lavender
+                )
+                Text(
+                    modifier = Modifier.padding(top = 8.dp),
+                    text = text,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    modifier = Modifier.padding(top = 8.dp),
+                    text = "Generated locally from your trend data",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
