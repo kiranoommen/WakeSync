@@ -27,6 +27,13 @@ data class NightAnalytics(
     val scoreLabel: String
 )
 
+data class ScoreBreakdown(
+    val duration: Int,
+    val efficiency: Int,
+    val stageRatios: Int,
+    val consistency: Int
+)
+
 data class PeriodAnalytics(
     val nights: List<NightAnalytics>,
     val averageSleepMinutes: Long,
@@ -37,7 +44,8 @@ data class PeriodAnalytics(
     val averageDeepPercent: Int?,
     val averageRemPercent: Int?,
     val averageHrvMs: Double?,
-    val averageRestingHeartRateBpm: Double?
+    val averageRestingHeartRateBpm: Double?,
+    val scoreBreakdown: ScoreBreakdown
 )
 
 object SleepAnalytics {
@@ -46,20 +54,98 @@ object SleepAnalytics {
         nights: List<SleepNight>,
         targetSleepMinutes: Int = 480
     ): PeriodAnalytics {
-        val sorted = nights
+        val base = nights
             .sortedByDescending { it.end }
             .map { analyzeNight(it) }
 
-        val avgSleep = sorted.map { it.asleepMinutes }.averageLongOrNull()?.roundToInt()?.toLong() ?: 0L
-        val avgEfficiency = sorted.mapNotNull { it.efficiencyPercent }.averageIntOrNull()?.roundToInt()
-        val debt = sorted.sumOf { max(0L, targetSleepMinutes.toLong() - it.asleepMinutes) }
         val regularity = sleepRegularityIndex(nights)
-        val avgDeep = sorted.map { it.deepPercent }.averageIntOrNull()?.roundToInt()
-        val avgRem = sorted.map { it.remPercent }.averageIntOrNull()?.roundToInt()
-        val avgScore = sorted.map { it.score }.averageIntOrNull()?.roundToInt()
+        val consistencyScore = (regularity ?: 50).coerceIn(0, 100)
+
+        val scored = base.map { night ->
+            val duration = durationScore(night.asleepMinutes)
+            val efficiency = night.efficiencyPercent
+                ?.let { efficiencyScore(it) }
+                ?: 50.0
+            val stages = architectureScore(
+                night.deepPercent,
+                night.remPercent
+            )
+            val overall = (
+                duration * 0.40 +
+                    efficiency * 0.25 +
+                    stages * 0.20 +
+                    consistencyScore * 0.15
+                ).roundToInt().coerceIn(0, 100)
+
+            night.copy(
+                score = overall,
+                scoreLabel = scoreLabel(overall)
+            )
+        }
+
+        val avgSleep = scored
+            .map { it.asleepMinutes }
+            .averageLongOrNull()
+            ?.roundToInt()
+            ?.toLong()
+            ?: 0L
+        val avgEfficiency = scored
+            .mapNotNull { it.efficiencyPercent }
+            .averageIntOrNull()
+            ?.roundToInt()
+        val debt = scored.sumOf {
+            max(0L, targetSleepMinutes.toLong() - it.asleepMinutes)
+        }
+        val avgDeep = scored
+            .map { it.deepPercent }
+            .averageIntOrNull()
+            ?.roundToInt()
+        val avgRem = scored
+            .map { it.remPercent }
+            .averageIntOrNull()
+            ?.roundToInt()
+
+        val durationSubscore = scored
+            .map { durationScore(it.asleepMinutes) }
+            .averageDoubleOrNull()
+            ?.roundToInt()
+            ?: 0
+        val efficiencySubscore = scored
+            .map {
+                it.efficiencyPercent
+                    ?.let(::efficiencyScore)
+                    ?: 50.0
+            }
+            .averageDoubleOrNull()
+            ?.roundToInt()
+            ?: 0
+        val stageSubscore = scored
+            .map {
+                architectureScore(
+                    it.deepPercent,
+                    it.remPercent
+                )
+            }
+            .averageDoubleOrNull()
+            ?.roundToInt()
+            ?: 0
+
+        val breakdown = ScoreBreakdown(
+            duration = durationSubscore.coerceIn(0, 100),
+            efficiency = efficiencySubscore.coerceIn(0, 100),
+            stageRatios = stageSubscore.coerceIn(0, 100),
+            consistency = consistencyScore
+        )
+
+        val avgScore = (
+            breakdown.duration * 0.40 +
+                breakdown.efficiency * 0.25 +
+                breakdown.stageRatios * 0.20 +
+                breakdown.consistency * 0.15
+            ).roundToInt().coerceIn(0, 100)
 
         return PeriodAnalytics(
-            nights = sorted,
+            nights = scored,
             averageSleepMinutes = avgSleep,
             averageEfficiencyPercent = avgEfficiency,
             sleepDebtMinutes = debt,
@@ -67,10 +153,13 @@ object SleepAnalytics {
             averageScore = avgScore,
             averageDeepPercent = avgDeep,
             averageRemPercent = avgRem,
-            averageHrvMs = nights.mapNotNull { it.averageHrvMs }.averageDoubleOrNull(),
+            averageHrvMs = nights
+                .mapNotNull { it.averageHrvMs }
+                .averageDoubleOrNull(),
             averageRestingHeartRateBpm = nights
                 .mapNotNull { it.restingHeartRateBpm?.toDouble() }
-                .averageDoubleOrNull()
+                .averageDoubleOrNull(),
+            scoreBreakdown = breakdown
         )
     }
 
@@ -134,9 +223,10 @@ object SleepAnalytics {
         val architectureScore = architectureScore(deepPct, remPct)
 
         val score = (
-            durationScore * 0.50 +
-                continuityScore * 0.35 +
-                architectureScore * 0.15
+            durationScore * 0.40 +
+                continuityScore * 0.25 +
+                architectureScore * 0.20 +
+                50.0 * 0.15
             ).roundToInt().coerceIn(0, 100)
 
         return NightAnalytics(
@@ -154,12 +244,7 @@ object SleepAnalytics {
             bedtimeMinute = bedtime.hour * 60 + bedtime.minute,
             wakeMinute = wake.hour * 60 + wake.minute,
             score = score,
-            scoreLabel = when {
-                score >= 90 -> "Excellent"
-                score >= 80 -> "Strong"
-                score >= 70 -> "Fair"
-                else -> "Low"
-            }
+            scoreLabel = scoreLabel(score)
         )
     }
 
@@ -239,6 +324,14 @@ object SleepAnalytics {
 
         return "Your recent sleep pattern is relatively stable. WakeSync will keep favoring later wake points unless an earlier point looks meaningfully better."
     }
+
+    private fun scoreLabel(score: Int): String =
+        when {
+            score >= 90 -> "Excellent"
+            score >= 75 -> "Good"
+            score >= 60 -> "Fair"
+            else -> "Low"
+        }
 
     private fun isAsleepAt(
         date: LocalDate,
