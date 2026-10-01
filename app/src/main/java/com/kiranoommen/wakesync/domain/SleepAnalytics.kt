@@ -255,7 +255,7 @@ object SleepAnalytics {
 
     private fun durationScore(minutes: Long): Double {
         return when {
-            minutes in 420..540 -> 100.0
+            minutes in 420L..540L -> 100.0
             minutes < 420 -> (minutes.toDouble() / 420.0 * 100.0).coerceIn(0.0, 100.0)
             else -> max(70.0, 100.0 - (minutes - 540) * 0.20)
         }
