@@ -1360,7 +1360,7 @@ private fun NextWakeCard(
                                 text = if (schedule.smartOffsetMinutes > 0) {
                                     "Predicted wake"
                                 } else {
-                                    "Protected deadline"
+                                    "Guardrail Wake Time"
                                 },
                                 color = Color.White.copy(alpha = 0.72f),
                                 style = MaterialTheme.typography.bodySmall
@@ -1521,7 +1521,7 @@ private fun EmptyAlarmCard(
                 )
                 Text(
                     modifier = Modifier.padding(top = 7.dp),
-                    text = "Set your latest acceptable wake time. WakeSync handles the smart window inside it.",
+                    text = "Set your Guardrail Wake Time — the latest time the alarm will sound. WakeSync can wake you gently inside the Smart Wake Window before it.",
                     color = Color.White.copy(alpha = 0.78f)
                 )
 
@@ -1640,27 +1640,22 @@ private fun WeeklyAlarmOverview(
     schedules: List<AlarmSchedule>,
     onInfo: () -> Unit
 ) {
-    val days = listOf(
-        DayOfWeek.MONDAY,
-        DayOfWeek.TUESDAY,
-        DayOfWeek.WEDNESDAY,
-        DayOfWeek.THURSDAY,
-        DayOfWeek.FRIDAY,
-        DayOfWeek.SATURDAY,
-        DayOfWeek.SUNDAY
-    )
+    val today = LocalDate.now()
+    val dates = remember(today) {
+        (0L..6L).map {
+            today.plusDays(it)
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant
+            wakeGlassBorderBrush()
         ),
         colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.surface
-                    .copy(alpha = 0.68f),
+            containerColor = wakeGlassFill(),
             contentColor =
                 MaterialTheme.colorScheme.onSurface
         ),
@@ -1680,7 +1675,7 @@ private fun WeeklyAlarmOverview(
             ) {
                 Column {
                     Text(
-                        text = "Your week",
+                        text = "Rolling 7 days",
                         style =
                             MaterialTheme.typography.titleMedium,
                         fontWeight =
@@ -1692,18 +1687,12 @@ private fun WeeklyAlarmOverview(
                         modifier =
                             Modifier.padding(top = 2.dp),
                         text =
-                            schedules.count { it.enabled }
-                                .toString() +
-                                " active schedule" +
-                                if (
-                                    schedules.count {
-                                        it.enabled
-                                    } == 1
-                                ) {
-                                    ""
-                                } else {
-                                    "s"
-                                },
+                            "Today through " +
+                                dates.last().format(
+                                    DateTimeFormatter.ofPattern(
+                                        "EEE, MMM d"
+                                    )
+                                ),
                         style =
                             MaterialTheme.typography.bodySmall,
                         color =
@@ -1722,13 +1711,17 @@ private fun WeeklyAlarmOverview(
                 horizontalArrangement =
                     Arrangement.spacedBy(8.dp)
             ) {
-                days.forEach { day ->
+                dates.forEachIndexed {
+                        index,
+                        date ->
                     val schedule =
                         schedules
                             .asSequence()
                             .filter {
                                 it.enabled &&
-                                    it.days.contains(day.value)
+                                    it.days.contains(
+                                        date.dayOfWeek.value
+                                    )
                             }
                             .minByOrNull {
                                 it.hour * 60 +
@@ -1737,19 +1730,29 @@ private fun WeeklyAlarmOverview(
 
                     Card(
                         modifier =
-                            Modifier.width(78.dp),
+                            Modifier.width(84.dp),
                         shape =
                             RoundedCornerShape(16.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            if (schedule != null) {
-                                Lavender.copy(
-                                    alpha = 0.28f
+                        border =
+                            if (
+                                MaterialTheme.colorScheme.background
+                                    .luminance() < 0.5f
+                            ) {
+                                BorderStroke(
+                                    1.dp,
+                                    if (schedule != null) {
+                                        Lavender.copy(
+                                            alpha = 0.28f
+                                        )
+                                    } else {
+                                        Color.White.copy(
+                                            alpha = 0.08f
+                                        )
+                                    }
                                 )
                             } else {
-                                MaterialTheme.colorScheme.outlineVariant
-                            }
-                        ),
+                                null
+                            },
                         colors =
                             CardDefaults.cardColors(
                                 containerColor =
@@ -1757,12 +1760,20 @@ private fun WeeklyAlarmOverview(
                                         schedule != null
                                     ) {
                                         Lavender.copy(
-                                            alpha = 0.10f
+                                            alpha =
+                                                if (
+                                                    MaterialTheme.colorScheme.background
+                                                        .luminance() < 0.5f
+                                                ) {
+                                                    0.10f
+                                                } else {
+                                                    0.07f
+                                                }
                                         )
                                     } else {
                                         MaterialTheme.colorScheme.surfaceVariant
                                             .copy(
-                                                alpha = 0.30f
+                                                alpha = 0.28f
                                             )
                                     },
                                 contentColor =
@@ -1773,7 +1784,7 @@ private fun WeeklyAlarmOverview(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(
-                                    horizontal = 9.dp,
+                                    horizontal = 8.dp,
                                     vertical = 11.dp
                                 ),
                             horizontalAlignment =
@@ -1781,24 +1792,37 @@ private fun WeeklyAlarmOverview(
                         ) {
                             Text(
                                 text =
-                                    day.name
-                                        .lowercase()
-                                        .replaceFirstChar {
-                                            it.uppercase()
-                                        }
-                                        .take(3),
+                                    if (index == 0) {
+                                        "Today"
+                                    } else {
+                                        date.format(
+                                            DateTimeFormatter.ofPattern(
+                                                "EEE"
+                                            )
+                                        )
+                                    },
                                 style =
                                     MaterialTheme.typography.labelMedium,
                                 fontWeight =
-                                    FontWeight.Bold,
-                                color =
-                                    MaterialTheme.colorScheme.onSurface
+                                    FontWeight.Bold
                             )
                             Text(
                                 modifier =
-                                    Modifier.padding(
-                                        top = 6.dp
+                                    Modifier.padding(top = 2.dp),
+                                text =
+                                    date.format(
+                                        DateTimeFormatter.ofPattern(
+                                            "MMM d"
+                                        )
                                     ),
+                                style =
+                                    MaterialTheme.typography.labelSmall,
+                                color =
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                modifier =
+                                    Modifier.padding(top = 7.dp),
                                 text =
                                     if (
                                         schedule != null
@@ -1821,13 +1845,7 @@ private fun WeeklyAlarmOverview(
                                         MaterialTheme.colorScheme.onSurfaceVariant
                                     },
                                 fontWeight =
-                                    if (
-                                        schedule != null
-                                    ) {
-                                        FontWeight.SemiBold
-                                    } else {
-                                        FontWeight.Medium
-                                    }
+                                    FontWeight.SemiBold
                             )
                         }
                     }
@@ -3042,7 +3060,7 @@ private fun AlarmEditorDialog(
                     }
                 ) {
                         Text(
-                            text = "Wake by  " + formatClock(draft.hour, draft.minute),
+                            text = "Guardrail Wake Time  " + formatClock(draft.hour, draft.minute),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -3080,7 +3098,7 @@ private fun AlarmEditorDialog(
 
                 item {
                     Text(
-                        text = "Smart window",
+                        text = "Smart Wake Window",
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -3090,7 +3108,7 @@ private fun AlarmEditorDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                    listOf(0, 10, 20, 30, 45)
+                    listOf(0, 10, 15, 20, 30, 45)
                         .filter { it == 0 || it <= maxSmartWindowMinutes }
                         .forEach { minutes ->
                         FilterChip(
@@ -3112,11 +3130,12 @@ private fun AlarmEditorDialog(
                 item {
                     Text(
                         text = when (draft.smartWindowMinutes) {
-                        0 -> "Alarm exactly at your wake-by time."
-                        10 -> "Tight: WakeSync can move up to 10 minutes earlier."
-                        20 -> "Balanced: up to 20 minutes earlier."
-                        30 -> "Flexible: up to 30 minutes earlier."
-                        else -> "Wide: up to 45 minutes earlier. Only use this if you are comfortable waking substantially early."
+                        0 -> "No early window: alarm at the Guardrail Wake Time."
+                        10 -> "Tight: up to 10 minutes before the Guardrail Wake Time."
+                        15 -> "Gentle: up to 15 minutes early."
+                        20 -> "Balanced: up to 20 minutes early."
+                        30 -> "Flexible: up to 30 minutes early."
+                        else -> "Wide: up to 45 minutes early. Use only if you are comfortable waking substantially before the deadline."
                     },
                     style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -3169,8 +3188,9 @@ private fun AlarmEditorDialog(
 
                 item {
                     Text(
-                        text = "If no favorable point is found, WakeSync alarms at " +
-                            formatClock(draft.hour, draft.minute) + " anyway.",
+                        text = "Smart Wake Window: WakeSync may choose a light-sleep point before the deadline. Guardrail Wake Time: " +
+                            formatClock(draft.hour, draft.minute) +
+                            " is the hard latest alarm time.",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
