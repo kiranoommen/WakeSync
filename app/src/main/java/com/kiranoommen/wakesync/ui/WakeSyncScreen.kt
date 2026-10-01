@@ -1112,22 +1112,22 @@ private fun AlarmsTab(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onAdd,
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(999.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Amber,
-                    contentColor = Color(0xFF15192A)
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF0F172A)
                 )
             ) {
                 Text(
                     modifier = Modifier.padding(vertical = 5.dp),
                     text = "+ Add wake schedule",
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.ExtraBold
                 )
             }
         }
@@ -1135,8 +1135,8 @@ private fun AlarmsTab(
         if (schedules.isEmpty()) {
             item {
                 InfoCard(
-                    title = "Keep it simple",
-                    body = "Example: Mon/Tue/Thu/Fri at 7:00 AM, Wednesday at 6:00 AM, weekends off."
+                    title = "Build your week",
+                    body = "Set one time for Mon/Tue/Thu/Fri, another for Wednesday, and leave weekends completely off."
                 )
             }
         }
@@ -1151,7 +1151,7 @@ private fun AlarmsTab(
             )
         }
 
-        item { Spacer(Modifier.height(6.dp)) }
+        item { Spacer(Modifier.height(10.dp)) }
     }
 }
 
@@ -1169,6 +1169,14 @@ private fun AlarmScheduleCard(
     val nextActual = schedule.nextDeadline()
     val nextSkipped = schedule.isNextOccurrenceSkipped()
     val futureSkips = schedule.futureSkippedDates()
+    val cardScale by animateFloatAsState(
+        targetValue = if (schedule.enabled) 1f else 0.985f,
+        label = "alarmEnabledScale" + schedule.id
+    )
+    val cardContent by animateColorAsState(
+        targetValue = if (schedule.enabled) colors.onSurface else colors.onSurfaceVariant,
+        label = "alarmContentColor" + schedule.id
+    )
     val time = String.format(
         "%d:%02d %s",
         if (schedule.hour % 12 == 0) 12 else schedule.hour % 12,
@@ -1179,129 +1187,185 @@ private fun AlarmScheduleCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .scale(cardScale)
             .clickable(onClick = onEdit),
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.55f)),
+        shape = RoundedCornerShape(30.dp),
+        border = BorderStroke(1.dp, colors.outlineVariant),
         colors = CardDefaults.cardColors(
-            containerColor = colors.surface.copy(alpha = 0.86f),
-            contentColor = colors.onSurface
+            containerColor = colors.surface.copy(alpha = 0.72f),
+            contentColor = cardContent
         )
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = time,
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (schedule.enabled) colors.onSurface else colors.onSurfaceVariant
-                    )
-                    Text(
-                        text = schedule.label.ifBlank { "Alarm" },
-                        color = colors.onSurfaceVariant
+        Box(modifier = Modifier.fillMaxWidth()) {
+            if (schedule.enabled) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    drawCircle(
+                        color = Lavender.copy(alpha = 0.08f),
+                        radius = size.minDimension * 0.70f,
+                        center = Offset(size.width * 0.96f, size.height * 0.05f)
                     )
                 }
-
-                Switch(
-                    checked = schedule.enabled,
-                    onCheckedChange = { checked ->
-                        if (checked) {
-                            onToggle(true)
-                        } else {
-                            showDisableChoice = true
-                        }
-                    }
-                )
             }
 
-            Text(
-                modifier = Modifier.padding(top = 14.dp),
-                text = daysLabel(schedule.days),
-                color = colors.onSurface
-            )
-
-            Text(
-                modifier = Modifier.padding(top = 5.dp),
-                text = if (schedule.smartWindowMinutes == 0) {
-                    "Exact time"
-                } else {
-                    "Smart window: " + schedule.smartWindowMinutes + " min · " +
-                        if (schedule.smartOffsetMinutes > 0) {
-                            "prediction " + schedule.smartOffsetMinutes + " min early"
-                        } else {
-                            "prediction at deadline"
-                        }
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
-            )
-
-            if (schedule.enabled) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = colors.surfaceVariant.copy(alpha = 0.62f)
-                    )
+            Column(modifier = Modifier.padding(18.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        when {
-                            nextSkipped && nextBase != null -> {
-                                Text(
-                                    text = "Next occurrence skipped",
-                                    color = Amber,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    modifier = Modifier.padding(top = 3.dp),
-                                    text = nextBase.format(
-                                        DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a")
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colors.onSurfaceVariant
-                                )
-                                if (nextActual != null) {
-                                    Text(
-                                        modifier = Modifier.padding(top = 3.dp),
-                                        text = "Resumes " + nextActual.format(
-                                            DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a")
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
-
-                            nextActual != null -> {
-                                Text("Next alarm", fontWeight = FontWeight.Bold)
-                                Text(
-                                    modifier = Modifier.padding(top = 3.dp),
-                                    text = nextActual.format(
-                                        DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a")
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colors.onSurfaceVariant
-                                )
-                            }
-                        }
+                    Column {
+                        Text(
+                            text = time,
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = cardContent
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 2.dp),
+                            text = schedule.label.ifBlank { "Alarm" },
+                            color = colors.onSurfaceVariant
+                        )
                     }
+
+                    Switch(
+                        checked = schedule.enabled,
+                        onCheckedChange = { checked ->
+                            if (checked) onToggle(true) else showDisableChoice = true
+                        }
+                    )
                 }
 
                 Row(
-                    modifier = Modifier.padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(top = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
-                    TextButton(onClick = onSkip) {
-                        Text(if (nextSkipped) "Undo skip" else "Skip next")
+                    Card(
+                        shape = RoundedCornerShape(999.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Lavender.copy(alpha = 0.13f),
+                            contentColor = Lavender
+                        )
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            text = if (schedule.smartWindowMinutes == 0) {
+                                "Exact time"
+                            } else {
+                                schedule.smartWindowMinutes.toString() + "m smart window"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-                    if (futureSkips.size > 1) {
-                        TextButton(onClick = onClearSkips) {
-                            Text("Clear skips")
+
+                    Card(
+                        shape = RoundedCornerShape(999.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = colors.surfaceVariant.copy(alpha = 0.60f),
+                            contentColor = colors.onSurfaceVariant
+                        )
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            text = daysLabel(schedule.days),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                if (schedule.enabled) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 14.dp),
+                        shape = RoundedCornerShape(22.dp),
+                        border = BorderStroke(1.dp, colors.outlineVariant),
+                        colors = CardDefaults.cardColors(
+                            containerColor = colors.surfaceVariant.copy(alpha = 0.46f),
+                            contentColor = colors.onSurface
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(9.dp)
+                                    .background(
+                                        color = if (nextSkipped) Sunrise else Mint,
+                                        shape = CircleShape
+                                    )
+                            )
+
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 10.dp)
+                            ) {
+                                when {
+                                    nextSkipped && nextBase != null -> {
+                                        Text(
+                                            text = "Next occurrence skipped",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Sunrise
+                                        )
+                                        Text(
+                                            modifier = Modifier.padding(top = 2.dp),
+                                            text = nextBase.format(
+                                                DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a")
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = colors.onSurfaceVariant
+                                        )
+                                        if (nextActual != null) {
+                                            Text(
+                                                modifier = Modifier.padding(top = 2.dp),
+                                                text = "Resumes " + nextActual.format(
+                                                    DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a")
+                                                ),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = colors.onSurface
+                                            )
+                                        }
+                                    }
+
+                                    nextActual != null -> {
+                                        Text(
+                                            text = "Next alarm",
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            modifier = Modifier.padding(top = 2.dp),
+                                            text = nextActual.format(
+                                                DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a")
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = colors.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.padding(top = 7.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        TextButton(onClick = onSkip) {
+                            Text(
+                                if (nextSkipped) "Undo skip" else "Skip next",
+                                color = Lavender
+                            )
+                        }
+                        if (futureSkips.size > 1) {
+                            TextButton(onClick = onClearSkips) {
+                                Text("Clear skips", color = colors.onSurfaceVariant)
+                            }
                         }
                     }
                 }
@@ -1312,6 +1376,10 @@ private fun AlarmScheduleCard(
     if (showDisableChoice) {
         AlertDialog(
             onDismissRequest = { showDisableChoice = false },
+            shape = RoundedCornerShape(30.dp),
+            containerColor = colors.surface,
+            titleContentColor = colors.onSurface,
+            textContentColor = colors.onSurfaceVariant,
             title = {
                 Text(
                     if (nextSkipped) "Turn this schedule off?"
@@ -1333,7 +1401,8 @@ private fun AlarmScheduleCard(
                         onClick = {
                             onSkip()
                             showDisableChoice = false
-                        }
+                        },
+                        shape = RoundedCornerShape(999.dp)
                     ) {
                         Text("Skip once")
                     }
