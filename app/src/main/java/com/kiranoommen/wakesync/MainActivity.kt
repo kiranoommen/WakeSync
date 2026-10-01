@@ -63,6 +63,9 @@ class MainActivity : ComponentActivity() {
             var dashboardWidgets by remember {
                 mutableStateOf(appSettings.dashboardWidgets)
             }
+            var displayName by remember {
+                mutableStateOf(appSettings.displayName)
+            }
             var maxSmartWindowMinutes by remember {
                 mutableStateOf(appSettings.maxSmartWindowMinutes)
             }
@@ -223,6 +226,7 @@ class MainActivity : ComponentActivity() {
                 themeMode = themeMode,
                 sleepGoalMinutes = sleepGoalMinutes,
                 dashboardWidgets = dashboardWidgets,
+                displayName = displayName,
                 maxSmartWindowMinutes = maxSmartWindowMinutes,
                 retainGeneratedExports = retainGeneratedExports,
                 errorMessage = errorMessage,
@@ -330,6 +334,10 @@ class MainActivity : ComponentActivity() {
                 onDashboardWidgetsChange = { widgets ->
                     dashboardWidgets = widgets
                     appSettings.dashboardWidgets = widgets
+                },
+                onDisplayNameChange = { name ->
+                    displayName = name
+                    appSettings.displayName = name
                 },
                 onMaxSmartWindowChange = { minutes ->
                     maxSmartWindowMinutes = minutes
