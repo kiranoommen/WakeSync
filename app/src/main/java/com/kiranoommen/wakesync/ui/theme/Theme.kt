@@ -90,7 +90,7 @@ private val WakeSyncTypography = Typography(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.ExtraBold,
         fontSize = 30.sp,
-        letterSpacing = (-0.5).sp
+        letterSpacing = (-0.5f).sp
     ),
     headlineMedium = Typography().headlineMedium.copy(
         fontFamily = FontFamily.SansSerif,
