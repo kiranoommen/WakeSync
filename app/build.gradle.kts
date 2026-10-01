@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.kiranoommen.wakesync"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.kiranoommen.wakesync"
