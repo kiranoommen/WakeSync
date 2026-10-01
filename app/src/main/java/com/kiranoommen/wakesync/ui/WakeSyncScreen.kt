@@ -420,8 +420,7 @@ private fun AppHeader(
                 color = colors.onSurfaceVariant
             )
         }
-
-
+    }
 }
 
 @Composable
