@@ -547,7 +547,7 @@ private fun SegmentButton(
                     .copy(alpha = 0.34f)
             },
             contentColor = if (selected) {
-                Color.White
+                MaterialTheme.colorScheme.onSurface
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             }
@@ -578,6 +578,7 @@ private fun ScoreHeroCard(
     analytics: PeriodAnalytics,
     previous: PeriodAnalytics?,
     targetSleepMinutes: Int,
+    goalsEnabled: Boolean,
     onScoreClick: () -> Unit,
     onInfo: () -> Unit
 ) {
@@ -680,25 +681,27 @@ private fun ScoreHeroCard(
                                 }
                                 ?: "—"
                         )
-                        MetricLine(
-                            "Sleep debt",
-                            if (
-                                analytics.sleepDebtMinutes > 0
-                            ) {
-                                "-" +
+                        if (goalsEnabled) {
+                            MetricLine(
+                                "Sleep debt",
+                                if (
+                                    analytics.sleepDebtMinutes > 0
+                                ) {
                                     formatMinutes(
                                         analytics.sleepDebtMinutes
-                                    )
-                            } else {
-                                "0m"
-                            }
-                        )
-                        MetricLine(
-                            "Target",
-                            formatMinutes(
-                                targetSleepMinutes.toLong()
+                                    ) +
+                                        " below target"
+                                } else {
+                                    "On target"
+                                }
                             )
-                        )
+                            MetricLine(
+                                "Target",
+                                formatMinutes(
+                                    targetSleepMinutes.toLong()
+                                )
+                            )
+                        }
                     }
                 }
 
@@ -2445,7 +2448,7 @@ private fun BentoCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
             borderColor
@@ -2578,14 +2581,21 @@ private fun MiniMetric(
         )
     ) {
         Column(
-            modifier = Modifier.padding(10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
             Text(
                 text = value,
                 fontWeight =
-                    FontWeight.ExtraBold
+                    FontWeight.ExtraBold,
+                color =
+                    MaterialTheme.colorScheme.onSurface
             )
             Text(
+                modifier = Modifier.padding(top = 2.dp),
                 text = label,
                 style =
                     MaterialTheme.typography.labelSmall,
@@ -2775,6 +2785,7 @@ private fun PillarRow(
 private fun NightBreakdownSheet(
     night: NightAnalytics,
     targetSleepMinutes: Int,
+    goalsEnabled: Boolean,
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -2835,24 +2846,37 @@ private fun NightBreakdownSheet(
                             night.wasoMinutes
                         )
                 )
-                MiniMetric(
-                    modifier = Modifier.weight(1f),
-                    label = "Debt impact",
-                    value =
-                        if (
-                            night.asleepMinutes <
-                            targetSleepMinutes
-                        ) {
-                            "-" +
+                if (goalsEnabled) {
+                    MiniMetric(
+                        modifier = Modifier.weight(1f),
+                        label = "Target gap",
+                        value =
+                            if (
+                                night.asleepMinutes <
+                                targetSleepMinutes
+                            ) {
                                 formatMinutes(
                                     targetSleepMinutes
                                         .toLong() -
                                         night.asleepMinutes
-                                )
-                        } else {
-                            "0m"
-                        }
-                )
+                                ) +
+                                    " below"
+                            } else {
+                                "On target"
+                            }
+                    )
+                } else {
+                    MiniMetric(
+                        modifier = Modifier.weight(1f),
+                        label = "Efficiency",
+                        value =
+                            night.efficiencyPercent
+                                ?.let {
+                                    it.toString() + "%"
+                                }
+                                ?: "—"
+                    )
+                }
             }
 
             Row(
@@ -2887,7 +2911,7 @@ private fun NightBreakdownSheet(
             ) {
                 Text(
                     text =
-                        "WakeSync currently receives nightly recovery values, not a full time-series trace, so it does not fabricate HRV/RHR overlay graphs.",
+                        "HRV = Heart Rate Variability, a beat-to-beat recovery trend. RHR = Resting Heart Rate. WakeSync currently receives nightly recovery values rather than a full trace, so it does not fabricate overlay graphs.",
                     style =
                         MaterialTheme.typography.bodySmall,
                     color =
@@ -3189,14 +3213,41 @@ private fun sortedNights(
                 it.date
             }
         SleepSort.SCORE ->
-            nights.sortedByDescending {
-                it.score
-            }
+            nights.sortedWith(
+                compareByDescending<NightAnalytics> {
+                    it.score
+                }.thenByDescending {
+                    it.date
+                }
+            )
         SleepSort.DURATION ->
-            nights.sortedByDescending {
-                it.asleepMinutes
-            }
+            nights.sortedWith(
+                compareByDescending<NightAnalytics> {
+                    it.asleepMinutes
+                }.thenByDescending {
+                    it.date
+                }
+            )
     }
+
+private fun pureSleepInsight(
+    analytics: PeriodAnalytics
+): String {
+    val sleep =
+        formatMinutes(
+            analytics.averageSleepMinutes
+        )
+    val efficiency =
+        analytics.averageEfficiencyPercent
+            ?.let { it.toString() + "%" }
+            ?: "unavailable"
+
+    return "You averaged " +
+        sleep +
+        " of sleep with " +
+        efficiency +
+        " estimated efficiency in this period."
+}
 
 private fun scoreColor(
     score: Int
