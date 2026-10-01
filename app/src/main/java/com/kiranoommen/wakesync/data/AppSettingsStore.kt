@@ -72,6 +72,15 @@ class AppSettingsStore(context: Context) {
                 .apply()
         }
 
+    fun hasExistingUserState(): Boolean =
+        prefs.contains(KEY_THEME) ||
+            prefs.contains(KEY_SLEEP_GOAL) ||
+            prefs.contains(KEY_GOALS_ENABLED) ||
+            prefs.contains(KEY_DISPLAY_NAME) ||
+            prefs.contains(KEY_DASHBOARD_WIDGETS) ||
+            prefs.contains(KEY_MAX_SMART_WINDOW) ||
+            prefs.contains(KEY_RETAIN_EXPORTS)
+
     companion object {
         const val THEME_SYSTEM = "SYSTEM"
         const val THEME_DARK = "DARK"
