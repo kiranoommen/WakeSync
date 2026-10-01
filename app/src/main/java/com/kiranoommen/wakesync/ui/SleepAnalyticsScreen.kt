@@ -888,33 +888,204 @@ private fun InsightCard(
 
 @Composable
 private fun HypnogramCard(
-    night: NightAnalytics,
+    analytics: PeriodAnalytics,
     onInfo: () -> Unit
 ) {
+    val nights = analytics.nights
+        .sortedByDescending { it.date }
+    var selectedNight by remember(nights) {
+        mutableStateOf(nights.first())
+    }
+
+    val averageLatency = nights
+        .mapNotNull { it.onsetLatencyMinutes }
+        .takeIf { it.isNotEmpty() }
+        ?.average()
+        ?.roundToInt()
+        ?.toLong()
+
+    val averageWaso = nights
+        .map { it.wasoMinutes }
+        .takeIf { it.isNotEmpty() }
+        ?.average()
+        ?.roundToInt()
+        ?.toLong()
+
+    val averageEfficiency = nights
+        .mapNotNull { it.efficiencyPercent }
+        .takeIf { it.isNotEmpty() }
+        ?.average()
+        ?.roundToInt()
+
     BentoCard {
         Column {
             CardTitleRow(
-                title = "Last night · Hypnogram",
+                title = "Hypnogram & range metrics",
                 onInfo = onInfo
             )
 
             Text(
-                modifier = Modifier.padding(top = 3.dp),
-                text = night.date.format(
-                    DateTimeFormatter.ofPattern(
-                        "EEE, MMM d"
-                    )
-                ),
+                modifier = Modifier.padding(top = 4.dp),
+                text = "Range averages",
                 style = MaterialTheme.typography.bodySmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Hypnogram(
-                night = night.night,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 14.dp)
+                    .padding(top = 10.dp),
+                horizontalArrangement =
+                    Arrangement.spacedBy(8.dp)
+            ) {
+                MiniMetric(
+                    modifier = Modifier.weight(1f),
+                    label = "Avg Latency",
+                    value = averageLatency
+                        ?.let(::formatMinutes)
+                        ?: "—"
+                )
+                MiniMetric(
+                    modifier = Modifier.weight(1f),
+                    label = "Avg WASO",
+                    value = averageWaso
+                        ?.let(::formatMinutes)
+                        ?: "—"
+                )
+                MiniMetric(
+                    modifier = Modifier.weight(1f),
+                    label = "Avg Efficiency",
+                    value = averageEfficiency
+                        ?.let { it.toString() + "%" }
+                        ?: "—"
+                )
+            }
+
+            Text(
+                modifier = Modifier.padding(top = 14.dp),
+                text = "Choose a night",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 8.dp),
+                horizontalArrangement =
+                    Arrangement.spacedBy(8.dp)
+            ) {
+                nights.forEach { night ->
+                    val selected =
+                        selectedNight.date == night.date
+
+                    Card(
+                        onClick = {
+                            selectedNight = night
+                        },
+                        shape =
+                            RoundedCornerShape(999.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            if (selected) {
+                                Lavender.copy(alpha = 0.42f)
+                            } else {
+                                MaterialTheme.colorScheme.outlineVariant
+                            }
+                        ),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    if (selected) {
+                                        Lavender.copy(alpha = 0.16f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                            .copy(alpha = 0.34f)
+                                    },
+                                contentColor =
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(
+                                horizontal = 12.dp,
+                                vertical = 8.dp
+                            ),
+                            text = night.date.format(
+                                DateTimeFormatter.ofPattern(
+                                    "MMM d"
+                                )
+                            ),
+                            style =
+                                MaterialTheme.typography.labelMedium,
+                            fontWeight =
+                                if (selected) {
+                                    FontWeight.Bold
+                                } else {
+                                    FontWeight.Medium
+                                }
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = selectedNight.date.format(
+                            DateTimeFormatter.ofPattern(
+                                "EEE, MMM d"
+                            )
+                        ),
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        modifier = Modifier.padding(top = 2.dp),
+                        text =
+                            formatInstant(
+                                selectedNight.night.start,
+                                "h:mm a"
+                            ) +
+                                " – " +
+                                formatInstant(
+                                    selectedNight.night.end,
+                                    "h:mm a"
+                                ),
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Text(
+                    text =
+                        formatMinutes(
+                            selectedNight.asleepMinutes
+                        ),
+                    style =
+                        MaterialTheme.typography.titleLarge,
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    color =
+                        MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Hypnogram(
+                night = selectedNight.night,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
             )
 
             Row(
@@ -927,7 +1098,7 @@ private fun HypnogramCard(
                 MiniMetric(
                     modifier = Modifier.weight(1f),
                     label = "Latency",
-                    value = night.onsetLatencyMinutes
+                    value = selectedNight.onsetLatencyMinutes
                         ?.let(::formatMinutes)
                         ?: "—"
                 )
@@ -936,19 +1107,29 @@ private fun HypnogramCard(
                     label = "WASO",
                     value =
                         formatMinutes(
-                            night.wasoMinutes
+                            selectedNight.wasoMinutes
                         )
                 )
                 MiniMetric(
                     modifier = Modifier.weight(1f),
                     label = "Efficiency",
-                    value = night.efficiencyPercent
+                    value = selectedNight.efficiencyPercent
                         ?.let {
                             it.toString() + "%"
                         }
                         ?: "—"
                 )
             }
+
+            Text(
+                modifier = Modifier.padding(top = 10.dp),
+                text =
+                    "Latency = time to fall asleep · WASO = awake time after first falling asleep · Efficiency = percent of the sleep-session window spent asleep.",
+                style =
+                    MaterialTheme.typography.bodySmall,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
