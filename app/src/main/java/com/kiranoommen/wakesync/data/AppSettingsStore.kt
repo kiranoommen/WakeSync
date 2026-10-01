@@ -21,12 +21,31 @@ class AppSettingsStore(context: Context) {
                 .apply()
         }
 
+    var dashboardWidgets: List<String>
+        get() = prefs.getString(KEY_DASHBOARD_WIDGETS, null)
+            ?.split(",")
+            ?.filter { it.isNotBlank() }
+            ?: DEFAULT_DASHBOARD_WIDGETS
+        set(value) {
+            prefs.edit()
+                .putString(KEY_DASHBOARD_WIDGETS, value.distinct().joinToString(","))
+                .apply()
+        }
+
     companion object {
         const val THEME_SYSTEM = "SYSTEM"
         const val THEME_DARK = "DARK"
         const val THEME_LIGHT = "LIGHT"
 
+        const val WIDGET_GOAL = "GOAL"
+        const val WIDGET_SLEEP = "SLEEP"
+        const val WIDGET_INSIGHT = "INSIGHT"
+
+        val DEFAULT_DASHBOARD_WIDGETS =
+            listOf(WIDGET_GOAL, WIDGET_SLEEP, WIDGET_INSIGHT)
+
         private const val KEY_THEME = "theme_mode"
         private const val KEY_SLEEP_GOAL = "sleep_goal_minutes"
+        private const val KEY_DASHBOARD_WIDGETS = "dashboard_widgets"
     }
 }
