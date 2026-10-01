@@ -21,6 +21,7 @@ import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.lifecycleScope
 import com.kiranoommen.wakesync.alarm.AlarmScheduler
 import com.kiranoommen.wakesync.data.AlarmStore
+import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.HealthConnectManager
 import com.kiranoommen.wakesync.domain.WakeWindowEngine
 import com.kiranoommen.wakesync.model.AlarmSchedule
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var healthConnectManager: HealthConnectManager
     private lateinit var alarmStore: AlarmStore
     private lateinit var alarmScheduler: AlarmScheduler
+    private lateinit var appSettings: AppSettingsStore
 
     private val exactAlarmAccessState = mutableStateOf(false)
 
@@ -42,14 +44,23 @@ class MainActivity : ComponentActivity() {
         healthConnectManager = HealthConnectManager(this)
         alarmStore = AlarmStore(this)
         alarmScheduler = AlarmScheduler(this)
+        appSettings = AppSettingsStore(this)
         exactAlarmAccessState.value = alarmScheduler.canScheduleExactAlarms()
 
         setContent {
             var hasPermission by remember { mutableStateOf(false) }
+            var hasAnalyticsPermission by remember { mutableStateOf(false) }
+            var hasHistoryPermission by remember { mutableStateOf(false) }
             var nights by remember { mutableStateOf<List<SleepNight>>(emptyList()) }
             var schedules by remember { mutableStateOf(alarmStore.load()) }
             var loading by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
+            var themeMode by remember { mutableStateOf(appSettings.themeMode) }
+            var sleepGoalMinutes by remember {
+                mutableStateOf(appSettings.sleepGoalMinutes)
+            }
+
+            val historyReadAvailable = healthConnectManager.historyReadAvailable()
 
             fun withRecommendations(
                 input: List<AlarmSchedule>,
@@ -81,6 +92,7 @@ class MainActivity : ComponentActivity() {
 
             fun applySleepHistory(input: List<SleepNight>) {
                 nights = input
+
                 val updated = schedules.map { schedule ->
                     val recommendation = WakeWindowEngine.recommend(
                         nights = input,
@@ -99,21 +111,58 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            fun refreshSleep() {
+                if (!hasPermission) return
+
+                loading = true
+                errorMessage = null
+
+                lifecycleScope.launch {
+                    val days = if (hasHistoryPermission) 190L else 30L
+
+                    runCatching {
+                        healthConnectManager.readRecentSleep(days)
+                    }
+                        .onSuccess(::applySleepHistory)
+                        .onFailure {
+                            errorMessage = it.message ?: "Unable to read sleep data."
+                        }
+
+                    loading = false
+                }
+            }
+
             val healthPermissionLauncher = rememberLauncherForActivityResult(
                 contract = PermissionController.createRequestPermissionResultContract()
-            ) { granted ->
-                hasPermission = granted.containsAll(HealthConnectManager.requiredPermissions)
+            ) {
+                lifecycleScope.launch {
+                    hasPermission = healthConnectManager.hasRequiredPermissions()
+                    hasAnalyticsPermission =
+                        healthConnectManager.hasAnalyticsPermissions()
+                    hasHistoryPermission =
+                        healthConnectManager.hasHistoryPermission()
 
-                if (hasPermission) {
-                    loading = true
-                    lifecycleScope.launch {
-                        runCatching { healthConnectManager.readRecentSleep() }
-                            .onSuccess(::applySleepHistory)
-                            .onFailure {
-                                errorMessage = it.message ?: "Unable to read sleep data."
-                            }
-                        loading = false
-                    }
+                    if (hasPermission) refreshSleep()
+                }
+            }
+
+            val analyticsPermissionLauncher = rememberLauncherForActivityResult(
+                contract = PermissionController.createRequestPermissionResultContract()
+            ) {
+                lifecycleScope.launch {
+                    hasAnalyticsPermission =
+                        healthConnectManager.hasAnalyticsPermissions()
+                    if (hasPermission) refreshSleep()
+                }
+            }
+
+            val historyPermissionLauncher = rememberLauncherForActivityResult(
+                contract = PermissionController.createRequestPermissionResultContract()
+            ) {
+                lifecycleScope.launch {
+                    hasHistoryPermission =
+                        healthConnectManager.hasHistoryPermission()
+                    if (hasPermission) refreshSleep()
                 }
             }
 
@@ -129,24 +178,26 @@ class MainActivity : ComponentActivity() {
                         Manifest.permission.POST_NOTIFICATIONS
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
-                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    notificationPermissionLauncher.launch(
+                        Manifest.permission.POST_NOTIFICATIONS
+                    )
                 }
 
                 hasPermission = runCatching {
                     healthConnectManager.hasRequiredPermissions()
                 }.getOrDefault(false)
 
+                hasAnalyticsPermission = runCatching {
+                    healthConnectManager.hasAnalyticsPermissions()
+                }.getOrDefault(false)
+
+                hasHistoryPermission = runCatching {
+                    healthConnectManager.hasHistoryPermission()
+                }.getOrDefault(false)
+
                 alarmScheduler.scheduleAll(schedules)
 
-                if (hasPermission) {
-                    loading = true
-                    runCatching { healthConnectManager.readRecentSleep() }
-                        .onSuccess(::applySleepHistory)
-                        .onFailure {
-                            errorMessage = it.message ?: "Unable to read sleep data."
-                        }
-                    loading = false
-                }
+                if (hasPermission) refreshSleep()
             }
 
             WakeSyncScreen(
@@ -156,21 +207,19 @@ class MainActivity : ComponentActivity() {
                 nights = nights,
                 schedules = schedules,
                 exactAlarmAccess = exactAlarmAccessState.value,
+                hasAnalyticsPermission = hasAnalyticsPermission,
+                hasHistoryPermission = hasHistoryPermission,
+                historyReadAvailable = historyReadAvailable,
+                themeMode = themeMode,
+                sleepGoalMinutes = sleepGoalMinutes,
                 errorMessage = errorMessage,
                 onConnect = {
-                    healthPermissionLauncher.launch(HealthConnectManager.requiredPermissions)
+                    healthPermissionLauncher.launch(
+                        HealthConnectManager.requiredPermissions
+                    )
                 },
                 onRefresh = {
-                    loading = true
-                    errorMessage = null
-                    lifecycleScope.launch {
-                        runCatching { healthConnectManager.readRecentSleep() }
-                            .onSuccess(::applySleepHistory)
-                            .onFailure {
-                                errorMessage = it.message ?: "Unable to read sleep data."
-                            }
-                        loading = false
-                    }
+                    refreshSleep()
                 },
                 onSaveSchedule = { schedule ->
                     val next = schedules
@@ -184,12 +233,17 @@ class MainActivity : ComponentActivity() {
                 onToggleSchedule = { schedule, enabled ->
                     persist(
                         schedules.map {
-                            if (it.id == schedule.id) it.copy(enabled = enabled) else it
+                            if (it.id == schedule.id) {
+                                it.copy(enabled = enabled)
+                            } else {
+                                it
+                            }
                         }
                     )
                 },
                 onSkipNext = { schedule ->
                     val nextBase = schedule.nextBaseDeadline()
+
                     if (nextBase != null) {
                         val dateKey = nextBase.toLocalDate().toString()
                         val updatedSkips =
@@ -211,7 +265,9 @@ class MainActivity : ComponentActivity() {
                     }
                 },
                 onClearSkips = { schedule ->
-                    val updatedSchedule = schedule.copy(skippedDates = emptySet())
+                    val updatedSchedule =
+                        schedule.copy(skippedDates = emptySet())
+
                     persist(
                         schedules.map {
                             if (it.id == schedule.id) updatedSchedule else it
@@ -222,12 +278,34 @@ class MainActivity : ComponentActivity() {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         runCatching {
                             startActivity(
-                                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                Intent(
+                                    Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                                ).apply {
                                     data = Uri.parse("package:$packageName")
                                 }
                             )
                         }
                     }
+                },
+                onRequestAnalyticsAccess = {
+                    analyticsPermissionLauncher.launch(
+                        HealthConnectManager.analyticsPermissions
+                    )
+                },
+                onRequestHistoryAccess = {
+                    if (historyReadAvailable) {
+                        historyPermissionLauncher.launch(
+                            HealthConnectManager.historyPermissions
+                        )
+                    }
+                },
+                onThemeModeChange = { newMode ->
+                    themeMode = newMode
+                    appSettings.themeMode = newMode
+                },
+                onSleepGoalChange = { minutes ->
+                    sleepGoalMinutes = minutes
+                    appSettings.sleepGoalMinutes = minutes
                 }
             )
         }
@@ -235,8 +313,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+
         if (::alarmScheduler.isInitialized) {
-            exactAlarmAccessState.value = alarmScheduler.canScheduleExactAlarms()
+            exactAlarmAccessState.value =
+                alarmScheduler.canScheduleExactAlarms()
         }
     }
 }
