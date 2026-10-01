@@ -735,34 +735,34 @@ private fun DashboardBentoGrid(
                     next != null &&
                         dashboardSpan(next) == 1
 
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(10.dp)
-                ) {
-                    DashboardWidgetTile(
+                if (pair) {
+                    Row(
                         modifier =
-                            Modifier.weight(1f),
-                        id = id,
-                        analytics = analytics,
-                        nights = nights,
-                        schedules = schedules,
-                        loading = loading,
-                        goalsEnabled =
-                            goalsEnabled,
-                        sleepGoalMinutes =
-                            sleepGoalMinutes,
-                        onEditSchedule =
-                            onEditSchedule,
-                        onSkipNext =
-                            onSkipNext,
-                        onGoAlarms =
-                            onGoAlarms,
-                        onInfo = onInfo
-                    )
+                            Modifier.fillMaxWidth(),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(10.dp)
+                    ) {
+                        DashboardWidgetTile(
+                            modifier =
+                                Modifier.weight(1f),
+                            id = id,
+                            analytics = analytics,
+                            nights = nights,
+                            schedules = schedules,
+                            loading = loading,
+                            goalsEnabled =
+                                goalsEnabled,
+                            sleepGoalMinutes =
+                                sleepGoalMinutes,
+                            onEditSchedule =
+                                onEditSchedule,
+                            onSkipNext =
+                                onSkipNext,
+                            onGoAlarms =
+                                onGoAlarms,
+                            onInfo = onInfo
+                        )
 
-                    if (pair) {
                         DashboardWidgetTile(
                             modifier =
                                 Modifier.weight(1f),
@@ -785,12 +785,28 @@ private fun DashboardBentoGrid(
                                 onGoAlarms,
                             onInfo = onInfo
                         )
-                    } else {
-                        Spacer(
-                            modifier =
-                                Modifier.weight(1f)
-                        )
                     }
+                } else {
+                    DashboardWidgetTile(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        id = id,
+                        analytics = analytics,
+                        nights = nights,
+                        schedules = schedules,
+                        loading = loading,
+                        goalsEnabled =
+                            goalsEnabled,
+                        sleepGoalMinutes =
+                            sleepGoalMinutes,
+                        onEditSchedule =
+                            onEditSchedule,
+                        onSkipNext =
+                            onSkipNext,
+                        onGoAlarms =
+                            onGoAlarms,
+                        onInfo = onInfo
+                    )
                 }
 
                 index +=
