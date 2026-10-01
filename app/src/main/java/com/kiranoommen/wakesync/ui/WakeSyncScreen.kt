@@ -676,6 +676,7 @@ private fun HomeTab(
     if (showCustomize) {
         DashboardCustomizeDialog(
             current = dashboardWidgets,
+            goalsEnabled = goalsEnabled,
             onDismiss = { showCustomize = false },
             onSave = {
                 onDashboardWidgetsChange(it)
@@ -1112,15 +1113,27 @@ private fun HomeInsightCard(
 @Composable
 private fun DashboardCustomizeDialog(
     current: List<String>,
+    goalsEnabled: Boolean,
     onDismiss: () -> Unit,
     onSave: (List<String>) -> Unit
 ) {
     var working by remember(current) { mutableStateOf(current) }
-    val all = listOf(
-        AppSettingsStore.WIDGET_GOAL to "Sleep goal & streak",
-        AppSettingsStore.WIDGET_SLEEP to "Last-night metrics",
-        AppSettingsStore.WIDGET_INSIGHT to "Personal insight"
-    )
+    val all = buildList {
+        if (goalsEnabled) {
+            add(
+                AppSettingsStore.WIDGET_GOAL to
+                    "Sleep goal & streak"
+            )
+        }
+        add(
+            AppSettingsStore.WIDGET_SLEEP to
+                "Last-night metrics"
+        )
+        add(
+            AppSettingsStore.WIDGET_INSIGHT to
+                "Personal insight"
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
