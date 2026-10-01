@@ -2864,7 +2864,7 @@ fun ScoreBreakdownSheet(
 
             Text(
                 text =
-                    "Sleep Score = 40%(Duration) + 25%(Efficiency) + 20%(Stage Ratios) + 15%(Consistency)",
+                    "Sleep Score = 40%(Duration) + 25%(Efficiency) + 20%(Regularity) + 15%(Latency)",
                 color =
                     MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -2878,17 +2878,17 @@ fun ScoreBreakdownSheet(
                 analytics.scoreBreakdown.efficiency
             )
             PillarRow(
-                "Stage Ratios · 20%",
-                analytics.scoreBreakdown.stageRatios
+                "Regularity · 20%",
+                analytics.scoreBreakdown.regularity
             )
             PillarRow(
-                "Consistency · 15%",
-                analytics.scoreBreakdown.consistency
+                "Latency · 15%",
+                analytics.scoreBreakdown.latency
             )
 
             Text(
                 text =
-                    "This is a WakeSync wellness score. It is not a validated medical or diagnostic score.",
+                    "Duration reflects total sleep. Efficiency measures sleep continuity, not total hours. Regularity reflects timing consistency. Latency reflects time to fall asleep. This is a WakeSync wellness score, not a validated medical score.",
                 style =
                     MaterialTheme.typography.bodySmall,
                 color =
