@@ -82,6 +82,7 @@ import com.kiranoommen.wakesync.ui.theme.Sunrise
 import com.kiranoommen.wakesync.ui.theme.WakeSyncTheme
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -406,6 +407,7 @@ private fun HomeTab(
     val next = remember(schedules) { nextSchedule(schedules) }
     val nearestSkipped = remember(schedules) { nearestUpcomingSkipped(schedules) }
     var showCustomize by remember { mutableStateOf(false) }
+    var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
     val dashboardAnalytics = remember(nights, sleepGoalMinutes) {
         SleepAnalytics.analyze(nights.take(14), sleepGoalMinutes)
     }
@@ -414,16 +416,50 @@ private fun HomeTab(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        if (hasPermission && dashboardAnalytics.nights.isNotEmpty()) {
+            item {
+                MorningBriefingCard(
+                    analytics = dashboardAnalytics,
+                    onInfo = {
+                        infoSheet = MetricInfo(
+                            title = "Morning briefing",
+                            meaning = "A quick status view of your latest sleep period and recent recovery trend.",
+                            measurement = "WakeSync uses your recent Sleep Score, sleep-debt estimate and selected personal sleep target.",
+                            importance = "The briefing helps you see whether today looks recovered or sleep-debt heavy without digging through charts."
+                        )
+                    }
+                )
+            }
+        }
+
         item {
             if (next != null) {
                 NextWakeCard(
                     schedule = next.first,
                     deadline = next.second,
                     onEdit = { onEditSchedule(next.first) },
-                    onSkip = { onSkipNext(next.first) }
+                    onSkip = { onSkipNext(next.first) },
+                    onInfo = {
+                        infoSheet = MetricInfo(
+                            title = "Smart wake window",
+                            meaning = "The range WakeSync is allowed to wake you in, ending at your protected wake-by deadline.",
+                            measurement = "Your schedule sets the deadline and smart-window width. WakeSync may choose an earlier point only inside that range.",
+                            importance = "A narrow, user-controlled window avoids the frustrating early wake-ups common in overly aggressive smart alarms."
+                        )
+                    }
                 )
             } else {
-                EmptyAlarmCard(onGoAlarms)
+                EmptyAlarmCard(
+                    onGoAlarms = onGoAlarms,
+                    onInfo = {
+                        infoSheet = MetricInfo(
+                            title = "Smart alarm schedule",
+                            meaning = "Your wake-by schedule defines the latest acceptable wake time for each selected day.",
+                            measurement = "WakeSync combines the recurring schedule with your chosen smart-window width and preserves the deadline.",
+                            importance = "A protected deadline keeps the smart feature from making you late while still allowing a better wake point when appropriate."
+                        )
+                    }
+                )
             }
         }
 
@@ -465,7 +501,15 @@ private fun HomeTab(
                     AppSettingsStore.WIDGET_GOAL -> item {
                         GoalStreakCard(
                             analytics = dashboardAnalytics,
-                            sleepGoalMinutes = sleepGoalMinutes
+                            sleepGoalMinutes = sleepGoalMinutes,
+                            onInfo = {
+                                infoSheet = MetricInfo(
+                                    title = "Sleep goal & streak",
+                                    meaning = "Your latest sleep progress toward the personal nightly target and the number of consecutive tracked nights that met it.",
+                                    measurement = "Progress is latest estimated sleep minutes divided by your selected target. The streak counts consecutive recent nights at or above that target.",
+                                    importance = "A personal target helps make duration trends actionable without pretending one number is perfect for everyone."
+                                )
+                            }
                         )
                     }
 
@@ -495,7 +539,14 @@ private fun HomeTab(
                                 }
                             }
                         } else if (nights.isNotEmpty()) {
-                            item { SleepMetricRow(nights.first()) }
+                            item {
+                                SleepMetricRow(
+                                    night = nights.first(),
+                                    onInfo = { metric ->
+                                        infoSheet = metric
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -504,7 +555,15 @@ private fun HomeTab(
                             text = SleepAnalytics.insightFor(
                                 dashboardAnalytics,
                                 sleepGoalMinutes
-                            )
+                            ),
+                            onInfo = {
+                                infoSheet = MetricInfo(
+                                    title = "WakeSync Insight",
+                                    meaning = "A plain-language observation derived from your recent local sleep trend.",
+                                    measurement = "WakeSync compares duration, regularity and stage trends on-device. Your raw health data is not sent to a cloud AI service.",
+                                    importance = "The goal is to surface useful repeatable patterns rather than overreact to a single night."
+                                )
+                            }
                         )
                     }
                 }
@@ -525,7 +584,18 @@ private fun HomeTab(
             }
         }
 
-        item { PrivacyBanner() }
+        item {
+            PrivacyBanner(
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "On-device privacy",
+                        meaning = "WakeSync reads permitted Health Connect data locally and does not operate a health-data cloud database.",
+                        measurement = "Sleep analytics and wake recommendations are calculated on the device. Export only happens after you choose a share action.",
+                        importance = "Keeping raw health data local reduces unnecessary exposure and keeps the app usable without a paid server API."
+                    )
+                }
+            )
+        }
 
         errorMessage?.let { message ->
             item {
@@ -549,12 +619,108 @@ private fun HomeTab(
             }
         )
     }
+
+    MetricInfoBottomSheet(
+        info = infoSheet,
+        onDismiss = { infoSheet = null }
+    )
+}
+
+@Composable
+private fun MorningBriefingCard(
+    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
+    onInfo: () -> Unit
+) {
+    val hour = LocalTime.now().hour
+    val greeting = when (hour) {
+        in 5..11 -> "Good morning"
+        in 12..16 -> "Good afternoon"
+        in 17..21 -> "Good evening"
+        else -> "Welcome back"
+    }
+    val score = analytics.averageScore ?: 0
+    val status = when {
+        analytics.sleepDebtMinutes >= 120 -> "⚡ Sleep Debt Detected"
+        score >= 90 -> "✨ Optimal Recovery"
+        score >= 75 -> "✨ Strong Recovery"
+        else -> "◌ Recovery Building"
+    }
+    val statusColor = when {
+        analytics.sleepDebtMinutes >= 120 -> Sunrise
+        score >= 90 -> Mint
+        score >= 75 -> Cyan
+        else -> Lavender
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.60f),
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawCircle(
+                    color = statusColor.copy(alpha = 0.10f),
+                    radius = size.minDimension * 0.65f,
+                    center = Offset(size.width * 0.93f, size.height * 0.08f)
+                )
+            }
+
+            Column(modifier = Modifier.padding(17.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = greeting,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 2.dp),
+                            text = "Here’s your sleep briefing",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    InfoTrigger(onClick = onInfo)
+                }
+
+                Card(
+                    modifier = Modifier.padding(top = 13.dp),
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.32f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = statusColor.copy(alpha = 0.12f),
+                        contentColor = statusColor
+                    )
+                ) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
+                        text = status,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
 private fun GoalStreakCard(
     analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
-    sleepGoalMinutes: Int
+    sleepGoalMinutes: Int,
+    onInfo: () -> Unit
 ) {
     val recent = analytics.nights.sortedByDescending { it.date }
     val streak = recent.takeWhile { it.asleepMinutes >= sleepGoalMinutes }.size
@@ -637,12 +803,19 @@ private fun GoalStreakCard(
                     .weight(1f)
                     .padding(start = 18.dp)
             ) {
-                Text(
-                    text = "Sleep goal",
-                    color = Mint,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Sleep goal",
+                        color = Mint,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    InfoTrigger(onClick = onInfo)
+                }
                 Text(
                     modifier = Modifier.padding(top = 5.dp),
                     text = latest?.let { formatMinutes(it.asleepMinutes) } ?: "—",
@@ -678,7 +851,10 @@ private fun GoalStreakCard(
 }
 
 @Composable
-private fun HomeInsightCard(text: String) {
+private fun HomeInsightCard(
+    text: String,
+    onInfo: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -698,11 +874,18 @@ private fun HomeInsightCard(text: String) {
             }
 
             Column(modifier = Modifier.padding(18.dp)) {
-                Text(
-                    text = "✨  WakeSync Insight",
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Lavender
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "✨  WakeSync Insight",
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Lavender
+                    )
+                    InfoTrigger(onClick = onInfo)
+                }
                 Text(
                     modifier = Modifier.padding(top = 9.dp),
                     text = text,
