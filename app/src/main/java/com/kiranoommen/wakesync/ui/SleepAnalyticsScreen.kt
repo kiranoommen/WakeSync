@@ -526,9 +526,13 @@ private fun StageDistributionCard(night: NightAnalytics) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
@@ -623,9 +627,13 @@ private fun TrendCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
@@ -817,9 +825,13 @@ private fun TrendChart(
 private fun ArchitectureCard(analytics: PeriodAnalytics) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
@@ -856,7 +868,8 @@ private fun ArchitectureCard(analytics: PeriodAnalytics) {
 private fun RecoveryCard(analytics: PeriodAnalytics) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(1.dp, Indigo.copy(alpha = 0.28f)),
         colors = CardDefaults.cardColors(
             containerColor = Indigo.copy(alpha = 0.10f),
             contentColor = MaterialTheme.colorScheme.onSurface
@@ -892,9 +905,13 @@ private fun RecoveryCard(analytics: PeriodAnalytics) {
 private fun MissingRecoveryCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.66f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
@@ -925,9 +942,13 @@ private fun SleepLog(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
@@ -1011,9 +1032,13 @@ private fun ExpandedDetails(night: NightAnalytics) {
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
@@ -1046,9 +1071,13 @@ private fun ExpandedDetails(night: NightAnalytics) {
 private fun ExportCard(onCsv: () -> Unit, onPdf: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.68f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
@@ -1082,9 +1111,13 @@ private fun ExportCard(onCsv: () -> Unit, onPdf: () -> Unit) {
 private fun ResearchNote() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
@@ -1106,7 +1139,18 @@ private fun EmptyRange(
     rangeEnd: LocalDate,
     onRefresh: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
+    ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Text(
                 text = "No sleep data in this range",
