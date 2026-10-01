@@ -591,6 +591,7 @@ private fun HomeTab(
                             item {
                                 SleepMetricRow(
                                     night = nights.first(),
+                                    goalsEnabled = goalsEnabled,
                                     onInfo = { metric ->
                                         infoSheet = metric
                                     }
@@ -3492,20 +3493,57 @@ private fun SleepStageTimeline(
 @Composable
 private fun SleepMetricRow(
     night: SleepNight,
+    goalsEnabled: Boolean,
     onInfo: (MetricInfo) -> Unit
 ) {
-    val total = java.time.Duration.between(night.start, night.end).toMinutes()
-    val deep = stageMinutes(night, SleepStageType.DEEP)
-    val rem = stageMinutes(night, SleepStageType.REM)
+    val deep =
+        stageMinutes(
+            night,
+            SleepStageType.DEEP
+        )
+    val light =
+        stageMinutes(
+            night,
+            SleepStageType.LIGHT
+        )
+    val rem =
+        stageMinutes(
+            night,
+            SleepStageType.REM
+        )
+    val unknown =
+        stageMinutes(
+            night,
+            SleepStageType.UNKNOWN
+        )
+    val asleep =
+        deep + light + rem + unknown
+    val sessionMinutes =
+        java.time.Duration
+            .between(
+                night.start,
+                night.end
+            )
+            .toMinutes()
+            .coerceAtLeast(1L)
+    val efficiency =
+        (
+            asleep.toDouble() /
+                sessionMinutes.toDouble() *
+                100.0
+            )
+            .roundToInt()
+            .coerceIn(0, 100)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(9.dp)
+        horizontalArrangement =
+            Arrangement.spacedBy(9.dp)
     ) {
         QuickMetricCard(
             modifier = Modifier.weight(1f),
             label = "Total Sleep",
-            value = formatMinutes(total),
+            value = formatMinutes(asleep),
             accent = Cyan,
             onInfo = {
                 onInfo(
@@ -3518,22 +3556,43 @@ private fun SleepMetricRow(
                 )
             }
         )
-        QuickMetricCard(
-            modifier = Modifier.weight(1f),
-            label = "Deep Sleep",
-            value = formatMinutes(deep),
-            accent = Lavender,
-            onInfo = {
-                onInfo(
-                    MetricInfo(
-                        title = "Deep sleep",
-                        meaning = "Time your wearable classified as deep or slow-wave sleep.",
-                        measurement = "Sum of Health Connect stage intervals labeled Deep.",
-                        importance = "Deep sleep is associated with physical restoration, but consumer wearable staging is an estimate and is best used as a personal trend."
+
+        if (goalsEnabled) {
+            QuickMetricCard(
+                modifier = Modifier.weight(1f),
+                label = "Deep Sleep",
+                value = formatMinutes(deep),
+                accent = Lavender,
+                onInfo = {
+                    onInfo(
+                        MetricInfo(
+                            title = "Deep sleep",
+                            meaning = "Time your wearable classified as deep or slow-wave sleep.",
+                            measurement = "Sum of Health Connect stage intervals labeled Deep.",
+                            importance = "Deep sleep is associated with physical restoration, but consumer wearable staging is an estimate and is best used as a personal trend."
+                        )
                     )
-                )
-            }
-        )
+                }
+            )
+        } else {
+            QuickMetricCard(
+                modifier = Modifier.weight(1f),
+                label = "Efficiency",
+                value = efficiency.toString() + "%",
+                accent = Mint,
+                onInfo = {
+                    onInfo(
+                        MetricInfo(
+                            title = "Sleep efficiency",
+                            meaning = "The percentage of the sleep-session window that WakeSync counts as asleep.",
+                            measurement = "Estimated sleep-stage minutes divided by the Health Connect sleep-session duration.",
+                            importance = "Efficiency helps distinguish enough time in bed from consolidated sleep."
+                        )
+                    )
+                }
+            )
+        }
+
         QuickMetricCard(
             modifier = Modifier.weight(1f),
             label = "REM Sleep",
