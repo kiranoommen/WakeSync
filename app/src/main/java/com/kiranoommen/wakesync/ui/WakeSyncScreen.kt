@@ -1703,11 +1703,14 @@ private fun MorningBriefingCard(
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant
+            wakeGlassBorderBrush()
         ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.60f),
+            containerColor = wakeGlassFill(),
             contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp
         )
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
