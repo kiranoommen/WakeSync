@@ -1234,7 +1234,7 @@ private fun NextWakeCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent,
@@ -1425,7 +1425,7 @@ private fun EmptyAlarmCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent,
