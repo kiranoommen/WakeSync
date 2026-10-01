@@ -153,6 +153,9 @@ fun OobeScreen(
                 }
 
                 Crossfade(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     targetState = step,
                     animationSpec = spring(
                         stiffness = 300f,
@@ -162,11 +165,11 @@ fun OobeScreen(
                 ) { current ->
                     when (current) {
                         0 -> OobeWelcome(
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxSize()
                         )
 
                         1 -> OobeName(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxSize(),
                             name = nameDraft,
                             onNameChange = {
                                 nameDraft = it.take(24)
@@ -174,13 +177,13 @@ fun OobeScreen(
                         )
 
                         2 -> OobeTheme(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxSize(),
                             selected = themeMode,
                             onSelected = onThemeModeChange
                         )
 
                         else -> OobeHealthConnect(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxSize(),
                             sdkStatus = sdkStatus,
                             connected = hasPermission,
                             onConnect = onConnect
