@@ -952,6 +952,8 @@ private fun Hypnogram(
             .coerceAtLeast(1L)
     val ordered =
         night.stages.sortedBy { it.start }
+    val unknownStageColor =
+        MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(modifier = modifier) {
         Row(
@@ -1049,7 +1051,7 @@ private fun Hypnogram(
                         SleepStageType.DEEP ->
                             Lavender
                         SleepStageType.UNKNOWN ->
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            unknownStageColor
                     }
 
                 ordered.forEachIndexed {
@@ -2316,6 +2318,10 @@ private fun PillarRow(
     label: String,
     value: Int
 ) {
+    val trackColor =
+        MaterialTheme.colorScheme.onSurface
+            .copy(alpha = 0.08f)
+
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -2343,9 +2349,7 @@ private fun PillarRow(
                 .padding(top = 4.dp)
         ) {
             drawRoundRect(
-                color =
-                    MaterialTheme.colorScheme.onSurface
-                        .copy(alpha = 0.08f),
+                color = trackColor,
                 size = size,
                 cornerRadius =
                     CornerRadius(
