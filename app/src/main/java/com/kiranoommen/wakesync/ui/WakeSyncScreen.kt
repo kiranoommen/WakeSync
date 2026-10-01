@@ -403,7 +403,7 @@ private fun SleepNightCard(night: SleepNight) {
                 }
 
                 Text(
-                    text = (durationMinutes / 60) + "h " + (durationMinutes % 60) + "m",
+                    text = (durationMinutes / 60).toString() + "h " + (durationMinutes % 60).toString() + "m",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
