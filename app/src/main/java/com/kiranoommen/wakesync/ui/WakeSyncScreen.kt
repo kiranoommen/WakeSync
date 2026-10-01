@@ -2565,10 +2565,8 @@ private fun GlassSwitch(
 ) {
     val trackColor by animateColorAsState(
         targetValue = when {
-            !enabled ->
-                MaterialTheme.colorScheme.surfaceVariant
             checked ->
-                IndigoGlow.copy(alpha = 0.92f)
+                IndigoGlow.copy(alpha = if (enabled) 0.92f else 0.72f)
             else ->
                 MaterialTheme.colorScheme.surfaceVariant
         },
