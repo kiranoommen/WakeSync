@@ -24,6 +24,7 @@ class AlarmStore(context: Context) {
         val safeLabel = schedule.label
             .replace("|", " ")
             .replace("\n", " ")
+
         return listOf(
             schedule.id,
             safeLabel,
@@ -33,7 +34,10 @@ class AlarmStore(context: Context) {
             schedule.smartWindowMinutes.toString(),
             schedule.smartOffsetMinutes.toString(),
             schedule.enabled.toString(),
-            schedule.skippedDates.sorted().joinToString(",")
+            schedule.skippedDates.sorted().joinToString(","),
+            schedule.soundEnabled.toString(),
+            schedule.vibrationEnabled.toString(),
+            schedule.snoozeMinutes.toString()
         ).joinToString("|")
     }
 
@@ -58,7 +62,10 @@ class AlarmStore(context: Context) {
                 skippedDates = parts[8]
                     .split(",")
                     .filter { it.isNotBlank() }
-                    .toSet()
+                    .toSet(),
+                soundEnabled = parts.getOrNull(9)?.toBooleanStrictOrNull() ?: true,
+                vibrationEnabled = parts.getOrNull(10)?.toBooleanStrictOrNull() ?: true,
+                snoozeMinutes = parts.getOrNull(11)?.toIntOrNull() ?: 5
             )
         }.getOrNull()
     }
