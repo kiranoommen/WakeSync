@@ -417,11 +417,15 @@ private fun NextWakeCard(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    modifier = Modifier.padding(top = 8.dp),
-                    text = deadline.format(timeFormat),
+                    modifier = Modifier.padding(top = 10.dp),
+                    text = if (schedule.smartWindowMinutes > 0) {
+                        windowStart.format(timeFormat) + " – " + deadline.format(timeFormat)
+                    } else {
+                        deadline.format(timeFormat)
+                    },
                     color = Color.White,
                     style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = deadline.format(dateFormat) + " · " +
@@ -429,32 +433,38 @@ private fun NextWakeCard(
                     color = Color.White.copy(alpha = 0.85f)
                 )
 
-                Spacer(Modifier.height(16.dp))
-
-                if (schedule.smartWindowMinutes > 0) {
-                    Text(
-                        text = "Smart window  " +
-                            windowStart.format(timeFormat) + " – " + deadline.format(timeFormat),
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.12f)
                     )
-                    Text(
-                        modifier = Modifier.padding(top = 4.dp),
-                        text = if (schedule.smartOffsetMinutes > 0) {
-                            "Current prediction: " + predicted.format(timeFormat) +
-                                ". Deadline is always protected."
-                        } else {
-                            "Current prediction: use the deadline. WakeSync is preserving sleep."
-                        },
-                        color = Color.White.copy(alpha = 0.76f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                } else {
-                    Text(
-                        text = "Exact-time alarm",
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
+                ) {
+                    Column(modifier = Modifier.padding(13.dp)) {
+                        Text(
+                            text = if (schedule.smartOffsetMinutes > 0) {
+                                "Predicted wake · " + predicted.format(timeFormat)
+                            } else if (schedule.smartWindowMinutes > 0) {
+                                "Prediction · use the deadline"
+                            } else {
+                                "Exact-time alarm"
+                            },
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 3.dp),
+                            text = if (schedule.smartOffsetMinutes > 0) {
+                                "Historically favorable point inside your allowed window."
+                            } else {
+                                "WakeSync is preserving sleep. The deadline always wins."
+                            },
+                            color = Color.White.copy(alpha = 0.74f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
 
                 Row(
