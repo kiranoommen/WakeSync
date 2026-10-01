@@ -79,7 +79,8 @@ class MainActivity : ComponentActivity() {
             var oobeCompleted by remember {
                 mutableStateOf(
                     appSettings.oobeCompleted ||
-                        schedules.isNotEmpty()
+                        schedules.isNotEmpty() ||
+                        appSettings.hasExistingUserState()
                 )
             }
 
@@ -196,7 +197,10 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 if (
                     !appSettings.oobeCompleted &&
-                    schedules.isNotEmpty()
+                    (
+                        schedules.isNotEmpty() ||
+                            appSettings.hasExistingUserState()
+                        )
                 ) {
                     appSettings.oobeCompleted = true
                     oobeCompleted = true
