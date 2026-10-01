@@ -2317,9 +2317,9 @@ private fun DashboardCustomizeRow(
                                     dragOffset = 0f
                                 },
                                 onDrag = {
-                                        change,
+                                        _,
                                         dragAmount ->
-                                                                        dragOffset +=
+                                    dragOffset +=
                                         dragAmount.y
 
                                     if (
