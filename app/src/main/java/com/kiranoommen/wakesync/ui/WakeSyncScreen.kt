@@ -15,12 +15,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -51,6 +57,7 @@ fun WakeSyncScreen(
 ) {
     WakeSyncTheme {
         val colors = MaterialTheme.colorScheme
+        var selectedNight by remember { mutableStateOf<SleepNight?>(null) }
 
         Box(
             modifier = Modifier
@@ -73,7 +80,8 @@ fun WakeSyncScreen(
                 Text(
                     text = "WakeSync",
                     style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.onBackground
                 )
                 Text(
                     modifier = Modifier.padding(top = 3.dp),
@@ -120,7 +128,8 @@ fun WakeSyncScreen(
                                 Text(
                                     text = "Last night's sleep",
                                     style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.onBackground
                                 )
                                 Text(
                                     text = "Read from Health Connect",
@@ -162,8 +171,11 @@ fun WakeSyncScreen(
                                 modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(nights.take(14)) { night ->
-                                    SleepNightCard(night)
+                                items(nights.take(4)) { night ->
+                                    SleepNightCard(
+                                        night = night,
+                                        onClick = { selectedNight = night }
+                                    )
                                 }
                             }
                         }
@@ -179,6 +191,13 @@ fun WakeSyncScreen(
                     )
                 }
             }
+        }
+
+        selectedNight?.let { night ->
+            SleepNightDialog(
+                night = night,
+                onDismiss = { selectedNight = null }
+            )
         }
     }
 }
@@ -238,16 +257,25 @@ private fun WakeWindowHero(hasPermission: Boolean) {
 
                 Spacer(Modifier.height(18.dp))
 
-                Button(
-                    onClick = { },
-                    enabled = false,
-                    shape = RoundedCornerShape(22.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        disabledContainerColor = Color.White.copy(alpha = 0.16f),
-                        disabledContentColor = Color.White.copy(alpha = 0.74f)
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.14f)
                     )
                 ) {
-                    Text("I’m awake")
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Text(
+                            text = "Automatic wake",
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 3.dp),
+                            text = "No daily check-in required. Your alarm will fire automatically inside your wake window.",
+                            color = Color.White.copy(alpha = 0.78f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
         }
@@ -278,7 +306,8 @@ private fun PrivacyBanner() {
                 Text(
                     text = "Processed on your device",
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.onSurface
                 )
                 Text(
                     modifier = Modifier.padding(top = 2.dp),
@@ -296,6 +325,7 @@ private fun ConnectCard(onConnect: () -> Unit) {
     val colors = MaterialTheme.colorScheme
 
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
@@ -306,7 +336,8 @@ private fun ConnectCard(onConnect: () -> Unit) {
             Text(
                 text = "Connect your sleep data",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = colors.onSurface
             )
             Text(
                 modifier = Modifier.padding(top = 6.dp),
@@ -327,7 +358,8 @@ private fun ConnectCard(onConnect: () -> Unit) {
                 Text(
                     text = "Connect sleep data",
                     modifier = Modifier.padding(vertical = 4.dp),
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.onSurface
                 )
             }
         }
@@ -361,7 +393,7 @@ private fun StatusCard(title: String, body: String) {
 }
 
 @Composable
-private fun SleepNightCard(night: SleepNight) {
+private fun SleepNightCard(night: SleepNight, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val zone = ZoneId.systemDefault()
     val dateFormat = DateTimeFormatter.ofPattern("EEE, MMM d")
@@ -393,7 +425,8 @@ private fun SleepNightCard(night: SleepNight) {
                     Text(
                         text = endLocal.format(dateFormat),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.onSurface
                     )
                     Text(
                         text = startLocal.format(timeFormat) + " – " + endLocal.format(timeFormat),
@@ -446,6 +479,97 @@ private fun SleepNightCard(night: SleepNight) {
                 text = "Source: " + night.sourcePackage,
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun SleepNightDialog(
+    night: SleepNight,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val zone = ZoneId.systemDefault()
+    val dateFormat = DateTimeFormatter.ofPattern("EEEE, MMM d")
+    val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
+
+    val totalMinutes = ChronoUnit.MINUTES.between(night.start, night.end)
+    val deep = stageMinutes(night, SleepStageType.DEEP)
+    val light = stageMinutes(night, SleepStageType.LIGHT)
+    val rem = stageMinutes(night, SleepStageType.REM)
+    val awake = stageMinutes(night, SleepStageType.AWAKE)
+    val stagedTotal = (deep + light + rem + awake).coerceAtLeast(1)
+
+    fun pct(value: Long): Int = ((value * 100) / stagedTotal).toInt()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = night.end.atZone(zone).format(dateFormat),
+                color = colors.onSurface,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = night.start.atZone(zone).format(timeFormat) + " – " +
+                        night.end.atZone(zone).format(timeFormat) + " • " +
+                        formatMinutes(totalMinutes),
+                    color = colors.onSurfaceVariant
+                )
+                StageDetailLine("Deep", deep, pct(deep), Indigo)
+                StageDetailLine("Light", light, pct(light), Lavender)
+                StageDetailLine("REM", rem, pct(rem), Amber)
+                StageDetailLine("Awake", awake, pct(awake), colors.onSurfaceVariant)
+
+                Text(
+                    modifier = Modifier.padding(top = 4.dp),
+                    text = "Source: " + night.sourcePackage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Done")
+            }
+        },
+        containerColor = colors.surface
+    )
+}
+
+@Composable
+private fun StageDetailLine(
+    label: String,
+    minutes: Long,
+    percent: Int,
+    accent: Color
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                color = accent,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = formatMinutes(minutes) + " • " + percent + "%",
+                color = colors.onSurface
             )
         }
     }
