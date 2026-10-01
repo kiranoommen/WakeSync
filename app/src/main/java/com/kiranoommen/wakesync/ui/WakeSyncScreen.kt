@@ -130,12 +130,43 @@ fun WakeSyncScreen(
                     Brush.verticalGradient(
                         listOf(
                             colors.background,
-                            colors.surfaceVariant.copy(alpha = 0.72f),
+                            if (darkTheme) Color(0xFF111A36) else Color(0xFFF2F0FF),
                             colors.background
                         )
                     )
                 )
         ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                if (darkTheme) {
+                    drawCircle(
+                        color = Lavender.copy(alpha = 0.10f),
+                        radius = size.minDimension * 0.52f,
+                        center = Offset(size.width * 0.86f, size.height * 0.12f)
+                    )
+                    drawCircle(
+                        color = Amber.copy(alpha = 0.075f),
+                        radius = size.minDimension * 0.46f,
+                        center = Offset(size.width * 0.08f, size.height * 0.50f)
+                    )
+                    drawCircle(
+                        color = Indigo.copy(alpha = 0.10f),
+                        radius = size.minDimension * 0.60f,
+                        center = Offset(size.width * 0.78f, size.height * 0.86f)
+                    )
+                } else {
+                    drawCircle(
+                        color = Lavender.copy(alpha = 0.08f),
+                        radius = size.minDimension * 0.48f,
+                        center = Offset(size.width * 0.90f, size.height * 0.12f)
+                    )
+                    drawCircle(
+                        color = Amber.copy(alpha = 0.06f),
+                        radius = size.minDimension * 0.42f,
+                        center = Offset(size.width * 0.10f, size.height * 0.52f)
+                    )
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -242,7 +273,7 @@ private fun AppHeader(tab: AppTab) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 14.dp),
+            .padding(top = 16.dp, bottom = 18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Canvas(
@@ -285,7 +316,7 @@ private fun AppHeader(tab: AppTab) {
         Column(modifier = Modifier.padding(start = 10.dp)) {
             Text(
                 text = "WakeSync",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = colors.onBackground
             )
@@ -492,7 +523,8 @@ private fun GoalStreakCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Amber.copy(alpha = 0.10f)
+            containerColor = Amber.copy(alpha = 0.10f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Row(
@@ -544,7 +576,8 @@ private fun HomeInsightCard(text: String) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Lavender.copy(alpha = 0.10f)
+            containerColor = Lavender.copy(alpha = 0.10f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -676,7 +709,10 @@ private fun NextWakeCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent,
+            contentColor = Color.White
+        )
     ) {
         Box(
             modifier = Modifier
@@ -782,7 +818,10 @@ private fun EmptyAlarmCard(onGoAlarms: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent,
+            contentColor = Color.White
+        )
     ) {
         Box(
             modifier = Modifier
@@ -1274,7 +1313,8 @@ private fun PreferenceCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
@@ -1622,7 +1662,8 @@ private fun SleepNightCard(night: SleepNight) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = colors.surface.copy(alpha = 0.84f)
+            containerColor = colors.surface.copy(alpha = 0.84f),
+            contentColor = colors.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1885,7 +1926,8 @@ private fun InfoCard(title: String, body: String) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
