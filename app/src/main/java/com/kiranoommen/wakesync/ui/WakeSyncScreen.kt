@@ -1478,6 +1478,10 @@ private fun AlarmsTab(
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit
 ) {
+    var infoSheet by remember {
+        mutableStateOf<MetricInfo?>(null)
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -1515,12 +1519,27 @@ private fun AlarmsTab(
                 onEdit = { onEdit(schedule) },
                 onToggle = { onToggle(schedule, it) },
                 onSkip = { onSkipNext(schedule) },
-                onClearSkips = { onClearSkips(schedule) }
+                onClearSkips = { onClearSkips(schedule) },
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Wake schedule",
+                        meaning = "A recurring wake-by deadline with optional smart-window flexibility.",
+                        measurement = "WakeSync stores the selected weekdays, wake-by time and allowed early-wake window locally, then schedules the protected deadline with Android.",
+                        importance = "The schedule is the guardrail: WakeSync can optimize inside the window but cannot intentionally wake you later than the deadline."
+                    )
+                }
             )
         }
 
         item { Spacer(Modifier.height(10.dp)) }
     }
+
+    MetricInfoBottomSheet(
+        info = infoSheet,
+        onDismiss = {
+            infoSheet = null
+        }
+    )
 }
 
 @Composable
@@ -1529,7 +1548,8 @@ private fun AlarmScheduleCard(
     onEdit: () -> Unit,
     onToggle: (Boolean) -> Unit,
     onSkip: () -> Unit,
-    onClearSkips: () -> Unit
+    onClearSkips: () -> Unit,
+    onInfo: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     var showDisableChoice by remember { mutableStateOf(false) }
@@ -1599,12 +1619,22 @@ private fun AlarmScheduleCard(
                         )
                     }
 
-                    Switch(
-                        checked = schedule.enabled,
-                        onCheckedChange = { checked ->
-                            if (checked) onToggle(true) else showDisableChoice = true
-                        }
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        InfoTrigger(onClick = onInfo)
+                        Switch(
+                            checked = schedule.enabled,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    onToggle(true)
+                                } else {
+                                    showDisableChoice = true
+                                }
+                            }
+                        )
+                    }
                 }
 
                 Row(
