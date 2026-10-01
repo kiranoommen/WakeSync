@@ -3502,7 +3502,7 @@ private fun SettingsTab(
                                 if (hasPermission) {
                                     "Health Connect Integration"
                                 } else {
-                                    "Health Connect"
+                                    "Health Connect Integration"
                                 },
                             style =
                                 MaterialTheme.typography.titleMedium,
@@ -4534,7 +4534,7 @@ private fun ConnectCard(onConnect: () -> Unit) {
             )
             Text(
                 modifier = Modifier.padding(top = 6.dp),
-                text = "WakeSync uses Health Connect with read-only sleep access.",
+                text = "WakeSync uses the Health Connect Integration with read-only sleep access.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Button(
