@@ -21,6 +21,14 @@ class AppSettingsStore(context: Context) {
                 .apply()
         }
 
+    var goalsEnabled: Boolean
+        get() = prefs.getBoolean(KEY_GOALS_ENABLED, true)
+        set(value) {
+            prefs.edit()
+                .putBoolean(KEY_GOALS_ENABLED, value)
+                .apply()
+        }
+
     var displayName: String
         get() = prefs.getString(KEY_DISPLAY_NAME, "") ?: ""
         set(value) {
@@ -70,6 +78,7 @@ class AppSettingsStore(context: Context) {
 
         private const val KEY_THEME = "theme_mode"
         private const val KEY_SLEEP_GOAL = "sleep_goal_minutes"
+        private const val KEY_GOALS_ENABLED = "goals_enabled"
         private const val KEY_DISPLAY_NAME = "display_name"
         private const val KEY_MAX_SMART_WINDOW = "max_smart_window_minutes"
         private const val KEY_RETAIN_EXPORTS = "retain_generated_exports"
