@@ -13,6 +13,9 @@ data class AlarmSchedule(
     val smartWindowMinutes: Int = 20,
     val smartOffsetMinutes: Int = 0,
     val enabled: Boolean = true,
+    val soundEnabled: Boolean = true,
+    val vibrationEnabled: Boolean = true,
+    val snoozeMinutes: Int = 5,
     val skippedDates: Set<String> = emptySet()
 ) {
     fun isScheduledOn(date: LocalDate): Boolean =
