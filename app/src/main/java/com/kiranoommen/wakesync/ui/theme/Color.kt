@@ -3,7 +3,7 @@ package com.kiranoommen.wakesync.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // WakeSync midnight design system.
-val Midnight = Color(0xFF090C15)
+val Midnight = Color(0xFF060812)
 val MidnightSurface = Color(0xFF111725)
 val MidnightElevated = Color(0xFF171D2E)
 
