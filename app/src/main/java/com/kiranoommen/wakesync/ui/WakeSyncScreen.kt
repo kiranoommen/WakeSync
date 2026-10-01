@@ -744,20 +744,24 @@ private fun AlarmEditorDialog(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    dayItems().forEach { (value, label) ->
-                        FilterChip(
-                            selected = draft.days.contains(value),
-                            onClick = {
-                                val newDays = draft.days.toMutableSet()
-                                if (newDays.contains(value)) newDays.remove(value) else newDays.add(value)
-                                draft = draft.copy(days = newDays)
-                            },
-                            label = { Text(label) }
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    dayItems().chunked(4).forEach { rowDays ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            rowDays.forEach { (value, label) ->
+                                FilterChip(
+                                    selected = draft.days.contains(value),
+                                    onClick = {
+                                        val newDays = draft.days.toMutableSet()
+                                        if (newDays.contains(value)) newDays.remove(value) else newDays.add(value)
+                                        draft = draft.copy(days = newDays)
+                                    },
+                                    label = { Text(label) }
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -800,6 +804,38 @@ private fun AlarmEditorDialog(
 
                 HorizontalDivider()
 
+                ToggleSettingRow(
+                    title = "Sound",
+                    checked = draft.soundEnabled,
+                    onCheckedChange = { draft = draft.copy(soundEnabled = it) }
+                )
+
+                ToggleSettingRow(
+                    title = "Vibration",
+                    checked = draft.vibrationEnabled,
+                    onCheckedChange = { draft = draft.copy(vibrationEnabled = it) }
+                )
+
+                Text(
+                    text = "Snooze",
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(0, 5, 10).forEach { minutes ->
+                        FilterChip(
+                            selected = draft.snoozeMinutes == minutes,
+                            onClick = { draft = draft.copy(snoozeMinutes = minutes) },
+                            label = {
+                                Text(if (minutes == 0) "Off" else minutes.toString() + "m")
+                            }
+                        )
+                    }
+                }
+
                 Text(
                     text = "If no favorable point is found, WakeSync alarms at " +
                         formatClock(draft.hour, draft.minute) + " anyway.",
@@ -828,6 +864,25 @@ private fun AlarmEditorDialog(
             }
         }
     )
+}
+
+@Composable
+private fun ToggleSettingRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, fontWeight = FontWeight.Medium)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+    }
 }
 
 @Composable
