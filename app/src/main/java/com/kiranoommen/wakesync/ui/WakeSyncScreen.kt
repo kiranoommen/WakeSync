@@ -234,7 +234,8 @@ fun WakeSyncScreen(
                                 sleepGoalMinutes = sleepGoalMinutes,
                                 onRefresh = onRefresh,
                                 onShareCsv = { SleepExporter.shareCsv(context, it) },
-                                onSharePdf = { SleepExporter.sharePdf(context, it) }
+                                onSharePdf = { SleepExporter.sharePdf(context, it) },
+                                onShareStory = { SleepExporter.shareStoryCard(context, it) }
                             )
 
                             AppTab.SETTINGS -> SettingsTab(
@@ -1435,7 +1436,8 @@ private fun SleepTab(
     sleepGoalMinutes: Int,
     onRefresh: () -> Unit,
     onShareCsv: (List<com.kiranoommen.wakesync.domain.NightAnalytics>) -> Unit,
-    onSharePdf: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit
+    onSharePdf: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit,
+    onShareStory: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1448,7 +1450,8 @@ private fun SleepTab(
                 targetSleepMinutes = sleepGoalMinutes,
                 onRefresh = onRefresh,
                 onShareCsv = onShareCsv,
-                onSharePdf = onSharePdf
+                onSharePdf = onSharePdf,
+                onShareStory = onShareStory
             )
         }
 
