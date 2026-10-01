@@ -7,6 +7,14 @@ class AppSettingsStore(context: Context) {
     private val prefs =
         context.getSharedPreferences("wakesync_settings", Context.MODE_PRIVATE)
 
+    var oobeCompleted: Boolean
+        get() = prefs.getBoolean(KEY_OOBE_COMPLETED, false)
+        set(value) {
+            prefs.edit()
+                .putBoolean(KEY_OOBE_COMPLETED, value)
+                .apply()
+        }
+
     var themeMode: String
         get() = prefs.getString(KEY_THEME, THEME_DARK) ?: THEME_DARK
         set(value) {
@@ -72,10 +80,18 @@ class AppSettingsStore(context: Context) {
         const val WIDGET_GOAL = "GOAL"
         const val WIDGET_SLEEP = "SLEEP"
         const val WIDGET_INSIGHT = "INSIGHT"
+        const val WIDGET_DEBT = "DEBT"
+        const val WIDGET_HYPNOGRAM = "HYPNOGRAM"
+        const val WIDGET_ALARM = "ALARM"
 
         val DEFAULT_DASHBOARD_WIDGETS =
-            listOf(WIDGET_GOAL, WIDGET_SLEEP, WIDGET_INSIGHT)
+            listOf(
+                WIDGET_GOAL,
+                WIDGET_SLEEP,
+                WIDGET_INSIGHT
+            )
 
+        private const val KEY_OOBE_COMPLETED = "oobe_completed"
         private const val KEY_THEME = "theme_mode"
         private const val KEY_SLEEP_GOAL = "sleep_goal_minutes"
         private const val KEY_GOALS_ENABLED = "goals_enabled"
