@@ -325,7 +325,6 @@ private fun ConnectCard(onConnect: () -> Unit) {
     val colors = MaterialTheme.colorScheme
 
     Card(
-        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
@@ -409,6 +408,7 @@ private fun SleepNightCard(night: SleepNight, onClick: () -> Unit) {
     val awake = stageMinutes(night, SleepStageType.AWAKE)
 
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
