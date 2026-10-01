@@ -718,6 +718,12 @@ private fun MorningBriefingCard(
         score >= 75 -> Cyan
         else -> Lavender
     }
+    val scoreColor = when {
+        score >= 90 -> Mint
+        score >= 75 -> Cyan
+        score >= 60 -> Color(0xFFF59E0B)
+        else -> Color(0xFFEF4444)
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -792,7 +798,7 @@ private fun MorningBriefingCard(
                             .padding(start = 14.dp)
                             .size(92.dp),
                         score = score,
-                        color = statusColor,
+                        color = scoreColor,
                         onClick = onScoreClick
                     )
                 }
