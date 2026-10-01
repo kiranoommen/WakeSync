@@ -2751,8 +2751,8 @@ private fun CustomRangeSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        horizontal = 8.dp,
-                        vertical = 10.dp
+                        8.dp,
+                        10.dp
                     ),
                 enabled =
                     state.selectedStartDateMillis != null &&
