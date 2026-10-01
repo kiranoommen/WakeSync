@@ -1711,162 +1711,630 @@ private fun SettingsTab(
     onRetainGeneratedExportsChange: (Boolean) -> Unit,
     onClearGeneratedExports: () -> Unit
 ) {
-    val source = nights.firstOrNull()?.sourcePackage ?: "No source detected yet"
+    val source =
+        nights.firstOrNull()?.sourcePackage
+            ?: "No source detected yet"
+    var infoSheet by remember {
+        mutableStateOf<MetricInfo?>(null)
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement =
+            Arrangement.spacedBy(16.dp)
     ) {
         item {
-            InfoCard(
-                title = "Private by design",
-                body = "WakeSync reads your permitted Health Connect data locally. It does not upload, sell, share, or modify health data. Export happens only when you choose it."
-            )
-        }
+            SettingsBentoCard(
+                title = "Targets & Goals",
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Sleep target",
+                        meaning = "Your personal nightly sleep-duration target.",
+                        measurement = "WakeSync compares estimated nightly sleep minutes with this selected target for goal progress and sleep-debt estimates.",
+                        importance = "A personal target makes trends actionable without treating one universal number as perfect for everyone."
+                    )
+                }
+            ) {
+                Text(
+                    text = "Sleep target",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
-        item {
-            SettingCard(
-                title = "Health Connect",
-                body = if (hasPermission) {
-                    "Connected · read-only sleep access\nSource: " + sourceFriendlyName(source)
-                } else {
-                    "Sleep permission is not granted."
-                },
-                button = if (hasPermission) null else "Connect",
-                onClick = onConnect
-            )
-        }
-
-        item {
-            SettingCard(
-                title = "Recovery metrics",
-                body = if (hasAnalyticsPermission) {
-                    "HRV and resting-heart-rate access enabled."
-                } else {
-                    "Optional read-only access for HRV and resting heart rate. WakeSync works without it."
-                },
-                button = if (hasAnalyticsPermission) null else "Enable",
-                onClick = onRequestAnalyticsAccess
-            )
-        }
-
-        item {
-            SettingCard(
-                title = "Extended history",
-                body = when {
-                    !historyReadAvailable ->
-                        "Historical Health Connect access is not available on this device."
-                    hasHistoryPermission ->
-                        "Enabled. WakeSync can analyze periods beyond the standard 30-day window."
-                    else ->
-                        "Optional permission required for 6-month and older comparisons."
-                },
-                button = if (historyReadAvailable && !hasHistoryPermission) "Enable" else null,
-                onClick = onRequestHistoryAccess
-            )
-        }
-
-        item {
-            SettingCard(
-                title = "Exact alarm access",
-                body = if (exactAlarmAccess) {
-                    "Enabled. Wake-by deadlines can use Android exact alarm scheduling."
-                } else {
-                    "Not enabled. Android may delay alarms. Grant exact alarm access for reliable wake deadlines."
-                },
-                button = if (exactAlarmAccess) null else "Allow",
-                onClick = onRequestExactAlarmAccess
-            )
-        }
-
-        item {
-            PreferenceCard(title = "Appearance") {
                 Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                    modifier = Modifier
+                        .horizontalScroll(
+                            rememberScrollState()
+                        )
+                        .padding(top = 10.dp),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(7.dp)
                 ) {
                     listOf(
-                        AppSettingsStore.THEME_SYSTEM to "System",
-                        AppSettingsStore.THEME_DARK to "Dark",
-                        AppSettingsStore.THEME_LIGHT to "Light"
-                    ).forEach { (value, label) ->
+                        420 to "7h",
+                        450 to "7.5h",
+                        480 to "8h",
+                        510 to "8.5h",
+                        540 to "9h"
+                    ).forEach { (minutes, label) ->
                         FilterChip(
-                            selected = themeMode == value,
-                            onClick = { onThemeModeChange(value) },
-                            label = { Text(label) }
-                        )
-                    }
-                }
-            }
-        }
-
-        item {
-            PreferenceCard(title = "Sleep goal") {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(7.dp)
-                ) {
-                    listOf(420, 450, 480, 510, 540).forEach { minutes ->
-                        FilterChip(
-                            selected = sleepGoalMinutes == minutes,
-                            onClick = { onSleepGoalChange(minutes) },
+                            selected =
+                                sleepGoalMinutes == minutes,
+                            onClick = {
+                                onSleepGoalChange(minutes)
+                            },
                             label = {
                                 Text(
-                                    when (minutes) {
-                                        420 -> "7h"
-                                        450 -> "7.5h"
-                                        480 -> "8h"
-                                        510 -> "8.5h"
-                                        else -> "9h"
-                                    }
+                                    label,
+                                    fontWeight =
+                                        if (
+                                            sleepGoalMinutes ==
+                                            minutes
+                                        ) {
+                                            FontWeight.Bold
+                                        } else {
+                                            FontWeight.Medium
+                                        }
                                 )
                             }
                         )
                     }
                 }
+
                 Text(
-                    modifier = Modifier.padding(top = 6.dp),
-                    text = "Used for sleep-debt estimates and personal trend goals.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier =
+                        Modifier.padding(top = 8.dp),
+                    text =
+                        "Used for goal progress and sleep-debt estimates.",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
         item {
-            InfoCard(
-                title = "Smart wake guardrails",
-                body = "You control the deadline and smart-window width. WakeSync never wakes you outside that window, and weak predictions fall back to the later deadline."
-            )
+            SettingsBentoCard(
+                title = "Smart Alarm Guardrails",
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Smart alarm guardrail",
+                        meaning = "The maximum amount of time any WakeSync alarm is allowed to move earlier than its protected wake-by deadline.",
+                        measurement = "Each alarm can choose a smaller smart window, but no schedule may exceed this global maximum.",
+                        importance = "This prevents a smart alarm from waking you dramatically earlier than you are comfortable with."
+                    )
+                }
+            ) {
+                Text(
+                    text =
+                        "Maximum smart-window flexibility",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(
+                            rememberScrollState()
+                        )
+                        .padding(top = 10.dp),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(7.dp)
+                ) {
+                    listOf(
+                        10,
+                        20,
+                        30,
+                        45
+                    ).forEach { minutes ->
+                        FilterChip(
+                            selected =
+                                maxSmartWindowMinutes ==
+                                    minutes,
+                            onClick = {
+                                onMaxSmartWindowChange(
+                                    minutes
+                                )
+                            },
+                            label = {
+                                Text(
+                                    minutes.toString() +
+                                        " min"
+                                )
+                            }
+                        )
+                    }
+                }
+
+                Text(
+                    modifier =
+                        Modifier.padding(top = 8.dp),
+                    text =
+                        "The wake-by deadline always wins. Existing wider schedules are capped when you lower this guardrail.",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
-        item { Spacer(Modifier.height(8.dp)) }
+        item {
+            SettingsBentoCard(
+                title = "Data Source Integration",
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Health Connect data source",
+                        meaning = "WakeSync reads sleep records through Android Health Connect rather than talking directly to every wearable vendor.",
+                        measurement = "The source package attached to the latest sleep session identifies which connected app wrote the record.",
+                        importance = "One Health Connect integration lets WakeSync support Fitbit and other compatible Android health ecosystems with the same privacy model."
+                    )
+                }
+            ) {
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier =
+                            Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text =
+                                if (hasPermission) {
+                                    sourceFriendlyName(
+                                        source
+                                    )
+                                } else {
+                                    "Health Connect"
+                                },
+                            style =
+                                MaterialTheme.typography.titleMedium,
+                            fontWeight =
+                                FontWeight.ExtraBold,
+                            color =
+                                MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            modifier =
+                                Modifier.padding(
+                                    top = 3.dp
+                                ),
+                            text =
+                                if (hasPermission) {
+                                    "Read-only sleep connection"
+                                } else {
+                                    "Sleep permission not granted"
+                                },
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    ConnectionBadge(
+                        connected =
+                            hasPermission
+                    )
+                }
+
+                if (!hasPermission) {
+                    Button(
+                        modifier =
+                            Modifier.padding(top = 12.dp),
+                        onClick = onConnect,
+                        shape =
+                            RoundedCornerShape(999.dp)
+                    ) {
+                        Text("Connect")
+                    }
+                }
+
+                SettingsToggleRow(
+                    title = "Recovery metrics",
+                    subtitle =
+                        "Optional HRV + resting heart rate",
+                    checked =
+                        hasAnalyticsPermission,
+                    enabled =
+                        !hasAnalyticsPermission,
+                    onCheckedChange = {
+                        if (
+                            it &&
+                            !hasAnalyticsPermission
+                        ) {
+                            onRequestAnalyticsAccess()
+                        }
+                    }
+                )
+
+                if (historyReadAvailable) {
+                    SettingsToggleRow(
+                        title = "Extended history",
+                        subtitle =
+                            "Allows longer historical ranges",
+                        checked =
+                            hasHistoryPermission,
+                        enabled =
+                            !hasHistoryPermission,
+                        onCheckedChange = {
+                            if (
+                                it &&
+                                !hasHistoryPermission
+                            ) {
+                                onRequestHistoryAccess()
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
+        item {
+            SettingsBentoCard(
+                title = "Permissions & Reliability",
+                borderColor =
+                    if (exactAlarmAccess) {
+                        Mint.copy(alpha = 0.28f)
+                    } else {
+                        Sunrise.copy(alpha = 0.34f)
+                    },
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Exact alarm reliability",
+                        meaning = "Android exact-alarm access lets WakeSync protect the wake-by deadline with precise OS scheduling.",
+                        measurement = "WakeSync checks Android's exact-alarm capability and schedules the deadline through the system alarm service.",
+                        importance = "Without exact-alarm access, Android power management can delay time-critical alarms."
+                    )
+                }
+            ) {
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier =
+                            Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text =
+                                "Exact alarm access",
+                            fontWeight =
+                                FontWeight.ExtraBold
+                        )
+                        Text(
+                            modifier =
+                                Modifier.padding(
+                                    top = 3.dp
+                                ),
+                            text =
+                                if (
+                                    exactAlarmAccess
+                                ) {
+                                    "Reliable wake-by scheduling enabled"
+                                } else {
+                                    "Android may delay alarms until access is granted"
+                                },
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                            color =
+                                if (
+                                    exactAlarmAccess
+                                ) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    Sunrise
+                                }
+                        )
+                    }
+
+                    ConnectionBadge(
+                        connected =
+                            exactAlarmAccess,
+                        connectedLabel = "Ready",
+                        disconnectedLabel = "Action"
+                    )
+                }
+
+                if (!exactAlarmAccess) {
+                    Button(
+                        modifier =
+                            Modifier.padding(top = 12.dp),
+                        onClick =
+                            onRequestExactAlarmAccess,
+                        shape =
+                            RoundedCornerShape(999.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    Sunrise,
+                                contentColor =
+                                    Color(0xFF0F172A)
+                            )
+                    ) {
+                        Text(
+                            "Allow exact alarms",
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            SettingsBentoCard(
+                title = "Privacy & Local Storage",
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Local storage",
+                        meaning = "Raw Health Connect sleep records are read on-device. WakeSync only retains generated export files if you explicitly enable it.",
+                        measurement = "When retention is off, share files are generated in Android cache. When enabled, generated exports are stored in WakeSync's private app files until you clear them.",
+                        importance = "You control whether shareable reports remain on the device after they are generated."
+                    )
+                }
+            ) {
+                SettingsToggleRow(
+                    title =
+                        "Keep generated exports",
+                    subtitle =
+                        if (
+                            retainGeneratedExports
+                        ) {
+                            "PDF, CSV and story cards remain in WakeSync private storage"
+                        } else {
+                            "Exports use temporary app cache"
+                        },
+                    checked =
+                        retainGeneratedExports,
+                    enabled = true,
+                    onCheckedChange =
+                        onRetainGeneratedExportsChange
+                )
+
+                TextButton(
+                    modifier =
+                        Modifier.padding(top = 4.dp),
+                    onClick =
+                        onClearGeneratedExports
+                ) {
+                    Text(
+                        text =
+                            "Clear generated exports",
+                        color =
+                            MaterialTheme.colorScheme.error
+                    )
+                }
+
+                Text(
+                    text =
+                        "Raw Health Connect data is not copied into a WakeSync cloud database.",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        item {
+            SettingsBentoCard(
+                title = "Appearance",
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Appearance",
+                        meaning = "Choose whether WakeSync follows Android's appearance or forces its dark/light theme.",
+                        measurement = "The selected mode changes Compose color roles only; it does not affect sleep calculations.",
+                        importance = "High-contrast color roles preserve readability in both themes."
+                    )
+                }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(
+                            rememberScrollState()
+                        ),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(7.dp)
+                ) {
+                    listOf(
+                        AppSettingsStore.THEME_SYSTEM
+                            to "System",
+                        AppSettingsStore.THEME_DARK
+                            to "Dark",
+                        AppSettingsStore.THEME_LIGHT
+                            to "Light"
+                    ).forEach {
+                            (value, label) ->
+                        FilterChip(
+                            selected =
+                                themeMode == value,
+                            onClick = {
+                                onThemeModeChange(
+                                    value
+                                )
+                            },
+                            label = {
+                                Text(label)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            Spacer(
+                modifier =
+                    Modifier.height(12.dp)
+            )
+        }
     }
+
+    MetricInfoBottomSheet(
+        info = infoSheet,
+        onDismiss = {
+            infoSheet = null
+        }
+    )
 }
 
 @Composable
-private fun PreferenceCard(
+private fun SettingsBentoCard(
     title: String,
+    borderColor: Color =
+        MaterialTheme.colorScheme.outlineVariant,
+    onInfo: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-            contentColor = MaterialTheme.colorScheme.onSurface
-        )
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(
+            1.dp,
+            borderColor
+        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    MaterialTheme.colorScheme.surface
+                        .copy(alpha = 0.68f),
+                contentColor =
+                    MaterialTheme.colorScheme.onSurface
+            )
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style =
+                        MaterialTheme.typography.titleMedium,
+                    fontWeight =
+                        FontWeight.ExtraBold
+                )
+                InfoTrigger(
+                    onClick = onInfo
+                )
+            }
+
+            content()
+        }
+    }
+}
+
+@Composable
+private fun SettingsToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement =
+            Arrangement.SpaceBetween,
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+        Column(
+            modifier =
+                Modifier.weight(1f)
+        ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight =
+                    FontWeight.SemiBold
             )
-            Box(modifier = Modifier.padding(top = 10.dp)) {
-                content()
-            }
+            Text(
+                modifier =
+                    Modifier.padding(top = 2.dp),
+                text = subtitle,
+                style =
+                    MaterialTheme.typography.bodySmall,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
+
+        Switch(
+            checked = checked,
+            enabled = enabled || checked,
+            onCheckedChange = onCheckedChange
+        )
+    }
+}
+
+@Composable
+private fun ConnectionBadge(
+    connected: Boolean,
+    connectedLabel: String = "Live",
+    disconnectedLabel: String = "Off"
+) {
+    val color =
+        if (connected) {
+            Mint
+        } else {
+            Sunrise
+        }
+
+    Card(
+        shape =
+            RoundedCornerShape(999.dp),
+        border = BorderStroke(
+            1.dp,
+            color.copy(alpha = 0.30f)
+        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    color.copy(alpha = 0.12f),
+                contentColor = color
+            )
+    ) {
+        Text(
+            modifier = Modifier.padding(
+                horizontal = 10.dp,
+                vertical = 6.dp
+            ),
+            text =
+                "● " +
+                    if (connected) {
+                        connectedLabel
+                    } else {
+                        disconnectedLabel
+                    },
+            style =
+                MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
