@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -2487,11 +2488,83 @@ private fun SettingsToggleRow(
             )
         }
 
-        Switch(
+        GlassSwitch(
             checked = checked,
             enabled = enabled,
             onCheckedChange = onCheckedChange
         )
+    }
+}
+
+@Composable
+private fun GlassSwitch(
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val trackColor by animateColorAsState(
+        targetValue = when {
+            !enabled ->
+                MaterialTheme.colorScheme.surfaceVariant
+            checked ->
+                IndigoGlow.copy(alpha = 0.92f)
+            else ->
+                MaterialTheme.colorScheme.surfaceVariant
+        },
+        label = "glassSwitchTrack"
+    )
+    val knobOffset by animateFloatAsState(
+        targetValue = if (checked) 22f else 2f,
+        animationSpec = spring(
+            stiffness = 300f,
+            dampingRatio = 0.78f
+        ),
+        label = "glassSwitchKnob"
+    )
+
+    Card(
+        modifier = Modifier
+            .width(52.dp)
+            .height(30.dp)
+            .clickable(
+                enabled = enabled,
+                onClick = {
+                    onCheckedChange(!checked)
+                }
+            ),
+        shape = RoundedCornerShape(999.dp),
+        border = BorderStroke(
+            1.dp,
+            if (checked) {
+                Lavender.copy(alpha = 0.36f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            }
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = trackColor,
+            contentColor = Color.White
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset(x = knobOffset.dp)
+                    .size(26.dp)
+                    .background(
+                        color = if (enabled) {
+                            Color.White
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                                .copy(alpha = 0.55f)
+                        },
+                        shape = CircleShape
+                    )
+            )
+        }
     }
 }
 
