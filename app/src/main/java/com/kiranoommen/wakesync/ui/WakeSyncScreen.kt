@@ -74,6 +74,7 @@ import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Coral
 import com.kiranoommen.wakesync.ui.theme.Cyan
 import com.kiranoommen.wakesync.ui.theme.Indigo
+import com.kiranoommen.wakesync.ui.theme.IndigoGlow
 import com.kiranoommen.wakesync.ui.theme.Lavender
 import com.kiranoommen.wakesync.ui.theme.Mint
 import com.kiranoommen.wakesync.ui.theme.PearlMuted
@@ -154,19 +155,19 @@ fun WakeSyncScreen(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 if (darkTheme) {
                     drawCircle(
-                        color = Lavender.copy(alpha = 0.10f),
-                        radius = size.minDimension * 0.52f,
-                        center = Offset(size.width * 0.86f, size.height * 0.12f)
+                        color = IndigoGlow.copy(alpha = 0.15f),
+                        radius = size.minDimension * 0.58f,
+                        center = Offset(size.width * 0.06f, size.height * 0.08f)
                     )
                     drawCircle(
-                        color = Amber.copy(alpha = 0.075f),
-                        radius = size.minDimension * 0.46f,
-                        center = Offset(size.width * 0.08f, size.height * 0.50f)
-                    )
-                    drawCircle(
-                        color = Indigo.copy(alpha = 0.10f),
+                        color = Cyan.copy(alpha = 0.15f),
                         radius = size.minDimension * 0.60f,
-                        center = Offset(size.width * 0.78f, size.height * 0.86f)
+                        center = Offset(size.width * 0.94f, size.height * 0.90f)
+                    )
+                    drawCircle(
+                        color = Sunrise.copy(alpha = 0.06f),
+                        radius = size.minDimension * 0.38f,
+                        center = Offset(size.width * 0.90f, size.height * 0.24f)
                     )
                 } else {
                     drawCircle(
