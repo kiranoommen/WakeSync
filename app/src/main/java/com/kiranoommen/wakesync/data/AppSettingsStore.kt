@@ -21,6 +21,14 @@ class AppSettingsStore(context: Context) {
                 .apply()
         }
 
+    var displayName: String
+        get() = prefs.getString(KEY_DISPLAY_NAME, "") ?: ""
+        set(value) {
+            prefs.edit()
+                .putString(KEY_DISPLAY_NAME, value.trim().take(24))
+                .apply()
+        }
+
     var maxSmartWindowMinutes: Int
         get() = prefs.getInt(KEY_MAX_SMART_WINDOW, 30)
         set(value) {
@@ -62,6 +70,7 @@ class AppSettingsStore(context: Context) {
 
         private const val KEY_THEME = "theme_mode"
         private const val KEY_SLEEP_GOAL = "sleep_goal_minutes"
+        private const val KEY_DISPLAY_NAME = "display_name"
         private const val KEY_MAX_SMART_WINDOW = "max_smart_window_minutes"
         private const val KEY_RETAIN_EXPORTS = "retain_generated_exports"
         private const val KEY_DASHBOARD_WIDGETS = "dashboard_widgets"
