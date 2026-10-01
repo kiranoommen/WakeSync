@@ -27,6 +27,7 @@ import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.domain.WakeWindowEngine
 import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
+import com.kiranoommen.wakesync.ui.OobeScreen
 import com.kiranoommen.wakesync.ui.WakeSyncScreen
 import kotlinx.coroutines.launch
 
@@ -74,6 +75,12 @@ class MainActivity : ComponentActivity() {
             }
             var retainGeneratedExports by remember {
                 mutableStateOf(appSettings.retainGeneratedExports)
+            }
+            var oobeCompleted by remember {
+                mutableStateOf(
+                    appSettings.oobeCompleted ||
+                        schedules.isNotEmpty()
+                )
             }
 
             val historyReadAvailable = healthConnectManager.historyReadAvailable()
@@ -188,6 +195,14 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(Unit) {
                 if (
+                    !appSettings.oobeCompleted &&
+                    schedules.isNotEmpty()
+                ) {
+                    appSettings.oobeCompleted = true
+                    oobeCompleted = true
+                }
+
+                if (
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                     ContextCompat.checkSelfPermission(
                         this@MainActivity,
@@ -216,165 +231,191 @@ class MainActivity : ComponentActivity() {
                 if (hasPermission) refreshSleep()
             }
 
-            WakeSyncScreen(
-                sdkStatus = healthConnectManager.sdkStatus(),
-                hasPermission = hasPermission,
-                loading = loading,
-                nights = nights,
-                schedules = schedules,
-                exactAlarmAccess = exactAlarmAccessState.value,
-                hasAnalyticsPermission = hasAnalyticsPermission,
-                hasHistoryPermission = hasHistoryPermission,
-                historyReadAvailable = historyReadAvailable,
-                themeMode = themeMode,
-                sleepGoalMinutes = sleepGoalMinutes,
-                goalsEnabled = goalsEnabled,
-                dashboardWidgets = dashboardWidgets,
-                displayName = displayName,
-                maxSmartWindowMinutes = maxSmartWindowMinutes,
-                retainGeneratedExports = retainGeneratedExports,
-                errorMessage = errorMessage,
-                onConnect = {
-                    healthPermissionLauncher.launch(
-                        HealthConnectManager.requiredPermissions
-                    )
-                },
-                onRefresh = {
-                    refreshSleep()
-                },
-                onSaveSchedule = { schedule ->
-                    val cappedWindow = schedule.smartWindowMinutes
-                        .coerceAtMost(maxSmartWindowMinutes)
-                    val capped = schedule.copy(
-                        smartWindowMinutes = cappedWindow,
-                        smartOffsetMinutes = schedule.smartOffsetMinutes
-                            .coerceAtMost(cappedWindow)
-                    )
-                    val next = schedules
-                        .filterNot { it.id == capped.id } + capped
-                    persist(next)
-                },
-                onDeleteSchedule = { schedule ->
-                    alarmScheduler.cancel(schedule.id)
-                    persist(schedules.filterNot { it.id == schedule.id })
-                },
-                onToggleSchedule = { schedule, enabled ->
-                    persist(
-                        schedules.map {
-                            if (it.id == schedule.id) {
-                                it.copy(enabled = enabled)
-                            } else {
-                                it
-                            }
-                        }
-                    )
-                },
-                onSkipNext = { schedule ->
-                    val nextBase = schedule.nextBaseDeadline()
-
-                    if (nextBase != null) {
-                        val dateKey = nextBase.toLocalDate().toString()
-                        val updatedSkips =
-                            if (schedule.skippedDates.contains(dateKey)) {
-                                schedule.skippedDates - dateKey
-                            } else {
-                                schedule.skippedDates + dateKey
-                            }
-
-                        val updatedSchedule = schedule.copy(
-                            skippedDates = updatedSkips
+            if (!oobeCompleted) {
+                OobeScreen(
+                    sdkStatus = healthConnectManager.sdkStatus(),
+                    themeMode = themeMode,
+                    displayName = displayName,
+                    hasPermission = hasPermission,
+                    onThemeModeChange = { newMode ->
+                        themeMode = newMode
+                        appSettings.themeMode = newMode
+                    },
+                    onDisplayNameChange = { name ->
+                        displayName = name
+                        appSettings.displayName = name
+                    },
+                    onConnect = {
+                        healthPermissionLauncher.launch(
+                            HealthConnectManager.requiredPermissions
                         )
+                    },
+                    onFinish = {
+                        appSettings.oobeCompleted = true
+                        oobeCompleted = true
+                    }
+                )
+            } else {
+                WakeSyncScreen(
+                    sdkStatus = healthConnectManager.sdkStatus(),
+                    hasPermission = hasPermission,
+                    loading = loading,
+                    nights = nights,
+                    schedules = schedules,
+                    exactAlarmAccess = exactAlarmAccessState.value,
+                    hasAnalyticsPermission = hasAnalyticsPermission,
+                    hasHistoryPermission = hasHistoryPermission,
+                    historyReadAvailable = historyReadAvailable,
+                    themeMode = themeMode,
+                    sleepGoalMinutes = sleepGoalMinutes,
+                    goalsEnabled = goalsEnabled,
+                    dashboardWidgets = dashboardWidgets,
+                    displayName = displayName,
+                    maxSmartWindowMinutes = maxSmartWindowMinutes,
+                    retainGeneratedExports = retainGeneratedExports,
+                    errorMessage = errorMessage,
+                    onConnect = {
+                        healthPermissionLauncher.launch(
+                            HealthConnectManager.requiredPermissions
+                        )
+                    },
+                    onRefresh = {
+                        refreshSleep()
+                    },
+                    onSaveSchedule = { schedule ->
+                        val cappedWindow = schedule.smartWindowMinutes
+                            .coerceAtMost(maxSmartWindowMinutes)
+                        val capped = schedule.copy(
+                            smartWindowMinutes = cappedWindow,
+                            smartOffsetMinutes = schedule.smartOffsetMinutes
+                                .coerceAtMost(cappedWindow)
+                        )
+                        val next = schedules
+                            .filterNot { it.id == capped.id } + capped
+                        persist(next)
+                    },
+                    onDeleteSchedule = { schedule ->
+                        alarmScheduler.cancel(schedule.id)
+                        persist(schedules.filterNot { it.id == schedule.id })
+                    },
+                    onToggleSchedule = { schedule, enabled ->
+                        persist(
+                            schedules.map {
+                                if (it.id == schedule.id) {
+                                    it.copy(enabled = enabled)
+                                } else {
+                                    it
+                                }
+                            }
+                        )
+                    },
+                    onSkipNext = { schedule ->
+                        val nextBase = schedule.nextBaseDeadline()
+
+                        if (nextBase != null) {
+                            val dateKey = nextBase.toLocalDate().toString()
+                            val updatedSkips =
+                                if (schedule.skippedDates.contains(dateKey)) {
+                                    schedule.skippedDates - dateKey
+                                } else {
+                                    schedule.skippedDates + dateKey
+                                }
+
+                            val updatedSchedule = schedule.copy(
+                                skippedDates = updatedSkips
+                            )
+
+                            persist(
+                                schedules.map {
+                                    if (it.id == schedule.id) updatedSchedule else it
+                                }
+                            )
+                        }
+                    },
+                    onClearSkips = { schedule ->
+                        val updatedSchedule =
+                            schedule.copy(skippedDates = emptySet())
 
                         persist(
                             schedules.map {
                                 if (it.id == schedule.id) updatedSchedule else it
                             }
                         )
-                    }
-                },
-                onClearSkips = { schedule ->
-                    val updatedSchedule =
-                        schedule.copy(skippedDates = emptySet())
-
-                    persist(
-                        schedules.map {
-                            if (it.id == schedule.id) updatedSchedule else it
+                    },
+                    onRequestExactAlarmAccess = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            runCatching {
+                                startActivity(
+                                    Intent(
+                                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                                    ).apply {
+                                        data = Uri.parse("package:$packageName")
+                                    }
+                                )
+                            }
                         }
-                    )
-                },
-                onRequestExactAlarmAccess = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        runCatching {
-                            startActivity(
-                                Intent(
-                                    Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
-                                ).apply {
-                                    data = Uri.parse("package:$packageName")
-                                }
-                            )
-                        }
-                    }
-                },
-                onRequestAnalyticsAccess = {
-                    analyticsPermissionLauncher.launch(
-                        HealthConnectManager.analyticsPermissions
-                    )
-                },
-                onRequestHistoryAccess = {
-                    if (historyReadAvailable) {
-                        historyPermissionLauncher.launch(
-                            HealthConnectManager.historyPermissions
+                    },
+                    onRequestAnalyticsAccess = {
+                        analyticsPermissionLauncher.launch(
+                            HealthConnectManager.analyticsPermissions
                         )
-                    }
-                },
-                onThemeModeChange = { newMode ->
-                    themeMode = newMode
-                    appSettings.themeMode = newMode
-                },
-                onSleepGoalChange = { minutes ->
-                    sleepGoalMinutes = minutes
-                    appSettings.sleepGoalMinutes = minutes
-                },
-                onGoalsEnabledChange = { enabled ->
-                    goalsEnabled = enabled
-                    appSettings.goalsEnabled = enabled
-                },
-                onDashboardWidgetsChange = { widgets ->
-                    dashboardWidgets = widgets
-                    appSettings.dashboardWidgets = widgets
-                },
-                onDisplayNameChange = { name ->
-                    displayName = name
-                    appSettings.displayName = name
-                },
-                onMaxSmartWindowChange = { minutes ->
-                    maxSmartWindowMinutes = minutes
-                    appSettings.maxSmartWindowMinutes = minutes
-
-                    persist(
-                        schedules.map { schedule ->
-                            val capped = schedule.smartWindowMinutes
-                                .coerceAtMost(minutes)
-                            schedule.copy(
-                                smartWindowMinutes = capped,
-                                smartOffsetMinutes = schedule.smartOffsetMinutes
-                                    .coerceAtMost(capped)
+                    },
+                    onRequestHistoryAccess = {
+                        if (historyReadAvailable) {
+                            historyPermissionLauncher.launch(
+                                HealthConnectManager.historyPermissions
                             )
                         }
-                    )
-                },
-                onRetainGeneratedExportsChange = { retain ->
-                    retainGeneratedExports = retain
-                    appSettings.retainGeneratedExports = retain
+                    },
+                    onThemeModeChange = { newMode ->
+                        themeMode = newMode
+                        appSettings.themeMode = newMode
+                    },
+                    onSleepGoalChange = { minutes ->
+                        sleepGoalMinutes = minutes
+                        appSettings.sleepGoalMinutes = minutes
+                    },
+                    onGoalsEnabledChange = { enabled ->
+                        goalsEnabled = enabled
+                        appSettings.goalsEnabled = enabled
+                    },
+                    onDashboardWidgetsChange = { widgets ->
+                        dashboardWidgets = widgets
+                        appSettings.dashboardWidgets = widgets
+                    },
+                    onDisplayNameChange = { name ->
+                        displayName = name
+                        appSettings.displayName = name
+                    },
+                    onMaxSmartWindowChange = { minutes ->
+                        maxSmartWindowMinutes = minutes
+                        appSettings.maxSmartWindowMinutes = minutes
 
-                    if (!retain) {
+                        persist(
+                            schedules.map { schedule ->
+                                val capped = schedule.smartWindowMinutes
+                                    .coerceAtMost(minutes)
+                                schedule.copy(
+                                    smartWindowMinutes = capped,
+                                    smartOffsetMinutes = schedule.smartOffsetMinutes
+                                        .coerceAtMost(capped)
+                                )
+                            }
+                        )
+                    },
+                    onRetainGeneratedExportsChange = { retain ->
+                        retainGeneratedExports = retain
+                        appSettings.retainGeneratedExports = retain
+
+                        if (!retain) {
+                            SleepExporter.clearGeneratedExports(this@MainActivity)
+                        }
+                    },
+                    onClearGeneratedExports = {
                         SleepExporter.clearGeneratedExports(this@MainActivity)
                     }
-                },
-                onClearGeneratedExports = {
-                    SleepExporter.clearGeneratedExports(this@MainActivity)
-                }
-            )
+                )
+            }
         }
     }
 
