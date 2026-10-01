@@ -2757,7 +2757,7 @@ private fun WeeklyAlarmOverview(
             ) {
                 Column {
                     Text(
-                        text = "Rolling 7 days",
+                        text = "Your week",
                         style =
                             MaterialTheme.typography.titleMedium,
                         fontWeight =
