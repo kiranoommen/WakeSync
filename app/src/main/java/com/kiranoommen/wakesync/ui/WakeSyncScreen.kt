@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.SleepExporter
+import com.kiranoommen.wakesync.domain.SleepAnalytics
 import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
@@ -90,6 +91,7 @@ fun WakeSyncScreen(
     historyReadAvailable: Boolean,
     themeMode: String,
     sleepGoalMinutes: Int,
+    dashboardWidgets: List<String>,
     errorMessage: String?,
     onConnect: () -> Unit,
     onRefresh: () -> Unit,
@@ -102,7 +104,8 @@ fun WakeSyncScreen(
     onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
-    onSleepGoalChange: (Int) -> Unit
+    onSleepGoalChange: (Int) -> Unit,
+    onDashboardWidgetsChange: (List<String>) -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
     val darkTheme = when (themeMode) {
@@ -155,7 +158,10 @@ fun WakeSyncScreen(
                         onEditSchedule = { editingSchedule = it },
                         onSkipNext = onSkipNext,
                         onClearSkips = onClearSkips,
-                        onGoAlarms = { tab = AppTab.ALARMS }
+                        onGoAlarms = { tab = AppTab.ALARMS },
+                        sleepGoalMinutes = sleepGoalMinutes,
+                        dashboardWidgets = dashboardWidgets,
+                        onDashboardWidgetsChange = onDashboardWidgetsChange
                     )
 
                     AppTab.ALARMS -> AlarmsTab(
@@ -309,10 +315,17 @@ private fun HomeTab(
     onEditSchedule: (AlarmSchedule) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit,
-    onGoAlarms: () -> Unit
+    onGoAlarms: () -> Unit,
+    sleepGoalMinutes: Int,
+    dashboardWidgets: List<String>,
+    onDashboardWidgetsChange: (List<String>) -> Unit
 ) {
     val next = remember(schedules) { nextSchedule(schedules) }
     val nearestSkipped = remember(schedules) { nearestUpcomingSkipped(schedules) }
+    var showCustomize by remember { mutableStateOf(false) }
+    val dashboardAnalytics = remember(nights, sleepGoalMinutes) {
+        SleepAnalytics.analyze(nights.take(14), sleepGoalMinutes)
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -355,9 +368,45 @@ private fun HomeTab(
             }
         }
 
-        if (nights.isNotEmpty()) {
+        if (hasPermission) {
             item {
-                SleepMetricRow(nights.first())
+                SectionHeader(
+                    title = "Dashboard",
+                    action = "Customize",
+                    onAction = { showCustomize = true }
+                )
+            }
+
+            dashboardWidgets.forEach { widget ->
+                when (widget) {
+                    AppSettingsStore.WIDGET_GOAL -> {
+                        item {
+                            GoalStreakCard(
+                                analytics = dashboardAnalytics,
+                                sleepGoalMinutes = sleepGoalMinutes
+                            )
+                        }
+                    }
+
+                    AppSettingsStore.WIDGET_SLEEP -> {
+                        if (nights.isNotEmpty()) {
+                            item {
+                                SleepMetricRow(nights.first())
+                            }
+                        }
+                    }
+
+                    AppSettingsStore.WIDGET_INSIGHT -> {
+                        item {
+                            HomeInsightCard(
+                                text = SleepAnalytics.insightFor(
+                                    dashboardAnalytics,
+                                    sleepGoalMinutes
+                                )
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -411,6 +460,204 @@ private fun HomeTab(
 
         item { Spacer(Modifier.height(6.dp)) }
     }
+
+    if (showCustomize) {
+        DashboardCustomizeDialog(
+            current = dashboardWidgets,
+            onDismiss = { showCustomize = false },
+            onSave = {
+                onDashboardWidgetsChange(it)
+                showCustomize = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun GoalStreakCard(
+    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
+    sleepGoalMinutes: Int
+) {
+    val recent = analytics.nights.sortedByDescending { it.date }
+    val streak = recent.takeWhile { it.asleepMinutes >= sleepGoalMinutes }.size
+    val latest = recent.firstOrNull()
+    val progress = latest?.let {
+        ((it.asleepMinutes.toFloat() / sleepGoalMinutes.toFloat()) * 100f)
+            .roundToInt()
+            .coerceIn(0, 150)
+    } ?: 0
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Amber.copy(alpha = 0.10f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Sleep goal",
+                    fontWeight = FontWeight.Bold,
+                    color = Amber
+                )
+                Text(
+                    modifier = Modifier.padding(top = 4.dp),
+                    text = latest?.let {
+                        formatMinutes(it.asleepMinutes) + " of " +
+                            formatMinutes(sleepGoalMinutes.toLong())
+                    } ?: "Waiting for sleep data",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    modifier = Modifier.padding(top = 3.dp),
+                    text = progress.toString() + "% of target",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = streak.toString(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "night streak",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeInsightCard(text: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Lavender.copy(alpha = 0.10f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "WakeSync insight",
+                fontWeight = FontWeight.Bold,
+                color = Lavender
+            )
+            Text(
+                modifier = Modifier.padding(top = 6.dp),
+                text = text
+            )
+        }
+    }
+}
+
+@Composable
+private fun DashboardCustomizeDialog(
+    current: List<String>,
+    onDismiss: () -> Unit,
+    onSave: (List<String>) -> Unit
+) {
+    var working by remember(current) { mutableStateOf(current) }
+    val all = listOf(
+        AppSettingsStore.WIDGET_GOAL to "Sleep goal & streak",
+        AppSettingsStore.WIDGET_SLEEP to "Last-night metrics",
+        AppSettingsStore.WIDGET_INSIGHT to "Personal insight"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Customize dashboard") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Pin the cards you want and change their order.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                all.forEach { (id, label) ->
+                    val visible = working.contains(id)
+                    val index = working.indexOf(id)
+
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(label, fontWeight = FontWeight.Medium)
+                                Switch(
+                                    checked = visible,
+                                    onCheckedChange = { checked ->
+                                        working = if (checked) {
+                                            working + id
+                                        } else {
+                                            working.filterNot { it == id }
+                                        }
+                                    }
+                                )
+                            }
+
+                            if (visible) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    TextButton(
+                                        enabled = index > 0,
+                                        onClick = {
+                                            val list = working.toMutableList()
+                                            val item = list.removeAt(index)
+                                            list.add(index - 1, item)
+                                            working = list
+                                        }
+                                    ) {
+                                        Text("Move up")
+                                    }
+
+                                    TextButton(
+                                        enabled = index >= 0 && index < working.lastIndex,
+                                        onClick = {
+                                            val list = working.toMutableList()
+                                            val item = list.removeAt(index)
+                                            list.add(index + 1, item)
+                                            working = list
+                                        }
+                                    ) {
+                                        Text("Move down")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onSave(working) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
