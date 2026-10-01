@@ -168,12 +168,10 @@ object SleepAnalytics {
 
         val zone = ZoneId.systemDefault()
         val sessions = nights.sortedBy { it.start }
-        val firstDate = sessions.first().start.atZone(zone).toLocalDate()
-        val lastDate = sessions.last().end.atZone(zone).toLocalDate()
-
-        val dates = generateSequence(firstDate) { previous ->
-            previous.plusDays(1).takeIf { !it.isAfter(lastDate) }
-        }.toList()
+        val dates = sessions
+            .map { it.end.atZone(zone).toLocalDate() }
+            .distinct()
+            .sorted()
 
         if (dates.size < 2) return null
 
@@ -183,6 +181,11 @@ object SleepAnalytics {
         for (index in 0 until dates.lastIndex) {
             val dayA = dates[index]
             val dayB = dates[index + 1]
+
+            // Missing tracker days should not be treated as 24 hours awake.
+            if (java.time.temporal.ChronoUnit.DAYS.between(dayA, dayB) != 1L) {
+                continue
+            }
 
             for (slot in 0 until 96) {
                 val minute = slot * 15
