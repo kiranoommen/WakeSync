@@ -2,6 +2,7 @@ package com.kiranoommen.wakesync.ui
 
 import android.app.DatePickerDialog
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -53,8 +54,11 @@ import com.kiranoommen.wakesync.domain.SleepAnalytics
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
 import com.kiranoommen.wakesync.ui.theme.Amber
+import com.kiranoommen.wakesync.ui.theme.Cyan
 import com.kiranoommen.wakesync.ui.theme.Indigo
 import com.kiranoommen.wakesync.ui.theme.Lavender
+import com.kiranoommen.wakesync.ui.theme.Mint
+import com.kiranoommen.wakesync.ui.theme.Sunrise
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
