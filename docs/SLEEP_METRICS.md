@@ -107,12 +107,12 @@ Current WakeSync Sleep Score weighting:
 
 - 40% duration
 - 25% estimated sleep efficiency
-- 20% sleep-stage ratios
-- 15% consistency / wearable-derived Sleep Regularity Index
+- 20% regularity / wearable-derived Sleep Regularity Index
+- 15% sleep-onset latency
 
 The app exposes all four pillar subscores in the Score Pillar Breakdown sheet so the user can see the math instead of receiving an opaque score.
 
-Stage architecture remains deliberately limited in weight because consumer wearable staging has meaningful uncertainty. When regularity cannot yet be estimated, WakeSync uses a neutral consistency placeholder until enough consecutive tracked nights are available.
+Consumer wearable sleep stages remain visible as trends and in the hypnogram, but stage ratios are not used as a direct score pillar. When regularity cannot yet be estimated, WakeSync uses a neutral regularity placeholder until enough consecutive tracked nights are available. Latency is treated as a WakeSync heuristic rather than a clinical diagnosis.
 
 Period views also expose sleep debt and optional biometric trends separately rather than hiding them inside the score.
 
