@@ -1790,33 +1790,83 @@ private fun BottomNav(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp, top = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.55f)),
+            .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 20.dp),
+        shape = RoundedCornerShape(30.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
         colors = CardDefaults.cardColors(
-            containerColor = colors.surface.copy(alpha = 0.94f),
+            containerColor = colors.surface.copy(alpha = 0.90f),
             contentColor = colors.onSurface
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .padding(horizontal = 7.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            listOf(
-                AppTab.HOME to "Home",
-                AppTab.ALARMS to "Alarms",
-                AppTab.SLEEP to "Sleep",
-                AppTab.SETTINGS to "Settings"
-            ).forEach { (tab, label) ->
-                TextButton(
+            val tabs = listOf(
+                Triple(AppTab.HOME, "⌂", "Home"),
+                Triple(AppTab.ALARMS, "◷", "Alarms"),
+                Triple(AppTab.SLEEP, "☾", "Sleep"),
+                Triple(AppTab.SETTINGS, "⚙", "Settings")
+            )
+
+            tabs.forEach { (tab, icon, label) ->
+                val active = selected == tab
+                val scale by animateFloatAsState(
+                    targetValue = if (active) 1.04f else 1f,
+                    label = "navScale" + tab.name
+                )
+                val contentColor by animateColorAsState(
+                    targetValue = if (active) Color.White else colors.onSurfaceVariant,
+                    label = "navColor" + tab.name
+                )
+
+                Card(
                     onClick = { onSelected(tab) },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = if (selected == tab) Amber else colors.onSurfaceVariant
+                    modifier = Modifier.scale(scale),
+                    shape = RoundedCornerShape(22.dp),
+                    border = if (active) {
+                        BorderStroke(1.dp, Lavender.copy(alpha = 0.28f))
+                    } else {
+                        null
+                    },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (active) {
+                            Lavender.copy(alpha = 0.16f)
+                        } else {
+                            Color.Transparent
+                        },
+                        contentColor = contentColor
                     )
                 ) {
-                    Text(label, fontWeight = if (selected == tab) FontWeight.SemiBold else FontWeight.Normal)
+                    Column(
+                        modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = icon,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = contentColor
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 1.dp),
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                            color = contentColor
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .size(if (active) 4.dp else 0.dp)
+                                .background(
+                                    color = if (active) Sunrise else Color.Transparent,
+                                    shape = CircleShape
+                                )
+                        )
+                    }
                 }
             }
         }
