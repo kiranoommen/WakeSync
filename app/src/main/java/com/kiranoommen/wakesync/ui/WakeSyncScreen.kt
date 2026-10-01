@@ -652,6 +652,953 @@ private fun HomeTab(
 }
 
 @Composable
+private fun DashboardBentoGrid(
+    widgets: List<String>,
+    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
+    nights: List<SleepNight>,
+    schedules: List<AlarmSchedule>,
+    loading: Boolean,
+    goalsEnabled: Boolean,
+    sleepGoalMinutes: Int,
+    onEditSchedule: (AlarmSchedule) -> Unit,
+    onSkipNext: (AlarmSchedule) -> Unit,
+    onGoAlarms: () -> Unit,
+    onInfo: (MetricInfo) -> Unit
+) {
+    val visible = widgets
+        .distinct()
+        .filterNot {
+            !goalsEnabled &&
+                (
+                    it == AppSettingsStore.WIDGET_GOAL ||
+                        it == AppSettingsStore.WIDGET_DEBT
+                    )
+        }
+
+    Column(
+        verticalArrangement =
+            Arrangement.spacedBy(10.dp)
+    ) {
+        var index = 0
+
+        while (index < visible.size) {
+            val id = visible[index]
+
+            if (dashboardSpan(id) == 2) {
+                DashboardWidgetTile(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    id = id,
+                    analytics = analytics,
+                    nights = nights,
+                    schedules = schedules,
+                    loading = loading,
+                    goalsEnabled = goalsEnabled,
+                    sleepGoalMinutes =
+                        sleepGoalMinutes,
+                    onEditSchedule =
+                        onEditSchedule,
+                    onSkipNext =
+                        onSkipNext,
+                    onGoAlarms = onGoAlarms,
+                    onInfo = onInfo
+                )
+                index++
+            } else {
+                val next =
+                    visible.getOrNull(
+                        index + 1
+                    )
+                val pair =
+                    next != null &&
+                        dashboardSpan(next) == 1
+
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(10.dp)
+                ) {
+                    DashboardWidgetTile(
+                        modifier =
+                            Modifier.weight(1f),
+                        id = id,
+                        analytics = analytics,
+                        nights = nights,
+                        schedules = schedules,
+                        loading = loading,
+                        goalsEnabled =
+                            goalsEnabled,
+                        sleepGoalMinutes =
+                            sleepGoalMinutes,
+                        onEditSchedule =
+                            onEditSchedule,
+                        onSkipNext =
+                            onSkipNext,
+                        onGoAlarms =
+                            onGoAlarms,
+                        onInfo = onInfo
+                    )
+
+                    if (pair) {
+                        DashboardWidgetTile(
+                            modifier =
+                                Modifier.weight(1f),
+                            id = next!!,
+                            analytics =
+                                analytics,
+                            nights = nights,
+                            schedules =
+                                schedules,
+                            loading = loading,
+                            goalsEnabled =
+                                goalsEnabled,
+                            sleepGoalMinutes =
+                                sleepGoalMinutes,
+                            onEditSchedule =
+                                onEditSchedule,
+                            onSkipNext =
+                                onSkipNext,
+                            onGoAlarms =
+                                onGoAlarms,
+                            onInfo = onInfo
+                        )
+                    } else {
+                        Spacer(
+                            modifier =
+                                Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                index +=
+                    if (pair) {
+                        2
+                    } else {
+                        1
+                    }
+            }
+        }
+    }
+}
+
+private fun dashboardSpan(
+    id: String
+): Int =
+    when (id) {
+        AppSettingsStore.WIDGET_SLEEP,
+        AppSettingsStore.WIDGET_INSIGHT,
+        AppSettingsStore.WIDGET_HYPNOGRAM -> 2
+
+        else -> 1
+    }
+
+@Composable
+private fun DashboardWidgetTile(
+    modifier: Modifier,
+    id: String,
+    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
+    nights: List<SleepNight>,
+    schedules: List<AlarmSchedule>,
+    loading: Boolean,
+    goalsEnabled: Boolean,
+    sleepGoalMinutes: Int,
+    onEditSchedule: (AlarmSchedule) -> Unit,
+    onSkipNext: (AlarmSchedule) -> Unit,
+    onGoAlarms: () -> Unit,
+    onInfo: (MetricInfo) -> Unit
+) {
+    when (id) {
+        AppSettingsStore.WIDGET_GOAL ->
+            GoalDashboardTile(
+                modifier = modifier,
+                analytics = analytics,
+                targetMinutes =
+                    sleepGoalMinutes,
+                onInfo = {
+                    onInfo(
+                        MetricInfo(
+                            title =
+                                "Sleep Goal & Streak",
+                            meaning =
+                                "Progress toward your optional nightly sleep target and consecutive tracked nights that met it.",
+                            measurement =
+                                "Latest sleep-stage minutes are divided by your selected target. The streak counts recent nights at or above that target.",
+                            importance =
+                                "Targets are optional and can be disabled in Settings."
+                        )
+                    )
+                }
+            )
+
+        AppSettingsStore.WIDGET_SLEEP ->
+            LastNightDashboardTile(
+                modifier = modifier,
+                night = nights.firstOrNull(),
+                loading = loading,
+                onInfo = {
+                    onInfo(
+                        MetricInfo(
+                            title =
+                                "Last-Night Metrics",
+                            meaning =
+                                "A quick look at actual sleep duration, efficiency and stage mix from the latest Health Connect sleep session.",
+                            measurement =
+                                "Sleep Efficiency measures the percentage of time spent asleep while in bed: Time Asleep ÷ Total Time in Bed. It measures sleep continuity, not total hours.",
+                            importance =
+                                "A short night can still have high efficiency. For example, 5h 32m of nearly unbroken sleep can still produce about 97% efficiency even though total sleep was short."
+                        )
+                    )
+                }
+            )
+
+        AppSettingsStore.WIDGET_INSIGHT ->
+            InsightDashboardTile(
+                modifier = modifier,
+                text =
+                    if (goalsEnabled) {
+                        SleepAnalytics.insightFor(
+                            analytics,
+                            sleepGoalMinutes
+                        )
+                    } else {
+                        "You averaged " +
+                            formatMinutes(
+                                analytics.averageSleepMinutes
+                            ) +
+                            " of sleep with " +
+                            (
+                                analytics.averageEfficiencyPercent
+                                    ?.let {
+                                        it.toString() +
+                                            "%"
+                                    }
+                                    ?: "unavailable"
+                                ) +
+                            " estimated efficiency recently."
+                    },
+                onInfo = {
+                    onInfo(
+                        MetricInfo(
+                            title =
+                                "Personal Insights",
+                            meaning =
+                                "A plain-language observation generated from your recent local sleep trend.",
+                            measurement =
+                                "WakeSync compares recent duration, efficiency, regularity and timing on-device.",
+                            importance =
+                                "The goal is to highlight repeatable patterns without turning one night into a diagnosis."
+                        )
+                    )
+                }
+            )
+
+        AppSettingsStore.WIDGET_DEBT ->
+            SleepDebtDashboardTile(
+                modifier = modifier,
+                analytics = analytics,
+                targetMinutes =
+                    sleepGoalMinutes,
+                onInfo = {
+                    onInfo(
+                        sleepDebtInfo()
+                    )
+                }
+            )
+
+        AppSettingsStore.WIDGET_HYPNOGRAM ->
+            WeeklyHypnogramDashboardTile(
+                modifier = modifier,
+                nights = nights,
+                onInfo = {
+                    onInfo(
+                        MetricInfo(
+                            title =
+                                "Weekly Hypnogram Trend",
+                            meaning =
+                                "A compact seven-night view of how Deep, Light, REM and Awake time were distributed.",
+                            measurement =
+                                "Each bar is built from Health Connect sleep-stage intervals for that night.",
+                            importance =
+                                "This is useful for spotting broad changes in fragmentation and stage mix. Wearable stage labels remain estimates."
+                        )
+                    )
+                }
+            )
+
+        AppSettingsStore.WIDGET_ALARM ->
+            SmartAlarmDashboardTile(
+                modifier = modifier,
+                schedules = schedules,
+                onEdit = onEditSchedule,
+                onSkip = onSkipNext,
+                onGoAlarms = onGoAlarms,
+                onInfo = {
+                    onInfo(
+                        MetricInfo(
+                            title =
+                                "Smart Alarm Status",
+                            meaning =
+                                "Guardrail Wake Time is the hard latest time the alarm will sound. Smart Wake Window is the optional earlier interval WakeSync can use.",
+                            measurement =
+                                "WakeSync schedules the hard deadline with Android and may choose an earlier wake point only inside the configured window.",
+                            importance =
+                                "The guardrail prevents the smart feature from making you late."
+                        )
+                    )
+                }
+            )
+    }
+}
+
+@Composable
+private fun DashboardGlassCard(
+    modifier: Modifier,
+    title: String,
+    onInfo: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(
+            1.dp,
+            wakeGlassBorderBrush()
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor =
+                wakeGlassFill(),
+            contentColor =
+                MaterialTheme.colorScheme.onSurface
+        ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 8.dp
+            )
+    ) {
+        Column(
+            modifier =
+                Modifier.padding(15.dp)
+        ) {
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier =
+                        Modifier.weight(1f),
+                    text = title,
+                    style =
+                        MaterialTheme.typography.titleMedium,
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    color =
+                        MaterialTheme.colorScheme.onSurface
+                )
+                InfoTrigger(
+                    onClick = onInfo
+                )
+            }
+
+            content()
+        }
+    }
+}
+
+@Composable
+private fun GoalDashboardTile(
+    modifier: Modifier,
+    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
+    targetMinutes: Int,
+    onInfo: () -> Unit
+) {
+    val latest =
+        analytics.nights.firstOrNull()
+    val streak =
+        analytics.nights
+            .sortedByDescending {
+                it.date
+            }
+            .takeWhile {
+                it.asleepMinutes >=
+                    targetMinutes
+            }
+            .size
+
+    DashboardGlassCard(
+        modifier = modifier
+            .height(178.dp),
+        title = "Goal",
+        onInfo = onInfo
+    ) {
+        Text(
+            modifier =
+                Modifier.padding(top = 16.dp),
+            text =
+                latest?.let {
+                    formatMinutes(
+                        it.asleepMinutes
+                    )
+                } ?: "—",
+            style =
+                MaterialTheme.typography.headlineMedium,
+            fontWeight =
+                FontWeight.ExtraBold,
+            color =
+                MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text =
+                formatMinutes(
+                    targetMinutes.toLong()
+                ) +
+                    " target",
+            style =
+                MaterialTheme.typography.bodySmall,
+            color =
+                MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            modifier =
+                Modifier.padding(top = 14.dp),
+            text =
+                "🔥 " +
+                    streak +
+                    " night streak",
+            style =
+                MaterialTheme.typography.labelMedium,
+            fontWeight =
+                FontWeight.Bold,
+            color = Mint
+        )
+    }
+}
+
+@Composable
+private fun LastNightDashboardTile(
+    modifier: Modifier,
+    night: SleepNight?,
+    loading: Boolean,
+    onInfo: () -> Unit
+) {
+    DashboardGlassCard(
+        modifier = modifier,
+        title = "Last-Night Metrics",
+        onInfo = onInfo
+    ) {
+        if (loading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(92.dp),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = Cyan
+                )
+            }
+        } else if (night == null) {
+            Text(
+                modifier =
+                    Modifier.padding(top = 14.dp),
+                text =
+                    "No recent sleep session yet.",
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            val deep =
+                stageMinutes(
+                    night,
+                    SleepStageType.DEEP
+                )
+            val light =
+                stageMinutes(
+                    night,
+                    SleepStageType.LIGHT
+                )
+            val rem =
+                stageMinutes(
+                    night,
+                    SleepStageType.REM
+                )
+            val unknown =
+                stageMinutes(
+                    night,
+                    SleepStageType.UNKNOWN
+                )
+            val asleep =
+                deep +
+                    light +
+                    rem +
+                    unknown
+            val total =
+                java.time.Duration
+                    .between(
+                        night.start,
+                        night.end
+                    )
+                    .toMinutes()
+                    .coerceAtLeast(1L)
+            val efficiency =
+                (
+                    asleep.toDouble() /
+                        total.toDouble() *
+                        100.0
+                    )
+                    .roundToInt()
+                    .coerceIn(
+                        0,
+                        100
+                    )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                horizontalArrangement =
+                    Arrangement.SpaceEvenly
+            ) {
+                DashboardMetric(
+                    label = "Sleep",
+                    value =
+                        formatMinutes(
+                            asleep
+                        ),
+                    accent = Cyan
+                )
+                DashboardMetric(
+                    label = "Efficiency",
+                    value =
+                        efficiency.toString() +
+                            "%",
+                    accent = Mint
+                )
+                DashboardMetric(
+                    label = "REM",
+                    value =
+                        formatMinutes(
+                            rem
+                        ),
+                    accent = Lavender
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashboardMetric(
+    label: String,
+    value: String,
+    accent: Color
+) {
+    Column(
+        modifier =
+            Modifier.padding(horizontal = 6.dp),
+        horizontalAlignment =
+            Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .background(
+                    accent,
+                    CircleShape
+                )
+        )
+        Text(
+            modifier =
+                Modifier.padding(top = 7.dp),
+            text = value,
+            fontWeight =
+                FontWeight.ExtraBold,
+            color =
+                MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            modifier =
+                Modifier.padding(top = 2.dp),
+            text = label,
+            style =
+                MaterialTheme.typography.labelSmall,
+            color =
+                MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun InsightDashboardTile(
+    modifier: Modifier,
+    text: String,
+    onInfo: () -> Unit
+) {
+    DashboardGlassCard(
+        modifier = modifier,
+        title = "✨ Personal Insight",
+        onInfo = onInfo
+    ) {
+        Text(
+            modifier =
+                Modifier.padding(top = 12.dp),
+            text = text,
+            style =
+                MaterialTheme.typography.bodyLarge,
+            color =
+                MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun SleepDebtDashboardTile(
+    modifier: Modifier,
+    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
+    targetMinutes: Int,
+    onInfo: () -> Unit
+) {
+    val debt =
+        analytics.sleepDebtMinutes
+    val avgGap =
+        if (
+            analytics.nights.isNotEmpty()
+        ) {
+            debt /
+                analytics.nights.size
+        } else {
+            0L
+        }
+
+    DashboardGlassCard(
+        modifier = modifier
+            .height(178.dp),
+        title = "Sleep Debt",
+        onInfo = onInfo
+    ) {
+        Text(
+            modifier =
+                Modifier.padding(top = 16.dp),
+            text =
+                if (debt > 0) {
+                    formatMinutes(debt)
+                } else {
+                    "0m"
+                },
+            style =
+                MaterialTheme.typography.headlineMedium,
+            fontWeight =
+                FontWeight.ExtraBold,
+            color =
+                if (debt > 0) {
+                    Sunrise
+                } else {
+                    Mint
+                }
+        )
+        Text(
+            text =
+                if (debt > 0) {
+                    "below target"
+                } else {
+                    "on target"
+                },
+            style =
+                MaterialTheme.typography.bodySmall,
+            color =
+                MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            modifier =
+                Modifier.padding(top = 12.dp),
+            text =
+                "Avg gap " +
+                    formatMinutes(
+                        avgGap
+                    ),
+            style =
+                MaterialTheme.typography.labelMedium,
+            color =
+                MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun SmartAlarmDashboardTile(
+    modifier: Modifier,
+    schedules: List<AlarmSchedule>,
+    onEdit: (AlarmSchedule) -> Unit,
+    onSkip: (AlarmSchedule) -> Unit,
+    onGoAlarms: () -> Unit,
+    onInfo: () -> Unit
+) {
+    val next =
+        remember(schedules) {
+            nextSchedule(schedules)
+        }
+
+    DashboardGlassCard(
+        modifier = modifier
+            .height(178.dp),
+        title = "Smart Alarm",
+        onInfo = onInfo
+    ) {
+        if (next == null) {
+            Text(
+                modifier =
+                    Modifier.padding(top = 16.dp),
+                text =
+                    "No schedule",
+                fontWeight =
+                    FontWeight.ExtraBold
+            )
+            TextButton(
+                onClick = onGoAlarms
+            ) {
+                Text("Set one")
+            }
+        } else {
+            val schedule = next.first
+            val deadline = next.second
+
+            Text(
+                modifier =
+                    Modifier.padding(top = 13.dp),
+                text =
+                    deadline.format(
+                        DateTimeFormatter.ofPattern(
+                            "h:mm a"
+                        )
+                    ),
+                style =
+                    MaterialTheme.typography.headlineMedium,
+                fontWeight =
+                    FontWeight.ExtraBold
+            )
+            Text(
+                text = "Guardrail Wake Time",
+                style =
+                    MaterialTheme.typography.bodySmall,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier =
+                    Modifier.padding(top = 6.dp),
+                horizontalArrangement =
+                    Arrangement.spacedBy(2.dp)
+            ) {
+                TextButton(
+                    onClick = {
+                        onEdit(schedule)
+                    }
+                ) {
+                    Text("Edit")
+                }
+                TextButton(
+                    onClick = {
+                        onSkip(schedule)
+                    }
+                ) {
+                    Text(
+                        if (
+                            schedule.isNextOccurrenceSkipped()
+                        ) {
+                            "Undo"
+                        } else {
+                            "Skip"
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklyHypnogramDashboardTile(
+    modifier: Modifier,
+    nights: List<SleepNight>,
+    onInfo: () -> Unit
+) {
+    val recent =
+        nights
+            .sortedBy { it.end }
+            .takeLast(7)
+
+    DashboardGlassCard(
+        modifier = modifier,
+        title = "Weekly Hypnogram Trend",
+        onInfo = onInfo
+    ) {
+        if (recent.isEmpty()) {
+            Text(
+                modifier =
+                    Modifier.padding(top = 14.dp),
+                text =
+                    "No tracked nights yet.",
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(105.dp)
+                    .padding(top = 14.dp)
+            ) {
+                val widthPer =
+                    size.width /
+                        recent.size
+                val barWidth =
+                    widthPer * 0.48f
+
+                recent.forEachIndexed {
+                        index,
+                        night ->
+                    val stages = listOf(
+                        SleepStageType.DEEP to Lavender,
+                        SleepStageType.LIGHT to Cyan,
+                        SleepStageType.REM to Indigo,
+                        SleepStageType.AWAKE to Sunrise
+                    )
+                    val values =
+                        stages.map {
+                            stageMinutes(
+                                night,
+                                it.first
+                            )
+                        }
+                    val total =
+                        values.sum()
+                            .coerceAtLeast(1L)
+
+                    var bottom =
+                        size.height
+
+                    stages.zip(values)
+                        .forEach {
+                                pair ->
+                            val value =
+                                pair.second
+                            val height =
+                                size.height *
+                                    value.toFloat() /
+                                    total.toFloat()
+
+                            drawRoundRect(
+                                color =
+                                    pair.first.second
+                                        .copy(
+                                            alpha = 0.88f
+                                        ),
+                                topLeft =
+                                    Offset(
+                                        widthPer *
+                                            index +
+                                            (
+                                                widthPer -
+                                                    barWidth
+                                                ) /
+                                                2f,
+                                        bottom -
+                                            height
+                                    ),
+                                size =
+                                    Size(
+                                        barWidth,
+                                        height
+                                    ),
+                                cornerRadius =
+                                    CornerRadius(
+                                        4.dp.toPx(),
+                                        4.dp.toPx()
+                                    )
+                            )
+                            bottom -=
+                                height
+                        }
+                }
+            }
+
+            Text(
+                modifier =
+                    Modifier.padding(top = 7.dp),
+                text =
+                    "Deep · Light · REM · Awake",
+                style =
+                    MaterialTheme.typography.bodySmall,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun wakeGlassFill(): Color =
+    if (
+        MaterialTheme.colorScheme.background
+            .luminance() < 0.5f
+    ) {
+        Color(0x80161B26)
+    } else {
+        Color(0xF0F8FAFC)
+    }
+
+@Composable
+private fun wakeGlassBorderBrush(): Brush =
+    if (
+        MaterialTheme.colorScheme.background
+            .luminance() < 0.5f
+    ) {
+        Brush.linearGradient(
+            listOf(
+                Color.White.copy(
+                    alpha = 0.14f
+                ),
+                Cyan.copy(
+                    alpha = 0.26f
+                ),
+                Color.White.copy(
+                    alpha = 0.06f
+                )
+            )
+        )
+    } else {
+        Brush.linearGradient(
+            listOf(
+                Color.White.copy(
+                    alpha = 0.88f
+                ),
+                Cyan.copy(
+                    alpha = 0.16f
+                ),
+                MaterialTheme.colorScheme.outlineVariant
+                    .copy(alpha = 0.55f)
+            )
+        )
+    }
+
+private fun sleepDebtInfo(): MetricInfo =
+    MetricInfo(
+        title = "Sleep Debt vs Daily Score",
+        meaning =
+            "Sleep Debt tracks your cumulative sleep deficit over 7–14 days against your goal, whereas your Daily Score evaluates last night's individual sleep quality.",
+        measurement =
+            "WakeSync sums each tracked night's shortfall versus your selected sleep goal across the recent analysis period. The Daily Score is calculated separately from sleep-quality pillars.",
+        importance =
+            "You can have a decent individual night and still carry sleep debt from several shorter nights before it."
+    )
+
+@Composable
 private fun MorningBriefingCard(
     analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
     displayName: String,
