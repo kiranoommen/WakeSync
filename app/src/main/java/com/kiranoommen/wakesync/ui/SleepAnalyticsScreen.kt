@@ -418,6 +418,7 @@ private fun StageDistributionCard(night: NightAnalytics) {
     val lightPct = pct(lightMinutes)
     val remPct = pct(remMinutes)
     val awakePct = pct(awakeMinutes)
+    val awakeColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -460,7 +461,7 @@ private fun StageDistributionCard(night: NightAnalytics) {
                 add(deepPct, Indigo)
                 add(lightPct, Lavender)
                 add(remPct, Amber)
-                add(awakePct, MaterialTheme.colorScheme.onSurfaceVariant)
+                add(awakePct, awakeColor)
             }
 
             Row(
@@ -470,7 +471,7 @@ private fun StageDistributionCard(night: NightAnalytics) {
                 StageLegend("Deep", deepPct, Indigo)
                 StageLegend("Light", lightPct, Lavender)
                 StageLegend("REM", remPct, Amber)
-                StageLegend("Awake", awakePct, MaterialTheme.colorScheme.onSurfaceVariant)
+                StageLegend("Awake", awakePct, awakeColor)
             }
 
             Row(
@@ -597,6 +598,7 @@ private fun TrendChart(
     val lineColor = Amber
     val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
     val selectionColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)
+    val previousBarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f)
 
     Canvas(
         modifier = Modifier
@@ -644,7 +646,7 @@ private fun TrendChart(
                     night.asleepMinutes.toFloat() / maxMinutes.toFloat() * size.height * 0.82f
 
                 drawRoundRect(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f),
+                    color = previousBarColor,
                     topLeft = Offset(
                         centerX - barWidth * 0.68f,
                         size.height - previousHeight
