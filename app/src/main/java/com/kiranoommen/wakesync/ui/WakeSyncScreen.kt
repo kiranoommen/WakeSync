@@ -3,6 +3,7 @@ package com.kiranoommen.wakesync.ui
 import android.app.TimePickerDialog
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +52,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
+import com.kiranoommen.wakesync.data.AppSettingsStore
+import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
@@ -80,6 +83,11 @@ fun WakeSyncScreen(
     nights: List<SleepNight>,
     schedules: List<AlarmSchedule>,
     exactAlarmAccess: Boolean,
+    hasAnalyticsPermission: Boolean,
+    hasHistoryPermission: Boolean,
+    historyReadAvailable: Boolean,
+    themeMode: String,
+    sleepGoalMinutes: Int,
     errorMessage: String?,
     onConnect: () -> Unit,
     onRefresh: () -> Unit,
@@ -88,14 +96,26 @@ fun WakeSyncScreen(
     onToggleSchedule: (AlarmSchedule, Boolean) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit,
-    onRequestExactAlarmAccess: () -> Unit
+    onRequestExactAlarmAccess: () -> Unit,
+    onRequestAnalyticsAccess: () -> Unit,
+    onRequestHistoryAccess: () -> Unit,
+    onThemeModeChange: (String) -> Unit,
+    onSleepGoalChange: (Int) -> Unit
 ) {
-    WakeSyncTheme {
+    val systemDark = isSystemInDarkTheme()
+    val darkTheme = when (themeMode) {
+        AppSettingsStore.THEME_DARK -> true
+        AppSettingsStore.THEME_LIGHT -> false
+        else -> systemDark
+    }
+
+    WakeSyncTheme(darkTheme = darkTheme) {
         var tab by remember { mutableStateOf(AppTab.HOME) }
         var editingSchedule by remember { mutableStateOf<AlarmSchedule?>(null) }
         var creatingNew by remember { mutableStateOf(false) }
 
         val colors = MaterialTheme.colorScheme
+        val context = LocalContext.current
 
         Box(
             modifier = Modifier
@@ -151,15 +171,27 @@ fun WakeSyncScreen(
                     AppTab.SLEEP -> SleepTab(
                         nights = nights,
                         loading = loading,
-                        onRefresh = onRefresh
+                        sleepGoalMinutes = sleepGoalMinutes,
+                        onRefresh = onRefresh,
+                        onShareCsv = { SleepExporter.shareCsv(context, it) },
+                        onSharePdf = { SleepExporter.sharePdf(context, it) }
                     )
 
                     AppTab.SETTINGS -> SettingsTab(
                         hasPermission = hasPermission,
                         exactAlarmAccess = exactAlarmAccess,
+                        hasAnalyticsPermission = hasAnalyticsPermission,
+                        hasHistoryPermission = hasHistoryPermission,
+                        historyReadAvailable = historyReadAvailable,
+                        themeMode = themeMode,
+                        sleepGoalMinutes = sleepGoalMinutes,
                         nights = nights,
                         onConnect = onConnect,
-                        onRequestExactAlarmAccess = onRequestExactAlarmAccess
+                        onRequestExactAlarmAccess = onRequestExactAlarmAccess,
+                        onRequestAnalyticsAccess = onRequestAnalyticsAccess,
+                        onRequestHistoryAccess = onRequestHistoryAccess,
+                        onThemeModeChange = onThemeModeChange,
+                        onSleepGoalChange = onSleepGoalChange
                     )
                     }
                 }
@@ -809,47 +841,27 @@ private fun AlarmScheduleCard(
 private fun SleepTab(
     nights: List<SleepNight>,
     loading: Boolean,
-    onRefresh: () -> Unit
+    sleepGoalMinutes: Int,
+    onRefresh: () -> Unit,
+    onShareCsv: (List<com.kiranoommen.wakesync.domain.NightAnalytics>) -> Unit,
+    onSharePdf: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            SectionHeader(
-                title = "Recent nights",
-                action = "Refresh",
-                onAction = onRefresh
+            SleepAnalyticsScreen(
+                nights = nights,
+                loading = loading,
+                targetSleepMinutes = sleepGoalMinutes,
+                onRefresh = onRefresh,
+                onShareCsv = onShareCsv,
+                onSharePdf = onSharePdf
             )
         }
 
-        if (loading) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Amber)
-                }
-            }
-        }
-
-        items(nights.take(30)) { night ->
-            SleepNightCard(night)
-        }
-
-        if (!loading && nights.isEmpty()) {
-            item {
-                InfoCard(
-                    title = "No sleep data",
-                    body = "Once Health Connect returns sleep sessions, they will appear here."
-                )
-            }
-        }
-
-        item { Spacer(Modifier.height(6.dp)) }
+        item { Spacer(Modifier.height(8.dp)) }
     }
 }
 
@@ -857,9 +869,18 @@ private fun SleepTab(
 private fun SettingsTab(
     hasPermission: Boolean,
     exactAlarmAccess: Boolean,
+    hasAnalyticsPermission: Boolean,
+    hasHistoryPermission: Boolean,
+    historyReadAvailable: Boolean,
+    themeMode: String,
+    sleepGoalMinutes: Int,
     nights: List<SleepNight>,
     onConnect: () -> Unit,
-    onRequestExactAlarmAccess: () -> Unit
+    onRequestExactAlarmAccess: () -> Unit,
+    onRequestAnalyticsAccess: () -> Unit,
+    onRequestHistoryAccess: () -> Unit,
+    onThemeModeChange: (String) -> Unit,
+    onSleepGoalChange: (Int) -> Unit
 ) {
     val source = nights.firstOrNull()?.sourcePackage ?: "No source detected yet"
 
@@ -870,7 +891,7 @@ private fun SettingsTab(
         item {
             InfoCard(
                 title = "Private by design",
-                body = "WakeSync reads sleep data locally through Health Connect. It does not upload, sell, share, or modify your health data."
+                body = "WakeSync reads your permitted Health Connect data locally. It does not upload, sell, share, or modify health data. Export happens only when you choose it."
             )
         }
 
@@ -889,9 +910,38 @@ private fun SettingsTab(
 
         item {
             SettingCard(
+                title = "Recovery metrics",
+                body = if (hasAnalyticsPermission) {
+                    "HRV and resting-heart-rate access enabled."
+                } else {
+                    "Optional read-only access for HRV and resting heart rate. WakeSync works without it."
+                },
+                button = if (hasAnalyticsPermission) null else "Enable",
+                onClick = onRequestAnalyticsAccess
+            )
+        }
+
+        item {
+            SettingCard(
+                title = "Extended history",
+                body = when {
+                    !historyReadAvailable ->
+                        "Historical Health Connect access is not available on this device."
+                    hasHistoryPermission ->
+                        "Enabled. WakeSync can analyze periods beyond the standard 30-day window."
+                    else ->
+                        "Optional permission required for 6-month and older comparisons."
+                },
+                button = if (historyReadAvailable && !hasHistoryPermission) "Enable" else null,
+                onClick = onRequestHistoryAccess
+            )
+        }
+
+        item {
+            SettingCard(
                 title = "Exact alarm access",
                 body = if (exactAlarmAccess) {
-                    "Enabled. Wake-by deadlines can use Android's exact alarm scheduling."
+                    "Enabled. Wake-by deadlines can use Android exact alarm scheduling."
                 } else {
                     "Not enabled. Android may delay alarms. Grant exact alarm access for reliable wake deadlines."
                 },
@@ -901,13 +951,92 @@ private fun SettingsTab(
         }
 
         item {
+            PreferenceCard(title = "Appearance") {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    listOf(
+                        AppSettingsStore.THEME_SYSTEM to "System",
+                        AppSettingsStore.THEME_DARK to "Dark",
+                        AppSettingsStore.THEME_LIGHT to "Light"
+                    ).forEach { (value, label) ->
+                        FilterChip(
+                            selected = themeMode == value,
+                            onClick = { onThemeModeChange(value) },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            PreferenceCard(title = "Sleep goal") {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    listOf(420, 450, 480, 510, 540).forEach { minutes ->
+                        FilterChip(
+                            selected = sleepGoalMinutes == minutes,
+                            onClick = { onSleepGoalChange(minutes) },
+                            label = {
+                                Text(
+                                    when (minutes) {
+                                        420 -> "7h"
+                                        450 -> "7.5h"
+                                        480 -> "8h"
+                                        510 -> "8.5h"
+                                        else -> "9h"
+                                    }
+                                )
+                            }
+                        )
+                    }
+                }
+                Text(
+                    modifier = Modifier.padding(top = 6.dp),
+                    text = "Used for sleep-debt estimates and personal trend goals.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        item {
             InfoCard(
-                title = "How smart wake works",
-                body = "You choose the latest acceptable wake time and how wide the smart window may be. WakeSync never moves the alarm outside that window, and the deadline always wins."
+                title = "Smart wake guardrails",
+                body = "You control the deadline and smart-window width. WakeSync never wakes you outside that window, and weak predictions fall back to the later deadline."
             )
         }
 
-        item { Spacer(Modifier.height(6.dp)) }
+        item { Spacer(Modifier.height(8.dp)) }
+    }
+}
+
+@Composable
+private fun PreferenceCard(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Box(modifier = Modifier.padding(top = 10.dp)) {
+                content()
+            }
+        }
     }
 }
 
