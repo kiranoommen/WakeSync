@@ -212,7 +212,8 @@ private fun FilterBar(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -267,13 +268,25 @@ private fun ScoreHero(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(30.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
-        Row(
-            modifier = Modifier.padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Indigo, Lavender, Amber)
+                        )
+                    )
+            )
+            Row(
+                modifier = Modifier.padding(18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             ScoreRing(
                 score = score,
                 modifier = Modifier.width(126.dp).height(126.dp)
@@ -319,6 +332,7 @@ private fun ScoreHero(
                     } else "0m"
                 )
                 MetricLine("Target", formatMinutes(targetSleepMinutes.toLong()))
+            }
             }
         }
     }
@@ -386,7 +400,10 @@ private fun InsightCard(text: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Lavender.copy(alpha = 0.10f))
+        colors = CardDefaults.cardColors(
+            containerColor = Lavender.copy(alpha = 0.10f),
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("WakeSync insight", fontWeight = FontWeight.Bold, color = Lavender)
@@ -424,7 +441,8 @@ private fun StageDistributionCard(night: NightAnalytics) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -520,7 +538,8 @@ private fun TrendCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -713,7 +732,8 @@ private fun ArchitectureCard(analytics: PeriodAnalytics) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -750,7 +770,10 @@ private fun RecoveryCard(analytics: PeriodAnalytics) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Indigo.copy(alpha = 0.10f))
+        colors = CardDefaults.cardColors(
+            containerColor = Indigo.copy(alpha = 0.10f),
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -784,7 +807,8 @@ private fun MissingRecoveryCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -816,7 +840,8 @@ private fun SleepLog(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -901,7 +926,8 @@ private fun ExpandedDetails(night: NightAnalytics) {
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(13.dp)) {
@@ -935,7 +961,8 @@ private fun ExportCard(onCsv: () -> Unit, onPdf: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -970,7 +997,8 @@ private fun ResearchNote() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1057,7 +1085,8 @@ private fun MiniMetric(modifier: Modifier, label: String, value: String) {
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
