@@ -1549,6 +1549,20 @@ private fun AlarmsTab(
             }
         }
 
+        item {
+            WeeklyAlarmOverview(
+                schedules = schedules,
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Weekly alarm overview",
+                        meaning = "A quick seven-day view of the active wake schedule assigned to each weekday.",
+                        measurement = "WakeSync checks enabled recurring schedules for each day and shows the earliest active wake-by time when more than one schedule overlaps.",
+                        importance = "The overview makes gaps, weekends off, and different weekday times obvious without opening every schedule."
+                    )
+                }
+            )
+        }
+
         if (schedules.isEmpty()) {
             item {
                 InfoCard(
@@ -1585,6 +1599,208 @@ private fun AlarmsTab(
             infoSheet = null
         }
     )
+}
+
+@Composable
+private fun WeeklyAlarmOverview(
+    schedules: List<AlarmSchedule>,
+    onInfo: () -> Unit
+) {
+    val days = listOf(
+        DayOfWeek.MONDAY,
+        DayOfWeek.TUESDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY,
+        DayOfWeek.FRIDAY,
+        DayOfWeek.SATURDAY,
+        DayOfWeek.SUNDAY
+    )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor =
+                MaterialTheme.colorScheme.surface
+                    .copy(alpha = 0.68f),
+            contentColor =
+                MaterialTheme.colorScheme.onSurface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Your week",
+                        style =
+                            MaterialTheme.typography.titleMedium,
+                        fontWeight =
+                            FontWeight.ExtraBold,
+                        color =
+                            MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        modifier =
+                            Modifier.padding(top = 2.dp),
+                        text =
+                            schedules.count { it.enabled }
+                                .toString() +
+                                " active schedule" +
+                                if (
+                                    schedules.count {
+                                        it.enabled
+                                    } == 1
+                                ) {
+                                    ""
+                                } else {
+                                    "s"
+                                },
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                InfoTrigger(onClick = onInfo)
+            }
+
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(
+                        rememberScrollState()
+                    )
+                    .padding(top = 14.dp),
+                horizontalArrangement =
+                    Arrangement.spacedBy(8.dp)
+            ) {
+                days.forEach { day ->
+                    val schedule =
+                        schedules
+                            .asSequence()
+                            .filter {
+                                it.enabled &&
+                                    it.days.contains(day)
+                            }
+                            .minByOrNull {
+                                it.hour * 60 +
+                                    it.minute
+                            }
+
+                    Card(
+                        modifier =
+                            Modifier.width(78.dp),
+                        shape =
+                            RoundedCornerShape(16.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            if (schedule != null) {
+                                Lavender.copy(
+                                    alpha = 0.28f
+                                )
+                            } else {
+                                MaterialTheme.colorScheme.outlineVariant
+                            }
+                        ),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    if (
+                                        schedule != null
+                                    ) {
+                                        Lavender.copy(
+                                            alpha = 0.10f
+                                        )
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                            .copy(
+                                                alpha = 0.30f
+                                            )
+                                    },
+                                contentColor =
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 9.dp,
+                                    vertical = 11.dp
+                                ),
+                            horizontalAlignment =
+                                Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text =
+                                    day.name
+                                        .lowercase()
+                                        .replaceFirstChar {
+                                            it.uppercase()
+                                        }
+                                        .take(3),
+                                style =
+                                    MaterialTheme.typography.labelMedium,
+                                fontWeight =
+                                    FontWeight.Bold,
+                                color =
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                modifier =
+                                    Modifier.padding(
+                                        top = 6.dp
+                                    ),
+                                text =
+                                    if (
+                                        schedule != null
+                                    ) {
+                                        formatClock(
+                                            schedule.hour,
+                                            schedule.minute
+                                        )
+                                    } else {
+                                        "Off"
+                                    },
+                                style =
+                                    MaterialTheme.typography.labelSmall,
+                                color =
+                                    if (
+                                        schedule != null
+                                    ) {
+                                        Lavender
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                fontWeight =
+                                    if (
+                                        schedule != null
+                                    ) {
+                                        FontWeight.SemiBold
+                                    } else {
+                                        FontWeight.Medium
+                                    }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
