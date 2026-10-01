@@ -855,6 +855,128 @@ private fun ScoreRing(
 }
 
 @Composable
+private fun SleepRangeQuickTiles(
+    analytics: PeriodAnalytics,
+    onInfo: (MetricInfo) -> Unit
+) {
+    val latency = analytics.nights
+        .mapNotNull { it.onsetLatencyMinutes }
+        .takeIf { it.isNotEmpty() }
+        ?.average()
+        ?.roundToInt()
+        ?.toLong()
+
+    val waso = analytics.nights
+        .map { it.wasoMinutes }
+        .takeIf { it.isNotEmpty() }
+        ?.average()
+        ?.roundToInt()
+        ?.toLong()
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement =
+            Arrangement.spacedBy(10.dp)
+    ) {
+        SleepSquareMetricCard(
+            modifier = Modifier.weight(1f),
+            title = "Latency",
+            value = latency
+                ?.let(::formatMinutes)
+                ?: "—",
+            accent = Lavender,
+            onInfo = {
+                onInfo(
+                    MetricInfo(
+                        title = "Sleep Latency",
+                        meaning = "Latency is the time taken to fall asleep.",
+                        measurement = "WakeSync measures from the Health Connect sleep-session start to the first stage that is not Awake.",
+                        importance = "It helps distinguish a short night from difficulty settling into sleep."
+                    )
+                )
+            }
+        )
+
+        SleepSquareMetricCard(
+            modifier = Modifier.weight(1f),
+            title = "WASO",
+            value = waso
+                ?.let(::formatMinutes)
+                ?: "—",
+            accent = Cyan,
+            onInfo = {
+                onInfo(
+                    MetricInfo(
+                        title = "WASO",
+                        meaning = "WASO means Wake After Sleep Onset: minutes spent awake after initially falling asleep.",
+                        measurement = "WakeSync sums Awake stage intervals between first sleep onset and the last sleep stage in the session.",
+                        importance = "It is a useful indicator of sleep fragmentation and continuity."
+                    )
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun SleepSquareMetricCard(
+    modifier: Modifier,
+    title: String,
+    value: String,
+    accent: Color,
+    onInfo: () -> Unit
+) {
+    BentoCard(
+        modifier = modifier.height(142.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            accent,
+                            CircleShape
+                        )
+                )
+                InfoTrigger(onClick = onInfo)
+            }
+
+            Text(
+                modifier =
+                    Modifier.padding(top = 14.dp),
+                text = value,
+                style =
+                    MaterialTheme.typography.headlineMedium,
+                fontWeight =
+                    FontWeight.ExtraBold,
+                color =
+                    MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                modifier =
+                    Modifier.padding(top = 3.dp),
+                text = title,
+                style =
+                    MaterialTheme.typography.labelLarge,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
 private fun InsightCard(
     text: String,
     onInfo: () -> Unit
@@ -1874,10 +1996,13 @@ private fun TrendChart(
 
 @Composable
 private fun ArchitectureCard(
+    modifier: Modifier = Modifier,
     analytics: PeriodAnalytics,
     onInfo: () -> Unit
 ) {
-    BentoCard {
+    BentoCard(
+        modifier = modifier
+    ) {
         Column {
             CardTitleRow(
                 title = "Architecture & regularity",
@@ -1931,10 +2056,12 @@ private fun ArchitectureCard(
 
 @Composable
 private fun RecoveryCard(
+    modifier: Modifier = Modifier,
     analytics: PeriodAnalytics,
     onInfo: () -> Unit
 ) {
     BentoCard(
+        modifier = modifier,
         borderColor = Indigo.copy(alpha = 0.26f)
     ) {
         Column {
@@ -2458,21 +2585,56 @@ private fun SleepSkeleton() {
 
 @Composable
 private fun BentoCard(
-    borderColor: Color =
-        MaterialTheme.colorScheme.outlineVariant,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    borderColor: Color? = null,
     content: @Composable () -> Unit
 ) {
+    val isDark =
+        MaterialTheme.colorScheme.background
+            .luminance() < 0.5f
+    val fill =
+        if (isDark) {
+            Color(0x80161B26)
+        } else {
+            Color(0xF0F8FAFC)
+        }
+    val edgeBrush =
+        if (borderColor != null) {
+            Brush.linearGradient(
+                listOf(
+                    borderColor.copy(alpha = 0.22f),
+                    Cyan.copy(alpha = 0.24f),
+                    borderColor.copy(alpha = 0.08f)
+                )
+            )
+        } else if (isDark) {
+            Brush.linearGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.14f),
+                    Cyan.copy(alpha = 0.24f),
+                    Color.White.copy(alpha = 0.05f)
+                )
+            )
+        } else {
+            Brush.linearGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.92f),
+                    Cyan.copy(alpha = 0.14f),
+                    MaterialTheme.colorScheme.outlineVariant
+                        .copy(alpha = 0.48f)
+                )
+            )
+        }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
-            borderColor
+            edgeBrush
         ),
         colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.surface
-                    .copy(alpha = 0.68f),
+            containerColor = fill,
             contentColor =
                 MaterialTheme.colorScheme.onSurface
         ),
@@ -2581,17 +2743,30 @@ private fun MiniMetric(
     label: String,
     value: String
 ) {
+    val isDark =
+        MaterialTheme.colorScheme.background
+            .luminance() < 0.5f
+
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant
-        ),
+        border =
+            if (isDark) {
+                BorderStroke(
+                    1.dp,
+                    Color.White.copy(alpha = 0.08f)
+                )
+            } else {
+                null
+            },
         colors = CardDefaults.cardColors(
             containerColor =
-                MaterialTheme.colorScheme.surfaceVariant
-                    .copy(alpha = 0.42f),
+                if (isDark) {
+                    MaterialTheme.colorScheme.surfaceVariant
+                        .copy(alpha = 0.34f)
+                } else {
+                    Color.Transparent
+                },
             contentColor =
                 MaterialTheme.colorScheme.onSurface
         )
@@ -2611,7 +2786,8 @@ private fun MiniMetric(
                     MaterialTheme.colorScheme.onSurface
             )
             Text(
-                modifier = Modifier.padding(top = 2.dp),
+                modifier =
+                    Modifier.padding(top = 2.dp),
                 text = label,
                 style =
                     MaterialTheme.typography.labelSmall,
