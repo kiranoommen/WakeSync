@@ -182,45 +182,48 @@ fun WakeSyncScreen(
                     )
                 )
         ) {
-            if (darkTheme) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset(x = (-90).dp, y = (-70).dp)
-                        .size(310.dp)
-                        .blur(80.dp)
-                        .background(
-                            IndigoGlow.copy(alpha = 0.15f),
-                            CircleShape
-                        )
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 90.dp, y = 70.dp)
-                        .size(340.dp)
-                        .blur(80.dp)
-                        .background(
-                            Cyan.copy(alpha = 0.12f),
-                            CircleShape
-                        )
-                )
-            }
-
-            if (!darkTheme) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawCircle(
-                        color = Lavender.copy(alpha = 0.08f),
-                        radius = size.minDimension * 0.48f,
-                        center = Offset(size.width * 0.90f, size.height * 0.12f)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset(
+                        x = (-90).dp,
+                        y = (-70).dp
                     )
-                    drawCircle(
-                        color = Amber.copy(alpha = 0.06f),
-                        radius = size.minDimension * 0.42f,
-                        center = Offset(size.width * 0.10f, size.height * 0.52f)
+                    .size(310.dp)
+                    .blur(80.dp)
+                    .background(
+                        IndigoGlow.copy(
+                            alpha =
+                                if (darkTheme) {
+                                    0.15f
+                                } else {
+                                    0.07f
+                                }
+                        ),
+                        CircleShape
                     )
-                }
-            }
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(
+                        x = 90.dp,
+                        y = 70.dp
+                    )
+                    .size(340.dp)
+                    .blur(80.dp)
+                    .background(
+                        Cyan.copy(
+                            alpha =
+                                if (darkTheme) {
+                                    0.12f
+                                } else {
+                                    0.055f
+                                }
+                        ),
+                        CircleShape
+                    )
+            )
 
             Column(
                 modifier = Modifier
@@ -3813,18 +3816,33 @@ private fun SettingsBentoCard(
     onInfo: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val accentBrush =
+        if (
+            borderColor !=
+            MaterialTheme.colorScheme.outlineVariant
+        ) {
+            Brush.linearGradient(
+                listOf(
+                    borderColor.copy(alpha = 0.30f),
+                    Cyan.copy(alpha = 0.22f),
+                    borderColor.copy(alpha = 0.08f)
+                )
+            )
+        } else {
+            wakeGlassBorderBrush()
+        }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
-            borderColor
+            accentBrush
         ),
         colors =
             CardDefaults.cardColors(
                 containerColor =
-                    MaterialTheme.colorScheme.surface
-                        .copy(alpha = 0.68f),
+                    wakeGlassFill(),
                 contentColor =
                     MaterialTheme.colorScheme.onSurface
             ),
@@ -3943,14 +3961,22 @@ private fun GlassSwitch(
                 }
             ),
         shape = RoundedCornerShape(999.dp),
-        border = BorderStroke(
-            1.dp,
-            if (checked) {
-                Lavender.copy(alpha = 0.36f)
+        border =
+            if (
+                MaterialTheme.colorScheme.background
+                    .luminance() < 0.5f
+            ) {
+                BorderStroke(
+                    1.dp,
+                    if (checked) {
+                        Lavender.copy(alpha = 0.36f)
+                    } else {
+                        Color.White.copy(alpha = 0.08f)
+                    }
+                )
             } else {
-                MaterialTheme.colorScheme.outlineVariant
-            }
-        ),
+                null
+            },
         colors = CardDefaults.cardColors(
             containerColor = trackColor,
             contentColor = Color.White
