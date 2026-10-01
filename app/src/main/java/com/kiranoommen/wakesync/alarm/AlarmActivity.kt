@@ -3,6 +3,7 @@ package com.kiranoommen.wakesync.alarm
 import android.app.NotificationManager
 import android.media.Ringtone
 import android.media.RingtoneManager
+import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -57,14 +58,23 @@ class AlarmActivity : ComponentActivity() {
                     label = schedule?.label?.ifBlank { "WakeSync" } ?: "WakeSync",
                     isSmart = kind == AlarmScheduler.KIND_SMART,
                     onDismiss = {
-                        AlarmScheduler(this).cancelDeadline(scheduleId)
+                        val scheduler = AlarmScheduler(this)
+                        scheduler.cancelDeadline(scheduleId)
+
+                        if (kind != AlarmScheduler.KIND_DEADLINE && schedule != null) {
+                            val afterCurrentDeadline =
+                                schedule.nextDeadline()?.plusMinutes(1)
+                                    ?: java.time.ZonedDateTime.now().plusMinutes(1)
+                            scheduler.scheduleNext(schedule, afterCurrentDeadline)
+                        }
+
                         stopAlarmFeedback()
                         getSystemService(NotificationManager::class.java)
                             .cancel(scheduleId.hashCode())
                         finish()
                     },
                     onSnooze = {
-                        AlarmScheduler(this).cancelDeadline(scheduleId)
+                        // Keep the hard wake-by deadline intact while snoozing an early smart alarm.
                         AlarmScheduler(this).snooze(scheduleId, 5)
                         stopAlarmFeedback()
                         getSystemService(NotificationManager::class.java)
@@ -78,7 +88,12 @@ class AlarmActivity : ComponentActivity() {
 
     private fun startAlarmFeedback() {
         val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-        ringtone = RingtoneManager.getRingtone(this, uri)?.also { it.play() }
+        ringtone = RingtoneManager.getRingtone(this, uri)?.also {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                it.isLooping = true
+            }
+            it.play()
+        }
 
         vibrator = getSystemService(Vibrator::class.java)
         vibrator?.vibrate(
