@@ -1265,7 +1265,7 @@ private fun HypnogramCard(
             Text(
                 modifier = Modifier.padding(top = 10.dp),
                 text =
-                    "Latency = time to fall asleep · WASO = awake time after first falling asleep · Efficiency = percent of the sleep-session window spent asleep.",
+                    "Latency = time to fall asleep · WASO = awake time after first falling asleep · Sleep Efficiency = Time Asleep ÷ Total Time in Bed. Efficiency measures continuity, not total hours; a short 5h 32m night can still be about 97% efficient if it was nearly unbroken.",
                 style =
                     MaterialTheme.typography.bodySmall,
                 color =
