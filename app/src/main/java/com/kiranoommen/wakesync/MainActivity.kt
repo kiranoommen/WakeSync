@@ -206,18 +206,6 @@ class MainActivity : ComponentActivity() {
                     oobeCompleted = true
                 }
 
-                if (
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(
-                        this@MainActivity,
-                        Manifest.permission.POST_NOTIFICATIONS
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    notificationPermissionLauncher.launch(
-                        Manifest.permission.POST_NOTIFICATIONS
-                    )
-                }
-
                 hasPermission = runCatching {
                     healthConnectManager.hasRequiredPermissions()
                 }.getOrDefault(false)
@@ -233,6 +221,23 @@ class MainActivity : ComponentActivity() {
                 alarmScheduler.scheduleAll(schedules)
 
                 if (hasPermission) refreshSleep()
+            }
+
+            LaunchedEffect(oobeCompleted) {
+                if (
+                    oobeCompleted &&
+                    Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this@MainActivity,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) !=
+                    PackageManager.PERMISSION_GRANTED
+                ) {
+                    notificationPermissionLauncher.launch(
+                        Manifest.permission.POST_NOTIFICATIONS
+                    )
+                }
             }
 
             if (!oobeCompleted) {
