@@ -96,8 +96,10 @@ class AppSettingsStore(context: Context) {
         val DEFAULT_DASHBOARD_WIDGETS =
             listOf(
                 WIDGET_GOAL,
+                WIDGET_DEBT,
                 WIDGET_SLEEP,
-                WIDGET_INSIGHT
+                WIDGET_INSIGHT,
+                WIDGET_ALARM
             )
 
         private const val KEY_OOBE_COMPLETED = "oobe_completed"
