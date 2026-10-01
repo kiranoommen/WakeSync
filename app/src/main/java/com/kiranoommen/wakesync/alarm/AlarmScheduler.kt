@@ -41,12 +41,13 @@ class AlarmScheduler(private val context: Context) {
     }
 
     fun cancel(scheduleId: String) {
-        alarmManager.cancel(pending(scheduleId, KIND_SMART, PendingIntent.FLAG_NO_CREATE))
-        alarmManager.cancel(pending(scheduleId, KIND_DEADLINE, PendingIntent.FLAG_NO_CREATE))
+        pending(scheduleId, KIND_SMART, PendingIntent.FLAG_NO_CREATE)?.let(alarmManager::cancel)
+        pending(scheduleId, KIND_DEADLINE, PendingIntent.FLAG_NO_CREATE)?.let(alarmManager::cancel)
+        pending(scheduleId, KIND_SNOOZE, PendingIntent.FLAG_NO_CREATE)?.let(alarmManager::cancel)
     }
 
     fun cancelDeadline(scheduleId: String) {
-        alarmManager.cancel(pending(scheduleId, KIND_DEADLINE, PendingIntent.FLAG_NO_CREATE))
+        pending(scheduleId, KIND_DEADLINE, PendingIntent.FLAG_NO_CREATE)?.let(alarmManager::cancel)
     }
 
     fun snooze(scheduleId: String, minutes: Int) {
