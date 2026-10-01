@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -259,9 +260,16 @@ fun SleepAnalyticsScreen(
                     infoSheet = MetricInfo(
                         title = "WakeSync Sleep Score",
                         meaning = "A 0–100 wellness summary of how your recent sleep compares with your own goals and pattern.",
-                        measurement = "40% Duration + 25% Efficiency + 20% Stage Ratios + 15% Consistency. It is a WakeSync score, not a clinical score.",
+                        measurement = "40% Duration + 25% Efficiency + 20% Regularity + 15% Latency. It is a WakeSync wellness score, not a clinical score.",
                         importance = "The score compresses several signals into one quick glance while the pillar breakdown keeps the math transparent."
                     )
+                }
+            )
+
+            SleepRangeQuickTiles(
+                analytics = analytics,
+                onInfo = {
+                    infoSheet = it
                 }
             )
 
@@ -306,35 +314,43 @@ fun SleepAnalyticsScreen(
                     infoSheet = MetricInfo(
                         title = "Duration & efficiency trend",
                         meaning = "Bars show total sleep duration; the line shows estimated sleep efficiency.",
-                        measurement = "Duration is sleep-stage minutes. Efficiency is estimated sleep minutes divided by the Health Connect sleep-session duration.",
-                        importance = "Looking at both together helps distinguish short sleep from fragmented or inefficient sleep."
+                        measurement = "Sleep Efficiency = Time Asleep ÷ Total Time in Bed (the Health Connect sleep-session window). It measures sleep continuity, not total hours.",
+                        importance = "A short night can still be highly efficient. For example, 5h 32m of almost completely unbroken sleep can still be about 97% efficient even though total sleep was short."
                     )
                 }
             )
 
-            ArchitectureCard(
-                analytics = analytics,
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Architecture & regularity",
-                        meaning = "Stage ratios summarize Deep and REM trends. SRI estimates how consistent your sleep/wake timing is from day to day.",
-                        measurement = "Stage ratios use wearable-classified stage minutes. SRI compares sleep/wake state in 15-minute clock-time epochs on adjacent tracked days.",
-                        importance = "Regularity can make sleep timing more predictable, while stage ratios are best treated as personal trends rather than fixed targets."
-                    )
-                }
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.spacedBy(10.dp)
+            ) {
+                ArchitectureCard(
+                    modifier = Modifier.weight(1f),
+                    analytics = analytics,
+                    onInfo = {
+                        infoSheet = MetricInfo(
+                            title = "Architecture & regularity",
+                            meaning = "Stage ratios summarize Deep and REM trends. SRI estimates how consistent your sleep/wake timing is from day to day.",
+                            measurement = "Stage ratios use wearable-classified stage minutes. SRI compares sleep/wake state in 15-minute clock-time epochs on adjacent tracked days.",
+                            importance = "Regularity can make sleep timing more predictable, while stage ratios are best treated as personal trends rather than fixed targets."
+                        )
+                    }
+                )
 
-            RecoveryCard(
-                analytics = analytics,
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Biometric recovery",
-                        meaning = "HRV means Heart Rate Variability: beat-to-beat timing variation used as a recovery trend. RHR means Resting Heart Rate: your resting pulse rate.",
-                        measurement = "WakeSync reads optional HRV and RHR records from Health Connect and summarizes the values associated with recent nights.",
-                        importance = "These metrics are usually most useful relative to your own baseline, not a universal good/bad threshold."
-                    )
-                }
-            )
+                RecoveryCard(
+                    modifier = Modifier.weight(1f),
+                    analytics = analytics,
+                    onInfo = {
+                        infoSheet = MetricInfo(
+                            title = "Biometric recovery",
+                            meaning = "HRV means Heart Rate Variability: beat-to-beat timing variation used as a recovery trend. RHR means Resting Heart Rate: your resting pulse rate.",
+                            measurement = "WakeSync reads optional HRV and RHR records from Health Connect and summarizes the values associated with recent nights.",
+                            importance = "These metrics are usually most useful relative to your own baseline, not a universal good/bad threshold."
+                        )
+                    }
+                )
+            }
 
             SleepLogCard(
                 analytics = allAnalytics,
