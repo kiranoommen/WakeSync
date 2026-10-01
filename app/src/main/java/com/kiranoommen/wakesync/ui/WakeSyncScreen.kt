@@ -60,6 +60,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -166,6 +167,31 @@ fun WakeSyncScreen(
                     )
                 )
         ) {
+            if (darkTheme) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .offset(x = (-90).dp, y = (-70).dp)
+                        .size(310.dp)
+                        .blur(80.dp)
+                        .background(
+                            IndigoGlow.copy(alpha = 0.15f),
+                            CircleShape
+                        )
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 90.dp, y = 70.dp)
+                        .size(340.dp)
+                        .blur(80.dp)
+                        .background(
+                            Cyan.copy(alpha = 0.12f),
+                            CircleShape
+                        )
+                )
+            }
+
             Canvas(modifier = Modifier.fillMaxSize()) {
                 if (darkTheme) {
                     drawCircle(
