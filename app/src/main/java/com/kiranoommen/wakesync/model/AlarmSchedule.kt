@@ -21,12 +21,42 @@ data class AlarmSchedule(
     fun isScheduledOn(date: LocalDate): Boolean =
         days.contains(date.dayOfWeek.value) && !skippedDates.contains(date.toString())
 
-    fun nextDeadline(after: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime? {
+    fun isBaseScheduledOn(date: LocalDate): Boolean =
+        days.contains(date.dayOfWeek.value)
+
+    fun nextDeadline(after: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime? =
+        nextOccurrence(after = after, respectSkips = true)
+
+    fun nextBaseDeadline(after: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime? =
+        nextOccurrence(after = after, respectSkips = false)
+
+    fun isNextOccurrenceSkipped(after: ZonedDateTime = ZonedDateTime.now()): Boolean {
+        val nextBase = nextBaseDeadline(after) ?: return false
+        return skippedDates.contains(nextBase.toLocalDate().toString())
+    }
+
+    fun nextResumeDeadline(after: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime? {
+        val nextBase = nextBaseDeadline(after) ?: return null
+        return nextDeadline(nextBase.plusMinutes(1))
+    }
+
+    fun futureSkippedDates(from: LocalDate = LocalDate.now()): Set<String> =
+        skippedDates.filterTo(mutableSetOf()) { value ->
+            runCatching { !LocalDate.parse(value).isBefore(from) }.getOrDefault(false)
+        }
+
+    private fun nextOccurrence(
+        after: ZonedDateTime,
+        respectSkips: Boolean
+    ): ZonedDateTime? {
         if (!enabled || days.isEmpty()) return null
 
-        for (offset in 0..8) {
+        // Search a full year so temporary skips can never make a valid recurring
+        // schedule appear to have disappeared from the Home screen.
+        for (offset in 0..370) {
             val date = after.toLocalDate().plusDays(offset.toLong())
-            if (!isScheduledOn(date)) continue
+            if (!isBaseScheduledOn(date)) continue
+            if (respectSkips && skippedDates.contains(date.toString())) continue
 
             val candidate = date
                 .atTime(hour, minute)
