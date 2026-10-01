@@ -1134,109 +1134,261 @@ private fun DashboardCustomizeDialog(
     onDismiss: () -> Unit,
     onSave: (List<String>) -> Unit
 ) {
-    var working by remember(current) { mutableStateOf(current) }
+    var working by remember(current) {
+        mutableStateOf(current)
+    }
+
     val all = buildList {
         if (goalsEnabled) {
             add(
                 AppSettingsStore.WIDGET_GOAL to
-                    "Sleep goal & streak"
+                    "Sleep Goal & Streak"
             )
         }
+
         add(
             AppSettingsStore.WIDGET_SLEEP to
-                "Last-night metrics"
+                "Last-Night Metrics"
         )
         add(
             AppSettingsStore.WIDGET_INSIGHT to
-                "Personal insight"
+                "Personal Insights"
+        )
+
+        if (goalsEnabled) {
+            add(
+                AppSettingsStore.WIDGET_DEBT to
+                    "Sleep Debt & Deficit"
+            )
+        }
+
+        add(
+            AppSettingsStore.WIDGET_HYPNOGRAM to
+                "Weekly Hypnogram Trend"
+        )
+        add(
+            AppSettingsStore.WIDGET_ALARM to
+                "Smart Alarm Status & Quick Controls"
         )
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Customize dashboard") },
+        title = {
+            Text("Customize Your Dashboard")
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                verticalArrangement =
+                    Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
-                    text = "Pin the cards you want and change their order.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text =
+                        "Toggle cards on or off. Long-press and drag the reorder handle to change the dashboard order.",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                all.forEach { (id, label) ->
-                    val visible = working.contains(id)
-                    val index = working.indexOf(id)
+                all.forEach {
+                        (id, label) ->
+                    val visible =
+                        working.contains(id)
+                    val index =
+                        working.indexOf(id)
 
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                    DashboardCustomizeRow(
+                        label = label,
+                        visible = visible,
+                        canDrag = visible,
+                        onVisibleChange = {
+                                checked ->
+                            working =
+                                if (checked) {
+                                    working + id
+                                } else {
+                                    working.filterNot {
+                                        it == id
+                                    }
+                                }
+                        },
+                        onMove = { direction ->
+                            if (
+                                index >= 0 &&
+                                working.isNotEmpty()
                             ) {
-                                Text(label, fontWeight = FontWeight.Medium)
-                                Switch(
-                                    checked = visible,
-                                    onCheckedChange = { checked ->
-                                        working = if (checked) {
-                                            working + id
-                                        } else {
-                                            working.filterNot { it == id }
-                                        }
-                                    }
-                                )
-                            }
+                                val target =
+                                    (index + direction)
+                                        .coerceIn(
+                                            0,
+                                            working.lastIndex
+                                        )
 
-                            if (visible) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    TextButton(
-                                        enabled = index > 0,
-                                        onClick = {
-                                            val list = working.toMutableList()
-                                            val item = list.removeAt(index)
-                                            list.add(index - 1, item)
-                                            working = list
-                                        }
-                                    ) {
-                                        Text("Move up")
-                                    }
-
-                                    TextButton(
-                                        enabled = index >= 0 && index < working.lastIndex,
-                                        onClick = {
-                                            val list = working.toMutableList()
-                                            val item = list.removeAt(index)
-                                            list.add(index + 1, item)
-                                            working = list
-                                        }
-                                    ) {
-                                        Text("Move down")
-                                    }
+                                if (target != index) {
+                                    val list =
+                                        working.toMutableList()
+                                    val item =
+                                        list.removeAt(index)
+                                    list.add(
+                                        target,
+                                        item
+                                    )
+                                    working = list
                                 }
                             }
                         }
-                    }
+                    )
                 }
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(working) }) {
+            Button(
+                onClick = {
+                    onSave(working)
+                }
+            ) {
                 Text("Save")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss
+            ) {
                 Text("Cancel")
             }
         }
     )
+}
+
+@Composable
+private fun DashboardCustomizeRow(
+    label: String,
+    visible: Boolean,
+    canDrag: Boolean,
+    onVisibleChange: (Boolean) -> Unit,
+    onMove: (Int) -> Unit
+) {
+    val density = LocalDensity.current
+    val threshold = with(density) {
+        42.dp.toPx()
+    }
+    var dragOffset by remember {
+        mutableStateOf(0f)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                translationY = dragOffset
+            }
+            .animateContentSize(),
+        shape = RoundedCornerShape(16.dp),
+        border =
+            if (
+                MaterialTheme.colorScheme.background
+                    .luminance() < 0.5f
+            ) {
+                BorderStroke(
+                    1.dp,
+                    Color.White.copy(
+                        alpha = 0.08f
+                    )
+                )
+            } else {
+                null
+            },
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    MaterialTheme.colorScheme.surfaceVariant
+                        .copy(alpha = 0.42f),
+                contentColor =
+                    MaterialTheme.colorScheme.onSurface
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 10.dp,
+                    vertical = 8.dp
+                ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+            if (canDrag) {
+                Icon(
+                    imageVector =
+                        Icons.Default.Reorder,
+                    contentDescription =
+                        "Reorder $label",
+                    modifier = Modifier
+                        .size(28.dp)
+                        .pointerInput(
+                            label,
+                            visible
+                        ) {
+                            detectDragGesturesAfterLongPress(
+                                onDragEnd = {
+                                    dragOffset = 0f
+                                },
+                                onDragCancel = {
+                                    dragOffset = 0f
+                                },
+                                onDrag = {
+                                        change,
+                                        dragAmount ->
+                                    change.consume()
+                                    dragOffset +=
+                                        dragAmount.y
+
+                                    if (
+                                        dragOffset >=
+                                        threshold
+                                    ) {
+                                        onMove(1)
+                                        dragOffset = 0f
+                                    } else if (
+                                        dragOffset <=
+                                        -threshold
+                                    ) {
+                                        onMove(-1)
+                                        dragOffset = 0f
+                                    }
+                                }
+                            )
+                        },
+                    tint =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Spacer(
+                    modifier =
+                        Modifier.width(28.dp)
+                )
+            }
+
+            Text(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 10.dp),
+                text = label,
+                fontWeight =
+                    FontWeight.Medium,
+                color =
+                    MaterialTheme.colorScheme.onSurface
+            )
+
+            GlassSwitch(
+                checked = visible,
+                enabled = true,
+                onCheckedChange =
+                    onVisibleChange
+            )
+        }
+    }
 }
 
 @Composable
