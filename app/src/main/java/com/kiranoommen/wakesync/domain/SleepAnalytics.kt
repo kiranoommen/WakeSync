@@ -30,8 +30,8 @@ data class NightAnalytics(
 data class ScoreBreakdown(
     val duration: Int,
     val efficiency: Int,
-    val stageRatios: Int,
-    val consistency: Int
+    val regularity: Int,
+    val latency: Int
 )
 
 data class PeriodAnalytics(
@@ -59,22 +59,21 @@ object SleepAnalytics {
             .map { analyzeNight(it) }
 
         val regularity = sleepRegularityIndex(nights)
-        val consistencyScore = (regularity ?: 50).coerceIn(0, 100)
+        val regularityScore = (regularity ?: 50).coerceIn(0, 100)
 
         val scored = base.map { night ->
             val duration = durationScore(night.asleepMinutes)
             val efficiency = night.efficiencyPercent
                 ?.let { efficiencyScore(it) }
                 ?: 50.0
-            val stages = architectureScore(
-                night.deepPercent,
-                night.remPercent
-            )
+            val latency = night.onsetLatencyMinutes
+                ?.let { latencyScore(it) }
+                ?: 50.0
             val overall = (
                 duration * 0.40 +
                     efficiency * 0.25 +
-                    stages * 0.20 +
-                    consistencyScore * 0.15
+                    regularityScore * 0.20 +
+                    latency * 0.15
                 ).roundToInt().coerceIn(0, 100)
 
             night.copy(
@@ -119,12 +118,11 @@ object SleepAnalytics {
             .averageDoubleOrNull()
             ?.roundToInt()
             ?: 0
-        val stageSubscore = scored
+        val latencySubscore = scored
             .map {
-                architectureScore(
-                    it.deepPercent,
-                    it.remPercent
-                )
+                it.onsetLatencyMinutes
+                    ?.let(::latencyScore)
+                    ?: 50.0
             }
             .averageDoubleOrNull()
             ?.roundToInt()
@@ -133,15 +131,15 @@ object SleepAnalytics {
         val breakdown = ScoreBreakdown(
             duration = durationSubscore.coerceIn(0, 100),
             efficiency = efficiencySubscore.coerceIn(0, 100),
-            stageRatios = stageSubscore.coerceIn(0, 100),
-            consistency = consistencyScore
+            regularity = regularityScore,
+            latency = latencySubscore.coerceIn(0, 100)
         )
 
         val avgScore = (
             breakdown.duration * 0.40 +
                 breakdown.efficiency * 0.25 +
-                breakdown.stageRatios * 0.20 +
-                breakdown.consistency * 0.15
+                breakdown.regularity * 0.20 +
+                breakdown.latency * 0.15
             ).roundToInt().coerceIn(0, 100)
 
         return PeriodAnalytics(
@@ -220,13 +218,15 @@ object SleepAnalytics {
 
         val durationScore = durationScore(asleep)
         val continuityScore = efficiency?.let { efficiencyScore(it) } ?: 50.0
-        val architectureScore = architectureScore(deepPct, remPct)
+        val latencyComponent = latency?.let { latencyScore(it) } ?: 50.0
 
+        // A single night cannot establish regularity on its own, so the
+        // night-level provisional score uses a neutral regularity value.
         val score = (
             durationScore * 0.40 +
                 continuityScore * 0.25 +
-                architectureScore * 0.20 +
-                50.0 * 0.15
+                50.0 * 0.20 +
+                latencyComponent * 0.15
             ).roundToInt().coerceIn(0, 100)
 
         return NightAnalytics(
@@ -363,6 +363,18 @@ object SleepAnalytics {
             percent >= 85 -> 90.0 + (percent - 85) * 2.0
             percent >= 75 -> 60.0 + (percent - 75) * 3.0
             else -> (percent.toDouble() / 75.0 * 60.0).coerceIn(0.0, 60.0)
+        }
+
+    private fun latencyScore(minutes: Long): Double =
+        when {
+            minutes in 5L..30L -> 100.0
+            minutes < 5L -> 90.0
+            minutes <= 45L ->
+                (100.0 - (minutes - 30L) * 2.0)
+                    .coerceAtLeast(70.0)
+            else ->
+                (70.0 - (minutes - 45L))
+                    .coerceIn(40.0, 70.0)
         }
 
     private fun architectureScore(
