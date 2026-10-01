@@ -4,6 +4,7 @@ import android.app.TimePickerDialog
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -201,6 +202,10 @@ fun WakeSyncScreen(
                 Box(modifier = Modifier.weight(1f)) {
                     Crossfade(
                         targetState = tab,
+                        animationSpec = spring(
+                            stiffness = 300f,
+                            dampingRatio = 0.78f
+                        ),
                         label = "WakeSyncTab"
                     ) { activeTab ->
                         when (activeTab) {
@@ -1048,6 +1053,10 @@ private fun NextWakeCard(
     val pressed by editInteraction.collectIsPressedAsState()
     val buttonScale by animateFloatAsState(
         targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = spring(
+            stiffness = 300f,
+            dampingRatio = 0.78f
+        ),
         label = "editSchedulePress"
     )
 
@@ -1235,6 +1244,10 @@ private fun EmptyAlarmCard(
     val pressed by interaction.collectIsPressedAsState()
     val buttonScale by animateFloatAsState(
         targetValue = if (pressed) 0.95f else 1f,
+        animationSpec = spring(
+            stiffness = 300f,
+            dampingRatio = 0.78f
+        ),
         label = "setSchedulePress"
     )
 
@@ -1403,6 +1416,10 @@ private fun AlarmScheduleCard(
     val futureSkips = schedule.futureSkippedDates()
     val cardScale by animateFloatAsState(
         targetValue = if (schedule.enabled) 1f else 0.985f,
+        animationSpec = spring(
+            stiffness = 300f,
+            dampingRatio = 0.78f
+        ),
         label = "alarmEnabledScale" + schedule.id
     )
     val cardContent by animateColorAsState(
@@ -2286,7 +2303,7 @@ private fun SettingsToggleRow(
 
         Switch(
             checked = checked,
-            enabled = enabled || checked,
+            enabled = enabled,
             onCheckedChange = onCheckedChange
         )
     }
@@ -2348,7 +2365,22 @@ private fun AlarmEditorDialog(
     onDelete: (AlarmSchedule) -> Unit
 ) {
     val context = LocalContext.current
-    var draft by remember(schedule.id) { mutableStateOf(schedule) }
+    var draft by remember(
+        schedule.id,
+        maxSmartWindowMinutes
+    ) {
+        val cappedWindow =
+            schedule.smartWindowMinutes
+                .coerceAtMost(maxSmartWindowMinutes)
+        mutableStateOf(
+            schedule.copy(
+                smartWindowMinutes = cappedWindow,
+                smartOffsetMinutes =
+                    schedule.smartOffsetMinutes
+                        .coerceAtMost(cappedWindow)
+            )
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
