@@ -1008,7 +1008,8 @@ private fun NextWakeCard(
     schedule: AlarmSchedule,
     deadline: ZonedDateTime,
     onEdit: () -> Unit,
-    onSkip: () -> Unit
+    onSkip: () -> Unit,
+    onInfo: () -> Unit
 ) {
     val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
     val dateFormat = DateTimeFormatter.ofPattern("EEE, MMM d")
@@ -1057,20 +1058,27 @@ private fun NextWakeCard(
             }
 
             Column(modifier = Modifier.padding(20.dp)) {
-                Card(
-                    shape = RoundedCornerShape(999.dp),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.11f),
-                        contentColor = Color.White
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
-                        text = "✨  SMART ALARM",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Card(
+                        shape = RoundedCornerShape(999.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White.copy(alpha = 0.11f),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                            text = "✨  SMART ALARM",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    InfoTrigger(onClick = onInfo)
                 }
 
                 Text(
@@ -1190,7 +1198,10 @@ private fun NextWakeCard(
 }
 
 @Composable
-private fun EmptyAlarmCard(onGoAlarms: () -> Unit) {
+private fun EmptyAlarmCard(
+    onGoAlarms: () -> Unit,
+    onInfo: () -> Unit
+) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val buttonScale by animateFloatAsState(
@@ -1234,20 +1245,27 @@ private fun EmptyAlarmCard(onGoAlarms: () -> Unit) {
             }
 
             Column(modifier = Modifier.padding(20.dp)) {
-                Card(
-                    shape = RoundedCornerShape(999.dp),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.11f),
-                        contentColor = Color.White
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
-                        text = "✨  SMART ALARM",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Card(
+                        shape = RoundedCornerShape(999.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White.copy(alpha = 0.11f),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                            text = "✨  SMART ALARM",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    InfoTrigger(onClick = onInfo)
                 }
 
                 Text(
@@ -2160,7 +2178,9 @@ private fun ConnectCard(onConnect: () -> Unit) {
 }
 
 @Composable
-private fun PrivacyBanner() {
+private fun PrivacyBanner(
+    onInfo: () -> Unit
+) {
     val colors = MaterialTheme.colorScheme
 
     Card(
@@ -2178,12 +2198,15 @@ private fun PrivacyBanner() {
         ) {
             Text(text = "🔒")
             Text(
-                modifier = Modifier.padding(start = 9.dp),
+                modifier = Modifier
+                    .padding(start = 9.dp)
+                    .weight(1f),
                 text = "On-Device Processing · Private & Secure",
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
+            InfoTrigger(onClick = onInfo)
         }
     }
 }
@@ -2341,7 +2364,10 @@ private fun SleepStageTimeline(
 }
 
 @Composable
-private fun SleepMetricRow(night: SleepNight) {
+private fun SleepMetricRow(
+    night: SleepNight,
+    onInfo: (MetricInfo) -> Unit
+) {
     val total = java.time.Duration.between(night.start, night.end).toMinutes()
     val deep = stageMinutes(night, SleepStageType.DEEP)
     val rem = stageMinutes(night, SleepStageType.REM)
@@ -2354,19 +2380,49 @@ private fun SleepMetricRow(night: SleepNight) {
             modifier = Modifier.weight(1f),
             label = "Total Sleep",
             value = formatMinutes(total),
-            accent = Cyan
+            accent = Cyan,
+            onInfo = {
+                onInfo(
+                    MetricInfo(
+                        title = "Total sleep",
+                        meaning = "The total time WakeSync counts as sleep during the session.",
+                        measurement = "Sum of Deep, Light, REM and generic sleep-stage intervals provided through Health Connect.",
+                        importance = "Sleep duration is one of the strongest high-level signals for recovery and is weighted heavily in the WakeSync score."
+                    )
+                )
+            }
         )
         QuickMetricCard(
             modifier = Modifier.weight(1f),
             label = "Deep Sleep",
             value = formatMinutes(deep),
-            accent = Lavender
+            accent = Lavender,
+            onInfo = {
+                onInfo(
+                    MetricInfo(
+                        title = "Deep sleep",
+                        meaning = "Time your wearable classified as deep or slow-wave sleep.",
+                        measurement = "Sum of Health Connect stage intervals labeled Deep.",
+                        importance = "Deep sleep is associated with physical restoration, but consumer wearable staging is an estimate and is best used as a personal trend."
+                    )
+                )
+            }
         )
         QuickMetricCard(
             modifier = Modifier.weight(1f),
             label = "REM Sleep",
             value = formatMinutes(rem),
-            accent = Indigo
+            accent = Indigo,
+            onInfo = {
+                onInfo(
+                    MetricInfo(
+                        title = "REM sleep",
+                        meaning = "Time your wearable classified as rapid-eye-movement sleep.",
+                        measurement = "Sum of Health Connect stage intervals labeled REM.",
+                        importance = "REM is linked with memory and emotional processing, but the wearable classification should be interpreted as a trend rather than ground truth."
+                    )
+                )
+            }
         )
     }
 }
@@ -2376,7 +2432,8 @@ private fun QuickMetricCard(
     modifier: Modifier,
     label: String,
     value: String,
-    accent: Color
+    accent: Color,
+    onInfo: () -> Unit
 ) {
     Card(
         modifier = modifier,
@@ -2393,14 +2450,21 @@ private fun QuickMetricCard(
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(
-                        color = accent,
-                        shape = CircleShape
-                    )
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            color = accent,
+                            shape = CircleShape
+                        )
+                )
+                InfoTrigger(onClick = onInfo)
+            }
             Text(
                 modifier = Modifier.padding(top = 14.dp),
                 text = value,
