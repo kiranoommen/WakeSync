@@ -64,7 +64,9 @@ Requirements:
 
 - final deadline alarm cannot be skipped by recommendation logic;
 - clear handling for battery optimization and exact alarms;
-- morning CTA;
+- the user should **not** need to open WakeSync or tap "I'm awake" every morning;
+- dismissing/stopping the alarm should be recorded automatically as the wake event;
+- optional wake-quality feedback can be offered later, but must not block or require morning use;
 - snooze strategy;
 - wake feedback.
 
