@@ -103,15 +103,18 @@ HRV should be interpreted primarily relative to the individual user's baseline. 
 
 The score is proprietary wellness summarization, not a validated medical score.
 
-Current night-level weighting:
+Current WakeSync Sleep Score weighting:
 
-- 50% duration
-- 35% estimated continuity/efficiency
-- 15% sleep architecture
+- 40% duration
+- 25% estimated sleep efficiency
+- 20% sleep-stage ratios
+- 15% consistency / wearable-derived Sleep Regularity Index
 
-Stage architecture is deliberately low-weight because consumer wearable staging has meaningful uncertainty.
+The app exposes all four pillar subscores in the Score Pillar Breakdown sheet so the user can see the math instead of receiving an opaque score.
 
-Period views average night-level scores and separately expose SRI, debt and biometric trends.
+Stage architecture remains deliberately limited in weight because consumer wearable staging has meaningful uncertainty. When regularity cannot yet be estimated, WakeSync uses a neutral consistency placeholder until enough consecutive tracked nights are available.
+
+Period views also expose sleep debt and optional biometric trends separately rather than hiding them inside the score.
 
 Do not label the score as diagnostic accuracy or imply clinical validation.
 
