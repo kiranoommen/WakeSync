@@ -116,6 +116,7 @@ fun WakeSyncScreen(
     historyReadAvailable: Boolean,
     themeMode: String,
     sleepGoalMinutes: Int,
+    goalsEnabled: Boolean,
     dashboardWidgets: List<String>,
     displayName: String,
     maxSmartWindowMinutes: Int,
@@ -133,6 +134,7 @@ fun WakeSyncScreen(
     onRequestHistoryAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
+    onGoalsEnabledChange: (Boolean) -> Unit,
     onDashboardWidgetsChange: (List<String>) -> Unit,
     onDisplayNameChange: (String) -> Unit,
     onMaxSmartWindowChange: (Int) -> Unit,
@@ -214,7 +216,7 @@ fun WakeSyncScreen(
                     .navigationBarsPadding()
                     .padding(horizontal = 18.dp)
             ) {
-                AppHeader(tab, onSettings = { tab = AppTab.SETTINGS })
+                AppHeader(tab)
 
                 Box(modifier = Modifier.weight(1f)) {
                     Crossfade(
@@ -240,6 +242,7 @@ fun WakeSyncScreen(
                                 onClearSkips = onClearSkips,
                                 onGoAlarms = { tab = AppTab.ALARMS },
                                 sleepGoalMinutes = sleepGoalMinutes,
+                                goalsEnabled = goalsEnabled,
                                 dashboardWidgets = dashboardWidgets,
                                 displayName = displayName,
                                 onDashboardWidgetsChange = onDashboardWidgetsChange
@@ -261,6 +264,7 @@ fun WakeSyncScreen(
                                 nights = nights,
                                 loading = loading,
                                 sleepGoalMinutes = sleepGoalMinutes,
+                                goalsEnabled = goalsEnabled,
                                 onRefresh = onRefresh,
                                 onShareCsv = {
                                     SleepExporter.shareCsv(
@@ -293,6 +297,7 @@ fun WakeSyncScreen(
                                 historyReadAvailable = historyReadAvailable,
                                 themeMode = themeMode,
                                 sleepGoalMinutes = sleepGoalMinutes,
+                                goalsEnabled = goalsEnabled,
                                 maxSmartWindowMinutes = maxSmartWindowMinutes,
                                 retainGeneratedExports = retainGeneratedExports,
                                 displayName = displayName,
@@ -303,6 +308,7 @@ fun WakeSyncScreen(
                                 onRequestHistoryAccess = onRequestHistoryAccess,
                                 onThemeModeChange = onThemeModeChange,
                                 onSleepGoalChange = onSleepGoalChange,
+                                onGoalsEnabledChange = onGoalsEnabledChange,
                                 onDisplayNameChange = onDisplayNameChange,
                                 onMaxSmartWindowChange = onMaxSmartWindowChange,
                                 onRetainGeneratedExportsChange = onRetainGeneratedExportsChange,
@@ -345,8 +351,7 @@ fun WakeSyncScreen(
 
 @Composable
 private fun AppHeader(
-    tab: AppTab,
-    onSettings: () -> Unit
+    tab: AppTab
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -416,28 +421,7 @@ private fun AppHeader(
             )
         }
 
-        Card(
-            onClick = onSettings,
-            modifier = Modifier.size(44.dp),
-            shape = CircleShape,
-            border = BorderStroke(1.dp, colors.outlineVariant),
-            colors = CardDefaults.cardColors(
-                containerColor = colors.surface.copy(alpha = 0.78f),
-                contentColor = colors.onSurface
-            )
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⚙",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colors.onSurface
-                )
-            }
-        }
-    }
+
 }
 
 @Composable
@@ -455,6 +439,7 @@ private fun HomeTab(
     onClearSkips: (AlarmSchedule) -> Unit,
     onGoAlarms: () -> Unit,
     sleepGoalMinutes: Int,
+    goalsEnabled: Boolean,
     dashboardWidgets: List<String>,
     displayName: String,
     onDashboardWidgetsChange: (List<String>) -> Unit
@@ -477,6 +462,7 @@ private fun HomeTab(
                 MorningBriefingCard(
                     analytics = dashboardAnalytics,
                     displayName = displayName,
+                    goalsEnabled = goalsEnabled,
                     onScoreClick = {
                         showScoreBreakdown = true
                     },
@@ -558,7 +544,7 @@ private fun HomeTab(
 
             dashboardWidgets.forEach { widget ->
                 when (widget) {
-                    AppSettingsStore.WIDGET_GOAL -> item {
+                    AppSettingsStore.WIDGET_GOAL -> if (goalsEnabled) item {
                         GoalStreakCard(
                             analytics = dashboardAnalytics,
                             sleepGoalMinutes = sleepGoalMinutes,
@@ -699,6 +685,7 @@ private fun HomeTab(
 private fun MorningBriefingCard(
     analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
     displayName: String,
+    goalsEnabled: Boolean,
     onScoreClick: () -> Unit,
     onInfo: () -> Unit
 ) {
@@ -717,13 +704,14 @@ private fun MorningBriefingCard(
         }
     val score = analytics.averageScore ?: 0
     val status = when {
-        analytics.sleepDebtMinutes >= 120 -> "⚡ Sleep Debt Detected"
+        goalsEnabled && analytics.sleepDebtMinutes >= 120 ->
+            "⚡ Sleep Debt Detected"
         score >= 90 -> "✨ Optimal Recovery"
         score >= 75 -> "✨ Strong Recovery"
         else -> "◌ Recovery Building"
     }
     val statusColor = when {
-        analytics.sleepDebtMinutes >= 120 -> Sunrise
+        goalsEnabled && analytics.sleepDebtMinutes >= 120 -> Sunrise
         score >= 90 -> Mint
         score >= 75 -> Cyan
         else -> Lavender
@@ -1877,6 +1865,7 @@ private fun SleepTab(
     nights: List<SleepNight>,
     loading: Boolean,
     sleepGoalMinutes: Int,
+    goalsEnabled: Boolean,
     onRefresh: () -> Unit,
     onShareCsv: (List<com.kiranoommen.wakesync.domain.NightAnalytics>) -> Unit,
     onSharePdf: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit,
@@ -1891,6 +1880,7 @@ private fun SleepTab(
                 nights = nights,
                 loading = loading,
                 targetSleepMinutes = sleepGoalMinutes,
+                goalsEnabled = goalsEnabled,
                 onRefresh = onRefresh,
                 onShareCsv = onShareCsv,
                 onSharePdf = onSharePdf,
@@ -1911,6 +1901,7 @@ private fun SettingsTab(
     historyReadAvailable: Boolean,
     themeMode: String,
     sleepGoalMinutes: Int,
+    goalsEnabled: Boolean,
     maxSmartWindowMinutes: Int,
     retainGeneratedExports: Boolean,
     displayName: String,
@@ -1921,6 +1912,7 @@ private fun SettingsTab(
     onRequestHistoryAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
+    onGoalsEnabledChange: (Boolean) -> Unit,
     onDisplayNameChange: (String) -> Unit,
     onMaxSmartWindowChange: (Int) -> Unit,
     onRetainGeneratedExportsChange: (Boolean) -> Unit,
@@ -2484,7 +2476,8 @@ private fun SettingsBentoCard(
                     style =
                         MaterialTheme.typography.titleMedium,
                     fontWeight =
-                        FontWeight.ExtraBold
+                        FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 InfoTrigger(
                     onClick = onInfo
