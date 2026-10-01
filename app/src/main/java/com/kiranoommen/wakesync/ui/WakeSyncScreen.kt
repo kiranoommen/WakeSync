@@ -2112,6 +2112,7 @@ private fun DashboardCustomizeDialog(
                     DashboardCustomizeRow(
                         label = label,
                         visible = visible,
+                        orderIndex = index,
                         canDrag = visible,
                         onVisibleChange = {
                                 checked ->
@@ -2176,6 +2177,7 @@ private fun DashboardCustomizeDialog(
 private fun DashboardCustomizeRow(
     label: String,
     visible: Boolean,
+    orderIndex: Int,
     canDrag: Boolean,
     onVisibleChange: (Boolean) -> Unit,
     onMove: (Int) -> Unit
@@ -2239,7 +2241,8 @@ private fun DashboardCustomizeRow(
                         .size(28.dp)
                         .pointerInput(
                             label,
-                            visible
+                            visible,
+                            orderIndex
                         ) {
                             detectDragGesturesAfterLongPress(
                                 onDragEnd = {
