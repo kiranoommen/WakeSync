@@ -50,7 +50,7 @@ class AlarmActivity : ComponentActivity() {
         val kind = intent.getStringExtra(AlarmScheduler.EXTRA_KIND).orEmpty()
         val schedule = AlarmStore(this).load().firstOrNull { it.id == scheduleId }
 
-        startAlarmFeedback()
+        startAlarmFeedback(schedule)
 
         setContent {
             WakeSyncTheme(darkTheme = true) {
@@ -73,9 +73,13 @@ class AlarmActivity : ComponentActivity() {
                             .cancel(scheduleId.hashCode())
                         finish()
                     },
+                    snoozeMinutes = schedule?.snoozeMinutes ?: 5,
                     onSnooze = {
                         // Keep the hard wake-by deadline intact while snoozing an early smart alarm.
-                        AlarmScheduler(this).snooze(scheduleId, 5)
+                        val minutes = schedule?.snoozeMinutes ?: 5
+                        if (minutes > 0) {
+                            AlarmScheduler(this).snooze(scheduleId, minutes)
+                        }
                         stopAlarmFeedback()
                         getSystemService(NotificationManager::class.java)
                             .cancel(scheduleId.hashCode())
@@ -86,19 +90,23 @@ class AlarmActivity : ComponentActivity() {
         }
     }
 
-    private fun startAlarmFeedback() {
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-        ringtone = RingtoneManager.getRingtone(this, uri)?.also {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                it.isLooping = true
+    private fun startAlarmFeedback(schedule: com.kiranoommen.wakesync.model.AlarmSchedule?) {
+        if (schedule?.soundEnabled != false) {
+            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ringtone = RingtoneManager.getRingtone(this, uri)?.also {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    it.isLooping = true
+                }
+                it.play()
             }
-            it.play()
         }
 
-        vibrator = getSystemService(Vibrator::class.java)
-        vibrator?.vibrate(
-            VibrationEffect.createWaveform(longArrayOf(0, 500, 500), 0)
-        )
+        if (schedule?.vibrationEnabled != false) {
+            vibrator = getSystemService(Vibrator::class.java)
+            vibrator?.vibrate(
+                VibrationEffect.createWaveform(longArrayOf(0, 500, 500), 0)
+            )
+        }
     }
 
     private fun stopAlarmFeedback() {
@@ -116,6 +124,7 @@ class AlarmActivity : ComponentActivity() {
 private fun AlarmScreen(
     label: String,
     isSmart: Boolean,
+    snoozeMinutes: Int,
     onDismiss: () -> Unit,
     onSnooze: () -> Unit
 ) {
@@ -167,17 +176,19 @@ private fun AlarmScreen(
             )
         }
 
-        OutlinedButton(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            onClick = onSnooze,
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Text(
-                modifier = Modifier.padding(vertical = 8.dp),
-                text = "Snooze 5 minutes"
-            )
+        if (snoozeMinutes > 0) {
+            OutlinedButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                onClick = onSnooze,
+                shape = RoundedCornerShape(24.dp)
+            ) {
+                Text(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    text = "Snooze " + snoozeMinutes + " minutes"
+                )
+            }
         }
     }
 }
