@@ -287,69 +287,98 @@ fun WakeSyncScreen(
 }
 
 @Composable
-private fun AppHeader(tab: AppTab) {
+private fun AppHeader(
+    tab: AppTab,
+    onSettings: () -> Unit
+) {
     val colors = MaterialTheme.colorScheme
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, bottom = 18.dp),
+            .padding(top = 14.dp, bottom = 18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Canvas(
             modifier = Modifier
+                .width(44.dp)
                 .height(34.dp)
-                .fillMaxWidth(0.11f)
         ) {
             fun wave(y: Float): Path = Path().apply {
                 moveTo(0f, y)
                 cubicTo(
-                    size.width * 0.22f,
+                    size.width * 0.20f,
                     y - size.height * 0.22f,
-                    size.width * 0.38f,
-                    y + size.height * 0.20f,
-                    size.width * 0.58f,
+                    size.width * 0.37f,
+                    y + size.height * 0.22f,
+                    size.width * 0.57f,
                     y
                 )
                 cubicTo(
                     size.width * 0.74f,
-                    y - size.height * 0.18f,
+                    y - size.height * 0.20f,
                     size.width * 0.86f,
-                    y + size.height * 0.12f,
+                    y + size.height * 0.13f,
                     size.width,
                     y - size.height * 0.08f
                 )
             }
 
             drawPath(
-                path = wave(size.height * 0.38f),
+                path = wave(size.height * 0.36f),
                 color = Lavender,
-                style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+                style = Stroke(width = 4.5.dp.toPx(), cap = StrokeCap.Round)
             )
             drawPath(
                 path = wave(size.height * 0.66f),
-                color = Amber,
-                style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+                color = Sunrise,
+                style = Stroke(width = 4.5.dp.toPx(), cap = StrokeCap.Round)
             )
         }
 
-        Column(modifier = Modifier.padding(start = 10.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp)
+        ) {
             Text(
                 text = "WakeSync",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
                 color = colors.onBackground
             )
             Text(
                 text = when (tab) {
-                    AppTab.HOME -> "Better mornings, in sync with you."
-                    AppTab.ALARMS -> "Wake by your schedule — not ours."
-                    AppTab.SLEEP -> "Understand your sleep pattern."
-                    AppTab.SETTINGS -> "Privacy and alarm reliability."
+                    AppTab.HOME -> "Better mornings, in sync with you"
+                    AppTab.ALARMS -> "Wake by your schedule — not ours"
+                    AppTab.SLEEP -> "Understand your sleep pattern"
+                    AppTab.SETTINGS -> "Privacy, preferences & reliability"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
             )
+        }
+
+        Card(
+            onClick = onSettings,
+            modifier = Modifier.size(44.dp),
+            shape = CircleShape,
+            border = BorderStroke(1.dp, colors.outlineVariant),
+            colors = CardDefaults.cardColors(
+                containerColor = colors.surface.copy(alpha = 0.78f),
+                contentColor = colors.onSurface
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⚙",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.onSurface
+                )
+            }
         }
     }
 }
@@ -384,29 +413,15 @@ private fun HomeTab(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            when {
-                sdkStatus == HealthConnectClient.SDK_UNAVAILABLE -> {
-                    InfoCard(
-                        title = "Health Connect unavailable",
-                        body = "This device does not support the Health Connect connection WakeSync needs."
-                    )
-                }
-
-                sdkStatus == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> {
-                    InfoCard(
-                        title = "Health Connect needs attention",
-                        body = "Install or update Health Connect, then return to WakeSync."
-                    )
-                }
-
-                !hasPermission -> ConnectCard(onConnect)
-                next != null -> NextWakeCard(
+            if (next != null) {
+                NextWakeCard(
                     schedule = next.first,
                     deadline = next.second,
                     onEdit = { onEditSchedule(next.first) },
                     onSkip = { onSkipNext(next.first) }
                 )
-                else -> EmptyAlarmCard(onGoAlarms)
+            } else {
+                EmptyAlarmCard(onGoAlarms)
             }
         }
 
@@ -420,10 +435,24 @@ private fun HomeTab(
             }
         }
 
+        if (
+            sdkStatus == HealthConnectClient.SDK_UNAVAILABLE ||
+            sdkStatus == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
+        ) {
+            item {
+                InfoCard(
+                    title = "Health Connect needs attention",
+                    body = "WakeSync can still manage alarms, but sleep insights need Health Connect available on this device."
+                )
+            }
+        } else if (!hasPermission) {
+            item { ConnectCard(onConnect) }
+        }
+
         if (hasPermission) {
             item {
                 SectionHeader(
-                    title = "Dashboard",
+                    title = "Your dashboard",
                     action = "Customize",
                     onAction = { showCustomize = true }
                 )
@@ -431,86 +460,81 @@ private fun HomeTab(
 
             dashboardWidgets.forEach { widget ->
                 when (widget) {
-                    AppSettingsStore.WIDGET_GOAL -> {
-                        item {
-                            GoalStreakCard(
-                                analytics = dashboardAnalytics,
-                                sleepGoalMinutes = sleepGoalMinutes
-                            )
-                        }
+                    AppSettingsStore.WIDGET_GOAL -> item {
+                        GoalStreakCard(
+                            analytics = dashboardAnalytics,
+                            sleepGoalMinutes = sleepGoalMinutes
+                        )
                     }
 
                     AppSettingsStore.WIDGET_SLEEP -> {
-                        if (nights.isNotEmpty()) {
+                        if (loading) {
                             item {
-                                SleepMetricRow(nights.first())
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(120.dp),
+                                    shape = RoundedCornerShape(28.dp),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant
+                                    ),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor =
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.70f)
+                                    )
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(color = Cyan)
+                                    }
+                                }
                             }
+                        } else if (nights.isNotEmpty()) {
+                            item { SleepMetricRow(nights.first()) }
                         }
                     }
 
-                    AppSettingsStore.WIDGET_INSIGHT -> {
-                        item {
-                            HomeInsightCard(
-                                text = SleepAnalytics.insightFor(
-                                    dashboardAnalytics,
-                                    sleepGoalMinutes
-                                )
+                    AppSettingsStore.WIDGET_INSIGHT -> item {
+                        HomeInsightCard(
+                            text = SleepAnalytics.insightFor(
+                                dashboardAnalytics,
+                                sleepGoalMinutes
                             )
-                        }
+                        )
                     }
                 }
             }
-        }
 
-        item {
-            PrivacyBanner()
-        }
-
-        if (hasPermission) {
             item {
-                SectionHeader(
-                    title = "Last night's sleep",
-                    action = "Refresh",
-                    onAction = onRefresh
-                )
-            }
-
-            if (loading) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = Amber)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onRefresh) {
+                        Text(
+                            text = "Refresh sleep data",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                }
-            } else if (nights.isNotEmpty()) {
-                item {
-                    SleepNightCard(nights.first())
-                }
-            } else {
-                item {
-                    InfoCard(
-                        title = "Waiting for sleep data",
-                        body = "WakeSync is connected, but no sleep session was returned yet."
-                    )
                 }
             }
         }
+
+        item { PrivacyBanner() }
 
         errorMessage?.let { message ->
             item {
-                Text(
-                    text = "Error: $message",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                InfoCard(
+                    title = "Something needs attention",
+                    body = message
                 )
             }
         }
 
-        item { Spacer(Modifier.height(6.dp)) }
+        item { Spacer(Modifier.height(10.dp)) }
     }
 
     if (showCustomize) {
@@ -534,58 +558,118 @@ private fun GoalStreakCard(
     val streak = recent.takeWhile { it.asleepMinutes >= sleepGoalMinutes }.size
     val latest = recent.firstOrNull()
     val progress = latest?.let {
-        ((it.asleepMinutes.toFloat() / sleepGoalMinutes.toFloat()) * 100f)
-            .roundToInt()
-            .coerceIn(0, 150)
-    } ?: 0
+        (it.asleepMinutes.toFloat() / sleepGoalMinutes.toFloat())
+            .coerceIn(0f, 1f)
+    } ?: 0f
+    val progressPercent = (progress * 100f).roundToInt()
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        label = "sleepGoalProgress"
+    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, Amber.copy(alpha = 0.22f)),
+        shape = RoundedCornerShape(30.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = Amber.copy(alpha = 0.10f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Sleep goal",
-                    fontWeight = FontWeight.Bold,
-                    color = Amber
-                )
-                Text(
-                    modifier = Modifier.padding(top = 4.dp),
-                    text = latest?.let {
-                        formatMinutes(it.asleepMinutes) + " of " +
-                            formatMinutes(sleepGoalMinutes.toLong())
-                    } ?: "Waiting for sleep data",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    modifier = Modifier.padding(top = 3.dp),
-                    text = progress.toString() + "% of target",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Box(
+                modifier = Modifier.size(112.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)
+
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val stroke = 10.dp.toPx()
+                    val diameter = size.minDimension - stroke
+
+                    drawArc(
+                        color = track,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = Offset(stroke / 2f, stroke / 2f),
+                        size = Size(diameter, diameter),
+                        style = Stroke(width = stroke, cap = StrokeCap.Round)
+                    )
+                    drawArc(
+                        brush = Brush.sweepGradient(
+                            listOf(Mint, Cyan, Mint)
+                        ),
+                        startAngle = -90f,
+                        sweepAngle = 360f * animatedProgress,
+                        useCenter = false,
+                        topLeft = Offset(stroke / 2f, stroke / 2f),
+                        size = Size(diameter, diameter),
+                        style = Stroke(width = stroke, cap = StrokeCap.Round)
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = progressPercent.toString() + "%",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "goal",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 18.dp)
+            ) {
                 Text(
-                    text = streak.toString(),
-                    style = MaterialTheme.typography.headlineMedium,
+                    text = "Sleep goal",
+                    color = Mint,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "night streak",
-                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(top = 5.dp),
+                    text = latest?.let { formatMinutes(it.asleepMinutes) } ?: "—",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = formatMinutes(sleepGoalMinutes.toLong()) + " target",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                Card(
+                    modifier = Modifier.padding(top = 12.dp),
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, Mint.copy(alpha = 0.28f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Mint.copy(alpha = 0.12f),
+                        contentColor = Mint
+                    )
+                ) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
+                        text = "🔥 " + streak + " Night Streak",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
@@ -595,23 +679,41 @@ private fun GoalStreakCard(
 private fun HomeInsightCard(text: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, Lavender.copy(alpha = 0.22f)),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(1.dp, Lavender.copy(alpha = 0.30f)),
         colors = CardDefaults.cardColors(
-            containerColor = Lavender.copy(alpha = 0.10f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "WakeSync insight",
-                fontWeight = FontWeight.Bold,
-                color = Lavender
-            )
-            Text(
-                modifier = Modifier.padding(top = 6.dp),
-                text = text
-            )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawCircle(
+                    color = Lavender.copy(alpha = 0.13f),
+                    radius = size.minDimension * 0.62f,
+                    center = Offset(size.width * 0.92f, size.height * 0.05f)
+                )
+            }
+
+            Column(modifier = Modifier.padding(18.dp)) {
+                Text(
+                    text = "✨  WakeSync Insight",
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Lavender
+                )
+                Text(
+                    modifier = Modifier.padding(top = 9.dp),
+                    text = text,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    modifier = Modifier.padding(top = 9.dp),
+                    text = "Personalized from your on-device sleep trends",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -727,10 +829,16 @@ private fun NextWakeCard(
     val dateFormat = DateTimeFormatter.ofPattern("EEE, MMM d")
     val windowStart = deadline.minusMinutes(schedule.smartWindowMinutes.toLong())
     val predicted = deadline.minusMinutes(schedule.smartOffsetMinutes.toLong())
+    val editInteraction = remember { MutableInteractionSource() }
+    val pressed by editInteraction.collectIsPressedAsState()
+    val buttonScale by animateFloatAsState(
+        targetValue = if (pressed) 0.96f else 1f,
+        label = "editSchedulePress"
+    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(32.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent,
@@ -743,68 +851,113 @@ private fun NextWakeCard(
                 .background(
                     Brush.linearGradient(
                         listOf(
-                            Indigo.copy(alpha = 0.92f),
-                            Lavender.copy(alpha = 0.78f),
-                            Amber.copy(alpha = 0.80f)
+                            Color(0xFF4C1D95),
+                            Color(0xFF6D28D9),
+                            Color(0xFF7C3AED)
                         )
                     )
                 )
-                .padding(20.dp)
         ) {
-            Column {
-                Text(
-                    text = "YOUR WAKE WINDOW",
-                    color = Color.White.copy(alpha = 0.82f),
-                    style = MaterialTheme.typography.titleMedium
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.10f),
+                    radius = size.minDimension * 0.55f,
+                    center = Offset(size.width * 0.87f, size.height * 0.16f)
                 )
+                drawCircle(
+                    color = Sunrise.copy(alpha = 0.20f),
+                    radius = size.minDimension * 0.38f,
+                    center = Offset(size.width * 0.02f, size.height * 0.98f)
+                )
+            }
+
+            Column(modifier = Modifier.padding(20.dp)) {
+                Card(
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.11f),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                        text = "✨  SMART ALARM",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 Text(
-                    modifier = Modifier.padding(top = 10.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                     text = if (schedule.smartWindowMinutes > 0) {
                         windowStart.format(timeFormat) + " – " + deadline.format(timeFormat)
                     } else {
                         deadline.format(timeFormat)
                     },
-                    color = Color.White,
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
                 )
+
                 Text(
-                    text = deadline.format(dateFormat) + " · " +
-                        schedule.label.ifBlank { "Alarm" },
-                    color = Color.White.copy(alpha = 0.85f)
+                    modifier = Modifier.padding(top = 4.dp),
+                    text = schedule.label.ifBlank { "Wake schedule" } +
+                        " · " + deadline.format(dateFormat),
+                    color = Color.White.copy(alpha = 0.80f)
                 )
 
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.12f)
+                        containerColor = Color.White.copy(alpha = 0.09f),
+                        contentColor = Color.White
                     )
                 ) {
-                    Column(modifier = Modifier.padding(13.dp)) {
-                        Text(
-                            text = if (schedule.smartOffsetMinutes > 0) {
-                                "Predicted wake · " + predicted.format(timeFormat)
-                            } else if (schedule.smartWindowMinutes > 0) {
-                                "Prediction · use the deadline"
-                            } else {
-                                "Exact-time alarm"
-                            },
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            modifier = Modifier.padding(top = 3.dp),
-                            text = if (schedule.smartOffsetMinutes > 0) {
-                                "Historically favorable point inside your allowed window."
-                            } else {
-                                "WakeSync is preserving sleep. The deadline always wins."
-                            },
-                            color = Color.White.copy(alpha = 0.74f),
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (schedule.smartOffsetMinutes > 0) {
+                                    "Predicted wake"
+                                } else {
+                                    "Protected deadline"
+                                },
+                                color = Color.White.copy(alpha = 0.72f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                modifier = Modifier.padding(top = 2.dp),
+                                text = if (schedule.smartOffsetMinutes > 0) {
+                                    predicted.format(timeFormat)
+                                } else {
+                                    deadline.format(timeFormat)
+                                },
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+
+                        Card(
+                            shape = RoundedCornerShape(999.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Mint.copy(alpha = 0.18f),
+                                contentColor = Color(0xFFB7F7D8)
+                            )
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                text = "● Ready",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
 
@@ -813,22 +966,37 @@ private fun NextWakeCard(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Button(
+                        modifier = Modifier.scale(buttonScale),
                         onClick = onEdit,
+                        interactionSource = editInteraction,
+                        shape = RoundedCornerShape(999.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White.copy(alpha = 0.18f),
-                            contentColor = Color.White
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF0F172A)
                         )
                     ) {
-                        Text("Edit")
+                        Text(
+                            modifier = Modifier.padding(horizontal = 5.dp),
+                            text = "Edit schedule",
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     OutlinedButton(
                         onClick = onSkip,
+                        shape = RoundedCornerShape(999.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color.White
                         )
                     ) {
-                        Text(if (schedule.isNextOccurrenceSkipped()) "Undo skip" else "Skip once")
+                        Text(
+                            if (schedule.isNextOccurrenceSkipped()) {
+                                "Undo skip"
+                            } else {
+                                "Skip once"
+                            }
+                        )
                     }
                 }
             }
@@ -838,9 +1006,17 @@ private fun NextWakeCard(
 
 @Composable
 private fun EmptyAlarmCard(onGoAlarms: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val buttonScale by animateFloatAsState(
+        targetValue = if (pressed) 0.95f else 1f,
+        label = "setSchedulePress"
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(32.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent,
             contentColor = Color.White
@@ -852,42 +1028,73 @@ private fun EmptyAlarmCard(onGoAlarms: () -> Unit) {
                 .background(
                     Brush.linearGradient(
                         listOf(
-                            Indigo.copy(alpha = 0.74f),
-                            Lavender.copy(alpha = 0.48f),
-                            Amber.copy(alpha = 0.42f)
+                            Color(0xFF4C1D95),
+                            Color(0xFF6D28D9),
+                            Color(0xFF7C3AED)
                         )
                     )
                 )
-                .padding(20.dp)
         ) {
-            Column {
-                Text(
-                    text = "YOUR WAKE WINDOW",
-                    color = Color.White.copy(alpha = 0.78f),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.10f),
+                    radius = size.minDimension * 0.56f,
+                    center = Offset(size.width * 0.88f, size.height * 0.12f)
                 )
+                drawCircle(
+                    color = Sunrise.copy(alpha = 0.18f),
+                    radius = size.minDimension * 0.42f,
+                    center = Offset(size.width * 0.04f, size.height * 1.02f)
+                )
+            }
+
+            Column(modifier = Modifier.padding(20.dp)) {
+                Card(
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.11f),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                        text = "✨  SMART ALARM",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 Text(
-                    modifier = Modifier.padding(top = 10.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                     text = "No wake schedule yet",
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.ExtraBold,
                     color = Color.White
                 )
                 Text(
-                    modifier = Modifier.padding(top = 6.dp),
-                    text = "Create different wake-by times for different days. Weekends can stay completely off.",
-                    color = Color.White.copy(alpha = 0.80f)
+                    modifier = Modifier.padding(top = 7.dp),
+                    text = "Set your latest acceptable wake time. WakeSync handles the smart window inside it.",
+                    color = Color.White.copy(alpha = 0.78f)
                 )
+
                 Button(
-                    modifier = Modifier.padding(top = 16.dp),
+                    modifier = Modifier
+                        .padding(top = 20.dp)
+                        .scale(buttonScale),
                     onClick = onGoAlarms,
+                    interactionSource = interaction,
+                    shape = RoundedCornerShape(999.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
-                        contentColor = Color(0xFF171A2C)
+                        contentColor = Color(0xFF0F172A)
                     )
                 ) {
-                    Text("Create schedule", fontWeight = FontWeight.Bold)
+                    Text(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        text = "+ Set Schedule",
+                        fontWeight = FontWeight.ExtraBold
+                    )
                 }
             }
         }
