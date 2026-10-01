@@ -2139,8 +2139,24 @@ private fun DashboardCustomizeDialog(
                         MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                all.forEach {
-                        (id, label) ->
+                val labels =
+                    all.toMap()
+                val availableIds =
+                    all.map { it.first }
+                val visibleIds =
+                    working.filter {
+                        availableIds.contains(it)
+                    }
+                val hiddenIds =
+                    availableIds.filterNot {
+                        visibleIds.contains(it)
+                    }
+                val displayIds =
+                    visibleIds + hiddenIds
+
+                displayIds.forEach { id ->
+                    val label =
+                        labels[id] ?: id
                     val visible =
                         working.contains(id)
                     val index =
@@ -2291,8 +2307,7 @@ private fun DashboardCustomizeRow(
                                 onDrag = {
                                         change,
                                         dragAmount ->
-                                    change.consume()
-                                    dragOffset +=
+                                                                        dragOffset +=
                                         dragAmount.y
 
                                     if (
