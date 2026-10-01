@@ -2729,7 +2729,8 @@ private fun CustomRangeSheet(
             Text(
                 modifier =
                     Modifier.padding(
-                        horizontal = 8.dp,
+                        start = 8.dp,
+                        end = 8.dp,
                         bottom = 8.dp
                     ),
                 text = "Custom sleep range",
