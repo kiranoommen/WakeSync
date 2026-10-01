@@ -59,6 +59,9 @@ class MainActivity : ComponentActivity() {
             var sleepGoalMinutes by remember {
                 mutableStateOf(appSettings.sleepGoalMinutes)
             }
+            var dashboardWidgets by remember {
+                mutableStateOf(appSettings.dashboardWidgets)
+            }
 
             val historyReadAvailable = healthConnectManager.historyReadAvailable()
 
@@ -212,6 +215,7 @@ class MainActivity : ComponentActivity() {
                 historyReadAvailable = historyReadAvailable,
                 themeMode = themeMode,
                 sleepGoalMinutes = sleepGoalMinutes,
+                dashboardWidgets = dashboardWidgets,
                 errorMessage = errorMessage,
                 onConnect = {
                     healthPermissionLauncher.launch(
@@ -306,6 +310,10 @@ class MainActivity : ComponentActivity() {
                 onSleepGoalChange = { minutes ->
                     sleepGoalMinutes = minutes
                     appSettings.sleepGoalMinutes = minutes
+                },
+                onDashboardWidgetsChange = { widgets ->
+                    dashboardWidgets = widgets
+                    appSettings.dashboardWidgets = widgets
                 }
             )
         }
