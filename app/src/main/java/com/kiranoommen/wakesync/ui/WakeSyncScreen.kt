@@ -714,42 +714,147 @@ private fun MorningBriefingCard(
             Column(modifier = Modifier.padding(17.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = greeting,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            modifier = Modifier.padding(top = 2.dp),
-                            text = "Here’s your sleep briefing",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    InfoTrigger(onClick = onInfo)
-                }
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = greeting,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    modifier = Modifier.padding(top = 2.dp),
+                                    text = "Here’s your sleep briefing",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            InfoTrigger(onClick = onInfo)
+                        }
 
-                Card(
-                    modifier = Modifier.padding(top = 13.dp),
-                    shape = RoundedCornerShape(999.dp),
-                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.32f)),
-                    colors = CardDefaults.cardColors(
-                        containerColor = statusColor.copy(alpha = 0.12f),
-                        contentColor = statusColor
-                    )
-                ) {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
-                        text = status,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.ExtraBold
+                        Card(
+                            modifier = Modifier.padding(top = 13.dp),
+                            shape = RoundedCornerShape(999.dp),
+                            border = BorderStroke(1.dp, statusColor.copy(alpha = 0.32f)),
+                            colors = CardDefaults.cardColors(
+                                containerColor = statusColor.copy(alpha = 0.12f),
+                                contentColor = statusColor
+                            )
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
+                                text = status,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                    }
+
+                    HomeScoreGauge(
+                        modifier = Modifier
+                            .padding(start = 14.dp)
+                            .size(92.dp),
+                        score = score,
+                        color = statusColor
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeScoreGauge(
+    modifier: Modifier,
+    score: Int,
+    color: Color
+) {
+    val progress by animateFloatAsState(
+        targetValue = score.coerceIn(0, 100) / 100f,
+        animationSpec = spring(
+            stiffness = 300f,
+            dampingRatio = 0.78f
+        ),
+        label = "homeScoreGauge"
+    )
+    val track =
+        MaterialTheme.colorScheme.onSurface
+            .copy(alpha = 0.08f)
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = 8.dp.toPx()
+            val diameter =
+                size.minDimension - stroke
+
+            drawArc(
+                color = track,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = Offset(
+                    stroke / 2f,
+                    stroke / 2f
+                ),
+                size = Size(
+                    diameter,
+                    diameter
+                ),
+                style = Stroke(
+                    width = stroke,
+                    cap = StrokeCap.Round
+                )
+            )
+
+            drawArc(
+                color = color,
+                startAngle = -90f,
+                sweepAngle = 360f * progress,
+                useCenter = false,
+                topLeft = Offset(
+                    stroke / 2f,
+                    stroke / 2f
+                ),
+                size = Size(
+                    diameter,
+                    diameter
+                ),
+                style = Stroke(
+                    width = stroke,
+                    cap = StrokeCap.Round
+                )
+            )
+        }
+
+        Column(
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = score.toString(),
+                style =
+                    MaterialTheme.typography.titleLarge,
+                fontWeight =
+                    FontWeight.ExtraBold
+            )
+            Text(
+                text = "score",
+                style =
+                    MaterialTheme.typography.labelSmall,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
