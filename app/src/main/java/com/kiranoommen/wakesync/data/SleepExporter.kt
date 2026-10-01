@@ -198,8 +198,8 @@ object SleepExporter {
     }
 
     private fun escapeCsv(value: String): String {
-        val escaped = value.replace(""", """")
-        return """ + escaped + """
+        val escaped = value.replace("\"", "\"\"")
+        return "\"" + escaped + "\""
     }
 
     private fun formatMinutes(minutes: Long): String {
