@@ -73,9 +73,12 @@ Contains:
 - personalized wake window;
 - optional “in X min” helper;
 - confidence/readiness copy;
-- primary “I’m awake” CTA.
+- next scheduled wake deadline;
+- smart-window range;
+- confidence / learning state;
+- optional shortcut to edit or skip the next alarm.
 
-The CTA should use the amber accent and a subtle glow in dark mode. Animation should be low-frequency and unobtrusive.
+The home screen should not require an “I’m awake” action. Alarm dismissal is the wake event.
 
 ### SleepStageChart
 
@@ -154,3 +157,19 @@ Avoid:
 - Maintain WCAG-appropriate text contrast.
 - Respect reduced-motion preferences.
 - Wake alarm interactions must remain usable without fine motor precision.
+
+
+## Originality / competitive-design boundary
+
+Competitor apps may be reviewed for broad usability patterns, but WakeSync should maintain an original visual and interaction system.
+
+Do not copy:
+
+- distinctive competitor layouts screen-for-screen;
+- branded illustrations, iconography, animations, wording, or score presentations;
+- proprietary names, labels, or scoring formulas;
+- unique ornamental treatments that make the product look like a clone.
+
+It is fine to use familiar platform conventions such as time pickers, weekday chips, toggles, cards, tabs, and alarm lists, but WakeSync should express them through its own color system, spacing, component shapes, copy, navigation, and interaction hierarchy.
+
+When evaluating a competitor feature, first identify the user problem, then design a WakeSync-native solution from that requirement.
