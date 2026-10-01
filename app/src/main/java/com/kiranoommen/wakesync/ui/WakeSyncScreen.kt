@@ -316,7 +316,7 @@ private fun HomeTab(
                 SkippedBanner(
                     schedule = nearestSkipped.first,
                     skippedDate = nearestSkipped.second,
-                    onUndo = { onClearSkips(nearestSkipped.first) }
+                    onUndo = { onSkipNext(nearestSkipped.first) }
                 )
             }
         }
@@ -928,16 +928,19 @@ private fun AlarmEditorDialog(
             Text(if (isNew) "New wake schedule" else "Edit wake schedule")
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                OutlinedTextField(
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                item {
+                    OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(),
                     value = draft.label,
                     onValueChange = { draft = draft.copy(label = it.take(28)) },
                     label = { Text("Alarm name") },
                     singleLine = true
-                )
+                    )
+                }
 
-                OutlinedButton(
+                item {
+                    OutlinedButton(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         TimePickerDialog(
@@ -951,18 +954,22 @@ private fun AlarmEditorDialog(
                         ).show()
                     }
                 ) {
+                        Text(
+                            text = "Wake by  " + formatClock(draft.hour, draft.minute),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+
+                item {
                     Text(
-                        text = "Wake by  " + formatClock(draft.hour, draft.minute),
-                        style = MaterialTheme.typography.titleMedium
+                        text = "Repeat",
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
 
-                Text(
-                    text = "Repeat",
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     dayItems().chunked(4).forEach { rowDays ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -981,17 +988,21 @@ private fun AlarmEditorDialog(
                             }
                         }
                     }
+                    }
                 }
 
-                Text(
-                    text = "Smart window",
-                    fontWeight = FontWeight.SemiBold
-                )
+                item {
+                    Text(
+                        text = "Smart window",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                     listOf(0, 10, 20, 30, 45).forEach { minutes ->
                         FilterChip(
                             selected = draft.smartWindowMinutes == minutes,
@@ -1006,10 +1017,12 @@ private fun AlarmEditorDialog(
                             }
                         )
                     }
+                    }
                 }
 
-                Text(
-                    text = when (draft.smartWindowMinutes) {
+                item {
+                    Text(
+                        text = when (draft.smartWindowMinutes) {
                         0 -> "Alarm exactly at your wake-by time."
                         10 -> "Tight: WakeSync can move up to 10 minutes earlier."
                         20 -> "Balanced: up to 20 minutes earlier."
@@ -1017,32 +1030,42 @@ private fun AlarmEditorDialog(
                         else -> "Wide: up to 45 minutes earlier. Only use this if you are comfortable waking substantially early."
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
-                HorizontalDivider()
+                item {
+                    HorizontalDivider()
+                }
 
-                ToggleSettingRow(
+                item {
+                    ToggleSettingRow(
                     title = "Sound",
                     checked = draft.soundEnabled,
-                    onCheckedChange = { draft = draft.copy(soundEnabled = it) }
-                )
+                        onCheckedChange = { draft = draft.copy(soundEnabled = it) }
+                    )
+                }
 
-                ToggleSettingRow(
+                item {
+                    ToggleSettingRow(
                     title = "Vibration",
                     checked = draft.vibrationEnabled,
-                    onCheckedChange = { draft = draft.copy(vibrationEnabled = it) }
-                )
+                        onCheckedChange = { draft = draft.copy(vibrationEnabled = it) }
+                    )
+                }
 
-                Text(
-                    text = "Snooze",
-                    fontWeight = FontWeight.SemiBold
-                )
+                item {
+                    Text(
+                        text = "Snooze",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                     listOf(0, 5, 10).forEach { minutes ->
                         FilterChip(
                             selected = draft.snoozeMinutes == minutes,
@@ -1052,13 +1075,16 @@ private fun AlarmEditorDialog(
                             }
                         )
                     }
+                    }
                 }
 
-                Text(
-                    text = "If no favorable point is found, WakeSync alarms at " +
-                        formatClock(draft.hour, draft.minute) + " anyway.",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                item {
+                    Text(
+                        text = "If no favorable point is found, WakeSync alarms at " +
+                            formatClock(draft.hour, draft.minute) + " anyway.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         },
         confirmButton = {
