@@ -2237,7 +2237,7 @@ private fun MetricLine(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScoreBreakdownSheet(
+fun ScoreBreakdownSheet(
     analytics: PeriodAnalytics,
     onDismiss: () -> Unit
 ) {
