@@ -464,8 +464,19 @@ private fun HomeTab(
     var showCustomize by remember { mutableStateOf(false) }
     var showScoreBreakdown by remember { mutableStateOf(false) }
     var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
-    val dashboardAnalytics = remember(nights, sleepGoalMinutes) {
-        SleepAnalytics.analyze(nights.take(14), sleepGoalMinutes)
+    val dashboardNights = remember(nights) {
+        nights
+            .sortedByDescending { it.end }
+            .take(14)
+    }
+    val dashboardAnalytics = remember(
+        dashboardNights,
+        sleepGoalMinutes
+    ) {
+        SleepAnalytics.analyze(
+            dashboardNights,
+            sleepGoalMinutes
+        )
     }
 
     LazyColumn(
@@ -872,7 +883,10 @@ private fun DashboardWidgetTile(
         AppSettingsStore.WIDGET_SLEEP ->
             LastNightDashboardTile(
                 modifier = modifier,
-                night = nights.firstOrNull(),
+                night =
+                    nights.maxByOrNull {
+                        it.end
+                    },
                 loading = loading,
                 onInfo = {
                     onInfo(
