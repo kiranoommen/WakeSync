@@ -26,7 +26,7 @@ The core idea is simple:
 
 ### Sleep analytics
 
-- 7-day, 14-day, 30-day, six-month and custom ranges;
+- Past Week, Past 2 Weeks, Past Month and dual-calendar custom ranges;
 - previous-period comparison mode;
 - WakeSync Sleep Performance score;
 - total sleep, estimated efficiency, latency and WASO;
@@ -41,13 +41,15 @@ The core idea is simple:
 
 ### Dashboard
 
+- contextual morning briefing and color-coded Sleep Score hero;
+- transparent four-pillar score breakdown;
 - customizable Home widgets;
-- pin/unpin;
-- reorder;
+- pin/unpin and reorder;
 - next wake-window hero;
-- sleep-goal streak;
-- last-night summary;
-- local personalized insight card.
+- sleep-goal progress ring and streak;
+- last-night bento metrics;
+- local personalized insight card;
+- universal metric info drawers explaining meaning, measurement and relevance.
 
 ### Appearance
 
