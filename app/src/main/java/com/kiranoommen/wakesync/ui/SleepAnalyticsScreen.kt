@@ -2741,9 +2741,7 @@ private fun CustomRangeSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(480.dp),
-                showModeToggle = false,
-                title = null,
-                headline = null
+                showModeToggle = false
             )
 
             Button(
