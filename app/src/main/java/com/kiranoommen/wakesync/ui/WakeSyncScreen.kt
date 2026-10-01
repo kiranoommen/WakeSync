@@ -190,63 +190,67 @@ fun WakeSyncScreen(
                 AppHeader(tab, onSettings = { tab = AppTab.SETTINGS })
 
                 Box(modifier = Modifier.weight(1f)) {
-                    when (tab) {
-                    AppTab.HOME -> HomeTab(
-                        sdkStatus = sdkStatus,
-                        hasPermission = hasPermission,
-                        loading = loading,
-                        nights = nights,
-                        schedules = schedules,
-                        errorMessage = errorMessage,
-                        onConnect = onConnect,
-                        onRefresh = onRefresh,
-                        onEditSchedule = { editingSchedule = it },
-                        onSkipNext = onSkipNext,
-                        onClearSkips = onClearSkips,
-                        onGoAlarms = { tab = AppTab.ALARMS },
-                        sleepGoalMinutes = sleepGoalMinutes,
-                        dashboardWidgets = dashboardWidgets,
-                        onDashboardWidgetsChange = onDashboardWidgetsChange
-                    )
+                    Crossfade(
+                        targetState = tab,
+                        label = "WakeSyncTab"
+                    ) { activeTab ->
+                        when (activeTab) {
+                            AppTab.HOME -> HomeTab(
+                                sdkStatus = sdkStatus,
+                                hasPermission = hasPermission,
+                                loading = loading,
+                                nights = nights,
+                                schedules = schedules,
+                                errorMessage = errorMessage,
+                                onConnect = onConnect,
+                                onRefresh = onRefresh,
+                                onEditSchedule = { editingSchedule = it },
+                                onSkipNext = onSkipNext,
+                                onClearSkips = onClearSkips,
+                                onGoAlarms = { tab = AppTab.ALARMS },
+                                sleepGoalMinutes = sleepGoalMinutes,
+                                dashboardWidgets = dashboardWidgets,
+                                onDashboardWidgetsChange = onDashboardWidgetsChange
+                            )
 
-                    AppTab.ALARMS -> AlarmsTab(
-                        schedules = schedules,
-                        onAdd = {
-                            creatingNew = true
-                            editingSchedule = defaultSchedule()
-                        },
-                        onEdit = { editingSchedule = it },
-                        onToggle = onToggleSchedule,
-                        onSkipNext = onSkipNext,
-                        onClearSkips = onClearSkips
-                    )
+                            AppTab.ALARMS -> AlarmsTab(
+                                schedules = schedules,
+                                onAdd = {
+                                    creatingNew = true
+                                    editingSchedule = defaultSchedule()
+                                },
+                                onEdit = { editingSchedule = it },
+                                onToggle = onToggleSchedule,
+                                onSkipNext = onSkipNext,
+                                onClearSkips = onClearSkips
+                            )
 
-                    AppTab.SLEEP -> SleepTab(
-                        nights = nights,
-                        loading = loading,
-                        sleepGoalMinutes = sleepGoalMinutes,
-                        onRefresh = onRefresh,
-                        onShareCsv = { SleepExporter.shareCsv(context, it) },
-                        onSharePdf = { SleepExporter.sharePdf(context, it) }
-                    )
+                            AppTab.SLEEP -> SleepTab(
+                                nights = nights,
+                                loading = loading,
+                                sleepGoalMinutes = sleepGoalMinutes,
+                                onRefresh = onRefresh,
+                                onShareCsv = { SleepExporter.shareCsv(context, it) },
+                                onSharePdf = { SleepExporter.sharePdf(context, it) }
+                            )
 
-                    AppTab.SETTINGS -> SettingsTab(
-                        hasPermission = hasPermission,
-                        exactAlarmAccess = exactAlarmAccess,
-                        hasAnalyticsPermission = hasAnalyticsPermission,
-                        hasHistoryPermission = hasHistoryPermission,
-                        historyReadAvailable = historyReadAvailable,
-                        themeMode = themeMode,
-                        sleepGoalMinutes = sleepGoalMinutes,
-                        nights = nights,
-                        onConnect = onConnect,
-                        onRequestExactAlarmAccess = onRequestExactAlarmAccess,
-                        onRequestAnalyticsAccess = onRequestAnalyticsAccess,
-                        onRequestHistoryAccess = onRequestHistoryAccess,
-                        onThemeModeChange = onThemeModeChange,
-                        onSleepGoalChange = onSleepGoalChange
-                    )
-                    }
+                            AppTab.SETTINGS -> SettingsTab(
+                                hasPermission = hasPermission,
+                                exactAlarmAccess = exactAlarmAccess,
+                                hasAnalyticsPermission = hasAnalyticsPermission,
+                                hasHistoryPermission = hasHistoryPermission,
+                                historyReadAvailable = historyReadAvailable,
+                                themeMode = themeMode,
+                                sleepGoalMinutes = sleepGoalMinutes,
+                                nights = nights,
+                                onConnect = onConnect,
+                                onRequestExactAlarmAccess = onRequestExactAlarmAccess,
+                                onRequestAnalyticsAccess = onRequestAnalyticsAccess,
+                                onRequestHistoryAccess = onRequestHistoryAccess,
+                                onThemeModeChange = onThemeModeChange,
+                                onSleepGoalChange = onSleepGoalChange
+                            )
+                        }
                     }
                 }
 
