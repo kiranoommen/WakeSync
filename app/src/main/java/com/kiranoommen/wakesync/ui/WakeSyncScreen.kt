@@ -467,9 +467,18 @@ private fun HomeTab(
     var showScoreBreakdown by remember { mutableStateOf(false) }
     var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
     val dashboardNights = remember(nights) {
+        val cutoff =
+            LocalDate.now().minusDays(13)
         nights
+            .filter {
+                !it.end
+                    .atZone(
+                        ZoneId.systemDefault()
+                    )
+                    .toLocalDate()
+                    .isBefore(cutoff)
+            }
             .sortedByDescending { it.end }
-            .take(14)
     }
     val dashboardAnalytics = remember(
         dashboardNights,
