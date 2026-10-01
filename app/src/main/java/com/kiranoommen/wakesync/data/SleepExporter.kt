@@ -2,7 +2,12 @@ package com.kiranoommen.wakesync.data
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Shader
 import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
 import com.kiranoommen.wakesync.domain.NightAnalytics
@@ -175,6 +180,274 @@ object SleepExporter {
             chooserTitle = "Share WakeSync sleep summary"
         )
     }
+
+
+    fun shareStoryCard(
+        context: Context,
+        analytics: PeriodAnalytics
+    ) {
+        val file = File(
+            context.cacheDir,
+            "wakesync-story.png"
+        )
+
+        val width = 1080
+        val height = 1920
+        val bitmap = Bitmap.createBitmap(
+            width,
+            height,
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        paint.shader = LinearGradient(
+            0f,
+            0f,
+            width.toFloat(),
+            height.toFloat(),
+            intArrayOf(
+                Color.rgb(6, 8, 18),
+                Color.rgb(25, 18, 58),
+                Color.rgb(5, 34, 45)
+            ),
+            null,
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(
+            0f,
+            0f,
+            width.toFloat(),
+            height.toFloat(),
+            paint
+        )
+        paint.shader = null
+
+        paint.color = Color.argb(
+            44,
+            124,
+            58,
+            237
+        )
+        canvas.drawCircle(
+            170f,
+            250f,
+            330f,
+            paint
+        )
+
+        paint.color = Color.argb(
+            38,
+            6,
+            182,
+            212
+        )
+        canvas.drawCircle(
+            930f,
+            1590f,
+            380f,
+            paint
+        )
+
+        paint.color = Color.WHITE
+        paint.textSize = 70f
+        paint.isFakeBoldText = true
+        canvas.drawText(
+            "WakeSync",
+            90f,
+            150f,
+            paint
+        )
+
+        paint.textSize = 36f
+        paint.isFakeBoldText = false
+        paint.color = Color.rgb(
+            148,
+            163,
+            184
+        )
+        canvas.drawText(
+            "My recent sleep trend",
+            90f,
+            205f,
+            paint
+        )
+
+        val score = analytics.averageScore ?: 0
+        paint.color = scoreColorForStory(score)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 34f
+        paint.strokeCap = Paint.Cap.ROUND
+        canvas.drawArc(
+            220f,
+            360f,
+            860f,
+            1000f,
+            -90f,
+            360f * score.coerceIn(0, 100) / 100f,
+            false,
+            paint
+        )
+
+        paint.style = Paint.Style.FILL
+        paint.color = Color.WHITE
+        paint.textSize = 176f
+        paint.isFakeBoldText = true
+        val scoreText = score.toString()
+        val scoreWidth = paint.measureText(scoreText)
+        canvas.drawText(
+            scoreText,
+            width / 2f - scoreWidth / 2f,
+            745f,
+            paint
+        )
+
+        paint.textSize = 34f
+        paint.isFakeBoldText = false
+        paint.color = Color.rgb(
+            148,
+            163,
+            184
+        )
+        val scoreLabel = "WakeSync Sleep Score"
+        val scoreLabelWidth =
+            paint.measureText(scoreLabel)
+        canvas.drawText(
+            scoreLabel,
+            width / 2f - scoreLabelWidth / 2f,
+            810f,
+            paint
+        )
+
+        val cardPaint = Paint(
+            Paint.ANTI_ALIAS_FLAG
+        ).apply {
+            color = Color.argb(
+                22,
+                255,
+                255,
+                255
+            )
+        }
+
+        val metrics = listOf(
+            "AVG SLEEP" to formatMinutes(
+                analytics.averageSleepMinutes
+            ),
+            "EFFICIENCY" to (
+                analytics.averageEfficiencyPercent
+                    ?.toString()
+                    ?.plus("%")
+                    ?: "—"
+                ),
+            "REGULARITY" to (
+                analytics.regularityScore
+                    ?.toString()
+                    ?.plus("/100")
+                    ?: "Learning"
+                )
+        )
+
+        var left = 70f
+        metrics.forEach { (label, value) ->
+            canvas.drawRoundRect(
+                left,
+                1120f,
+                left + 295f,
+                1370f,
+                44f,
+                44f,
+                cardPaint
+            )
+
+            paint.color = Color.WHITE
+            paint.textSize = 48f
+            paint.isFakeBoldText = true
+            canvas.drawText(
+                value,
+                left + 28f,
+                1240f,
+                paint
+            )
+
+            paint.color = Color.rgb(
+                148,
+                163,
+                184
+            )
+            paint.textSize = 23f
+            paint.isFakeBoldText = true
+            canvas.drawText(
+                label,
+                left + 28f,
+                1300f,
+                paint
+            )
+
+            left += 325f
+        }
+
+        paint.color = Color.WHITE
+        paint.textSize = 42f
+        paint.isFakeBoldText = true
+        canvas.drawText(
+            "Better sleep. Brighter mornings.",
+            90f,
+            1570f,
+            paint
+        )
+
+        paint.color = Color.rgb(
+            148,
+            163,
+            184
+        )
+        paint.textSize = 28f
+        paint.isFakeBoldText = false
+        canvas.drawText(
+            "Generated locally from my selected sleep period.",
+            90f,
+            1620f,
+            paint
+        )
+        canvas.drawText(
+            "No location or personal identifiers included.",
+            90f,
+            1660f,
+            paint
+        )
+
+        file.outputStream().use {
+            bitmap.compress(
+                Bitmap.CompressFormat.PNG,
+                100,
+                it
+            )
+        }
+        bitmap.recycle()
+
+        shareFile(
+            context = context,
+            file = file,
+            mimeType = "image/png",
+            chooserTitle =
+                "Share WakeSync story card"
+        )
+    }
+
+    private fun scoreColorForStory(
+        score: Int
+    ): Int =
+        when {
+            score >= 90 ->
+                Color.rgb(16, 185, 129)
+            score >= 75 ->
+                Color.rgb(6, 182, 212)
+            score >= 60 ->
+                Color.rgb(245, 158, 11)
+            else ->
+                Color.rgb(239, 68, 68)
+        }
 
     private fun shareFile(
         context: Context,
