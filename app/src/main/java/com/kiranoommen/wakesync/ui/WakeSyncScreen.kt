@@ -1,8 +1,13 @@
 package com.kiranoommen.wakesync.ui
 
 import android.app.TimePickerDialog
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.horizontalScroll
@@ -21,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -46,6 +52,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -62,8 +69,13 @@ import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
 import com.kiranoommen.wakesync.ui.theme.Amber
+import com.kiranoommen.wakesync.ui.theme.Coral
+import com.kiranoommen.wakesync.ui.theme.Cyan
 import com.kiranoommen.wakesync.ui.theme.Indigo
 import com.kiranoommen.wakesync.ui.theme.Lavender
+import com.kiranoommen.wakesync.ui.theme.Mint
+import com.kiranoommen.wakesync.ui.theme.PearlMuted
+import com.kiranoommen.wakesync.ui.theme.Sunrise
 import com.kiranoommen.wakesync.ui.theme.WakeSyncTheme
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -175,7 +187,7 @@ fun WakeSyncScreen(
                     .navigationBarsPadding()
                     .padding(horizontal = 18.dp)
             ) {
-                AppHeader(tab)
+                AppHeader(tab, onSettings = { tab = AppTab.SETTINGS })
 
                 Box(modifier = Modifier.weight(1f)) {
                     when (tab) {
@@ -234,6 +246,7 @@ fun WakeSyncScreen(
                         onThemeModeChange = onThemeModeChange,
                         onSleepGoalChange = onSleepGoalChange
                     )
+                    }
                     }
                 }
 
