@@ -4,6 +4,10 @@ import android.app.TimePickerDialog
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -2321,6 +2325,21 @@ private fun ConnectionBadge(
         } else {
             Sunrise
         }
+    val transition =
+        rememberInfiniteTransition(
+            label = "connectionPulse"
+        )
+    val pulse by transition.animateFloat(
+        initialValue = if (connected) 0.42f else 1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(
+                durationMillis = 900
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "connectionPulseAlpha"
+    )
 
     Card(
         shape =
@@ -2336,22 +2355,43 @@ private fun ConnectionBadge(
                 contentColor = color
             )
     ) {
-        Text(
+        Row(
             modifier = Modifier.padding(
                 horizontal = 10.dp,
                 vertical = 6.dp
             ),
-            text =
-                "● " +
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .background(
+                        color = color.copy(
+                            alpha =
+                                if (connected) {
+                                    pulse
+                                } else {
+                                    1f
+                                }
+                        ),
+                        shape = CircleShape
+                    )
+            )
+            Text(
+                modifier =
+                    Modifier.padding(start = 6.dp),
+                text =
                     if (connected) {
                         connectedLabel
                     } else {
                         disconnectedLabel
                     },
-            style =
-                MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold
-        )
+                style =
+                    MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
