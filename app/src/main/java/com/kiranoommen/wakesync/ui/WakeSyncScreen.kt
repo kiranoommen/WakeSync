@@ -115,6 +115,7 @@ fun WakeSyncScreen(
     themeMode: String,
     sleepGoalMinutes: Int,
     dashboardWidgets: List<String>,
+    displayName: String,
     maxSmartWindowMinutes: Int,
     retainGeneratedExports: Boolean,
     errorMessage: String?,
@@ -131,6 +132,7 @@ fun WakeSyncScreen(
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
     onDashboardWidgetsChange: (List<String>) -> Unit,
+    onDisplayNameChange: (String) -> Unit,
     onMaxSmartWindowChange: (Int) -> Unit,
     onRetainGeneratedExportsChange: (Boolean) -> Unit,
     onClearGeneratedExports: () -> Unit
@@ -228,6 +230,7 @@ fun WakeSyncScreen(
                                 onGoAlarms = { tab = AppTab.ALARMS },
                                 sleepGoalMinutes = sleepGoalMinutes,
                                 dashboardWidgets = dashboardWidgets,
+                                displayName = displayName,
                                 onDashboardWidgetsChange = onDashboardWidgetsChange
                             )
 
@@ -281,6 +284,7 @@ fun WakeSyncScreen(
                                 sleepGoalMinutes = sleepGoalMinutes,
                                 maxSmartWindowMinutes = maxSmartWindowMinutes,
                                 retainGeneratedExports = retainGeneratedExports,
+                                displayName = displayName,
                                 nights = nights,
                                 onConnect = onConnect,
                                 onRequestExactAlarmAccess = onRequestExactAlarmAccess,
@@ -288,6 +292,7 @@ fun WakeSyncScreen(
                                 onRequestHistoryAccess = onRequestHistoryAccess,
                                 onThemeModeChange = onThemeModeChange,
                                 onSleepGoalChange = onSleepGoalChange,
+                                onDisplayNameChange = onDisplayNameChange,
                                 onMaxSmartWindowChange = onMaxSmartWindowChange,
                                 onRetainGeneratedExportsChange = onRetainGeneratedExportsChange,
                                 onClearGeneratedExports = onClearGeneratedExports
@@ -440,6 +445,7 @@ private fun HomeTab(
     onGoAlarms: () -> Unit,
     sleepGoalMinutes: Int,
     dashboardWidgets: List<String>,
+    displayName: String,
     onDashboardWidgetsChange: (List<String>) -> Unit
 ) {
     val next = remember(schedules) { nextSchedule(schedules) }
@@ -458,6 +464,7 @@ private fun HomeTab(
             item {
                 MorningBriefingCard(
                     analytics = dashboardAnalytics,
+                    displayName = displayName,
                     onInfo = {
                         infoSheet = MetricInfo(
                             title = "Morning briefing",
@@ -667,15 +674,22 @@ private fun HomeTab(
 @Composable
 private fun MorningBriefingCard(
     analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
+    displayName: String,
     onInfo: () -> Unit
 ) {
     val hour = LocalTime.now().hour
-    val greeting = when (hour) {
+    val greetingBase = when (hour) {
         in 5..11 -> "Good morning"
         in 12..16 -> "Good afternoon"
         in 17..21 -> "Good evening"
         else -> "Welcome back"
     }
+    val greeting =
+        if (displayName.isBlank()) {
+            greetingBase
+        } else {
+            greetingBase + ", " + displayName
+        }
     val score = analytics.averageScore ?: 0
     val status = when {
         analytics.sleepDebtMinutes >= 120 -> "⚡ Sleep Debt Detected"
@@ -1826,6 +1840,7 @@ private fun SettingsTab(
     sleepGoalMinutes: Int,
     maxSmartWindowMinutes: Int,
     retainGeneratedExports: Boolean,
+    displayName: String,
     nights: List<SleepNight>,
     onConnect: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
@@ -1833,6 +1848,7 @@ private fun SettingsTab(
     onRequestHistoryAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
+    onDisplayNameChange: (String) -> Unit,
     onMaxSmartWindowChange: (Int) -> Unit,
     onRetainGeneratedExportsChange: (Boolean) -> Unit,
     onClearGeneratedExports: () -> Unit
@@ -1849,6 +1865,37 @@ private fun SettingsTab(
         verticalArrangement =
             Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            SettingsBentoCard(
+                title = "Personalization",
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Greeting name",
+                        meaning = "An optional first name used only for WakeSync's contextual greeting.",
+                        measurement = "The text is stored in WakeSync's private local preferences on this device.",
+                        importance = "This is cosmetic personalization only and is never required for sleep analytics."
+                    )
+                }
+            ) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = displayName,
+                    onValueChange = {
+                        onDisplayNameChange(
+                            it.take(24)
+                        )
+                    },
+                    singleLine = true,
+                    label = {
+                        Text("Name for greeting")
+                    },
+                    placeholder = {
+                        Text("Optional")
+                    }
+                )
+            }
+        }
+
         item {
             SettingsBentoCard(
                 title = "Targets & Goals",
