@@ -55,6 +55,7 @@ class AlarmScheduler(private val context: Context) {
         setExact(
             schedule = schedule,
             time = monitorStart,
+            deadline = deadline,
             kind = KIND_MONITOR,
             reason = "Start Smart Wake monitoring"
         )
@@ -81,6 +82,7 @@ class AlarmScheduler(private val context: Context) {
             setExact(
                 schedule = schedule,
                 time = it,
+                deadline = deadline,
                 kind = KIND_HISTORICAL,
                 reason = "Historical fallback from your recent sleep pattern"
             )
@@ -121,17 +123,14 @@ class AlarmScheduler(private val context: Context) {
     private fun setExact(
         schedule: AlarmSchedule,
         time: ZonedDateTime,
+        deadline: ZonedDateTime,
         kind: String,
         reason: String
     ) {
         val pi = pending(
             scheduleId = schedule.id,
             kind = kind,
-            deadlineMillis = schedule
-                .nextBaseDeadline(time.minusDays(1))
-                ?.toInstant()
-                ?.toEpochMilli()
-                ?: time.toInstant().toEpochMilli(),
+            deadlineMillis = deadline.toInstant().toEpochMilli(),
             reason = reason,
             flags = PendingIntent.FLAG_UPDATE_CURRENT
         ) ?: return
