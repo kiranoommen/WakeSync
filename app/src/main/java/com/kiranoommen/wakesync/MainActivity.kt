@@ -54,6 +54,9 @@ class MainActivity : ComponentActivity() {
             var notificationsAllowed by remember {
                 mutableStateOf(areNotificationsAllowed())
             }
+            var fullScreenAlarmAccess by remember {
+                mutableStateOf(canUseFullScreenAlarms())
+            }
             var wakePreferences by remember {
                 mutableStateOf(wakePreferencesStore.load())
             }
@@ -67,6 +70,7 @@ class MainActivity : ComponentActivity() {
                     hasBackgroundReadPermission &&
                     exactAlarmAccess &&
                     notificationsAllowed &&
+                    fullScreenAlarmAccess &&
                     preferences.hasValidRange()
 
             fun refreshSleep() {
@@ -113,6 +117,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            val fullScreenAlarmAccessLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) {
+                fullScreenAlarmAccess = canUseFullScreenAlarms()
+
+                if (wakePreferences.enabled && setupReady()) {
+                    WakeAlarmScheduler.schedule(this, wakePreferences)
+                }
+            }
+
             val exactAlarmAccessLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.StartActivityForResult()
             ) {
@@ -133,6 +147,7 @@ class MainActivity : ComponentActivity() {
                 }.getOrDefault(false)
                 exactAlarmAccess = WakeAlarmScheduler.canScheduleExactAlarms(this@MainActivity)
                 notificationsAllowed = areNotificationsAllowed()
+                fullScreenAlarmAccess = canUseFullScreenAlarms()
 
                 if (hasPermission) {
                     loading = true
@@ -156,6 +171,7 @@ class MainActivity : ComponentActivity() {
                 hasBackgroundReadPermission = hasBackgroundReadPermission,
                 exactAlarmAccess = exactAlarmAccess,
                 notificationsAllowed = notificationsAllowed,
+                fullScreenAlarmAccess = fullScreenAlarmAccess,
                 wakePreferences = wakePreferences,
                 loading = loading,
                 nights = nights,
@@ -177,12 +193,32 @@ class MainActivity : ComponentActivity() {
                     }
                 },
                 onRequestNotifications = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+                        PackageManager.PERMISSION_GRANTED
+                    ) {
                         notificationPermissionLauncher.launch(
                             Manifest.permission.POST_NOTIFICATIONS
                         )
+                    } else if (!areNotificationsAllowed()) {
+                        startActivity(
+                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                            }
+                        )
                     } else {
                         notificationsAllowed = true
+                    }
+                },
+                onRequestFullScreenAlarmAccess = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        fullScreenAlarmAccessLauncher.launch(
+                            Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                                data = Uri.parse("package:$packageName")
+                            }
+                        )
+                    } else {
+                        fullScreenAlarmAccess = true
                     }
                 },
                 onWakePreferencesChanged = { updated ->
@@ -215,6 +251,12 @@ class MainActivity : ComponentActivity() {
                 onRefresh = ::refreshSleep
             )
         }
+    }
+
+    private fun canUseFullScreenAlarms(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
+        return getSystemService(NotificationManager::class.java)
+            .canUseFullScreenIntent()
     }
 
     private fun areNotificationsAllowed(): Boolean {
