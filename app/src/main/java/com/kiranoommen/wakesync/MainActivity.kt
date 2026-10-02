@@ -246,6 +246,8 @@ class MainActivity : ComponentActivity() {
                     themeMode = themeMode,
                     displayName = displayName,
                     hasPermission = hasPermission,
+                    exactAlarmAccess =
+                        exactAlarmAccessState.value,
                     onThemeModeChange = { newMode ->
                         themeMode = newMode
                         appSettings.themeMode = newMode
@@ -258,6 +260,25 @@ class MainActivity : ComponentActivity() {
                         healthPermissionLauncher.launch(
                             HealthConnectManager.requiredPermissions
                         )
+                    },
+                    onRequestExactAlarmAccess = {
+                        if (
+                            Build.VERSION.SDK_INT >=
+                            Build.VERSION_CODES.S
+                        ) {
+                            runCatching {
+                                startActivity(
+                                    Intent(
+                                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                                    ).apply {
+                                        data =
+                                            Uri.parse(
+                                                "package:$packageName"
+                                            )
+                                    }
+                                )
+                            }
+                        }
                     },
                     onFinish = {
                         appSettings.oobeCompleted = true
@@ -350,19 +371,6 @@ class MainActivity : ComponentActivity() {
                                 if (it.id == schedule.id) updatedSchedule else it
                             }
                         )
-                    },
-                    onRequestExactAlarmAccess = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            runCatching {
-                                startActivity(
-                                    Intent(
-                                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
-                                    ).apply {
-                                        data = Uri.parse("package:$packageName")
-                                    }
-                                )
-                            }
-                        }
                     },
                     onRequestAnalyticsAccess = {
                         analyticsPermissionLauncher.launch(
