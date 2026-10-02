@@ -11,10 +11,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -28,6 +30,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kiranoommen.wakesync.data.AlarmStore
+import com.kiranoommen.wakesync.ui.AmbientGradientBackground
+import com.kiranoommen.wakesync.ui.WakeSyncBrandMark
 import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Indigo
 import com.kiranoommen.wakesync.ui.theme.Lavender
@@ -128,67 +132,134 @@ private fun AlarmScreen(
     onDismiss: () -> Unit,
     onSnooze: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.background,
-                        Indigo.copy(alpha = 0.35f),
-                        Lavender.copy(alpha = 0.18f)
-                    )
-                )
-            )
-            .padding(28.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier =
+            Modifier.fillMaxSize()
     ) {
-        Text(
-            text = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm")),
-            style = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            modifier = Modifier.padding(top = 8.dp),
-            text = label,
-            style = MaterialTheme.typography.titleLarge
-        )
-        Text(
-            modifier = Modifier.padding(top = 8.dp),
-            text = if (isSmart) "WakeSync smart wake" else "Wake-by deadline",
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        AmbientGradientBackground(
+            pagePosition = 1f,
+            darkTheme = true,
+            modifier =
+                Modifier.fillMaxSize()
         )
 
-        Button(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 48.dp),
-            onClick = onDismiss,
-            shape = RoundedCornerShape(24.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Amber)
+                .fillMaxSize()
+                .padding(28.dp),
+            verticalArrangement =
+                Arrangement.Center,
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
-            Text(
-                modifier = Modifier.padding(vertical = 10.dp),
-                text = "Dismiss",
-                color = MaterialTheme.colorScheme.background,
-                fontWeight = FontWeight.SemiBold
+            WakeSyncBrandMark(
+                modifier =
+                    Modifier.size(
+                        width = 58.dp,
+                        height = 46.dp
+                    )
             )
-        }
 
-        if (snoozeMinutes > 0) {
-            OutlinedButton(
+            Text(
+                modifier =
+                    Modifier.padding(
+                        top = 22.dp
+                    ),
+                text =
+                    LocalTime.now()
+                        .format(
+                            DateTimeFormatter
+                                .ofPattern(
+                                    "h:mm"
+                                )
+                        ),
+                style =
+                    MaterialTheme.typography.displayLarge,
+                fontWeight =
+                    FontWeight.SemiBold
+            )
+            Text(
+                modifier =
+                    Modifier.padding(
+                        top = 8.dp
+                    ),
+                text = label,
+                style =
+                    MaterialTheme.typography.titleLarge
+            )
+            Text(
+                modifier =
+                    Modifier.padding(
+                        top = 8.dp
+                    ),
+                text =
+                    if (isSmart) {
+                        "WakeSync smart wake"
+                    } else {
+                        "Guardrail Wake Time"
+                    },
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Button(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp),
-                onClick = onSnooze,
-                shape = RoundedCornerShape(24.dp)
+                    .padding(
+                        top = 48.dp
+                    ),
+                onClick =
+                    onDismiss,
+                shape =
+                    RoundedCornerShape(
+                        24.dp
+                    ),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            Amber
+                    )
             ) {
                 Text(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    text = "Snooze " + snoozeMinutes + " minutes"
+                    modifier =
+                        Modifier.padding(
+                            vertical = 10.dp
+                        ),
+                    text = "Dismiss",
+                    color =
+                        MaterialTheme.colorScheme.background,
+                    fontWeight =
+                        FontWeight.SemiBold
                 )
+            }
+
+            if (snoozeMinutes > 0) {
+                OutlinedButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            top = 12.dp
+                        ),
+                    onClick =
+                        onSnooze,
+                    shape =
+                        RoundedCornerShape(
+                            24.dp
+                        )
+                ) {
+                    Text(
+                        modifier =
+                            Modifier.padding(
+                                vertical = 8.dp
+                            ),
+                        text =
+                            "Snooze " +
+                                snoozeMinutes +
+                                " minutes"
+                    )
+                }
             }
         }
     }
+
 }
