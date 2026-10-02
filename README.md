@@ -7,7 +7,7 @@
   <img alt="Android 28+" src="https://img.shields.io/badge/Android-28%2B-6F63FF?style=flat-square&logo=android&logoColor=white" />
   <img alt="Health Connect read only" src="https://img.shields.io/badge/Health%20Connect-read--only-9A84FF?style=flat-square" />
   <img alt="On-device processing" src="https://img.shields.io/badge/processing-on--device-FFB44A?style=flat-square" />
-  <img alt="Version 0.3.0" src="https://img.shields.io/badge/version-0.3.0-E9ECFF?style=flat-square&labelColor=15192A" />
+  <img alt="Version 0.3.1" src="https://img.shields.io/badge/version-0.3.1-E9ECFF?style=flat-square&labelColor=15192A" />
 </p>
 
 <p align="center">
@@ -41,11 +41,10 @@ For a wake range of **6:20–7:00 AM**:
 
 | Time | WakeSync behavior |
 | --- | --- |
-| 5:35 AM | Begin monitoring Health Connect, 45 minutes before the range |
+| 6:05 AM | Begin monitoring Health Connect, 15 minutes before the range |
 | 6:20 AM | Earliest allowed wake |
-| 6:20–6:45 AM | Fresh Awake or Light sleep can trigger the alarm |
-| 6:45 AM | Hand off to the saved historical wake profile |
-| 6:45–7:00 AM | Predictive fallback can choose a stronger wake point |
+| 6:20–7:00 AM | Fresh Awake or Light sleep can trigger the alarm while live monitoring stays active |
+| 6:50–7:00 AM | A saved-history fallback may fire if live sleep has not already woken you |
 | 7:00 AM | Independent hard-stop alarm fires regardless |
 
 WakeSync never intentionally wakes before the user's earliest time. The hard-stop alarm is scheduled independently so live data and prediction are not the only paths to waking the user.
@@ -67,7 +66,7 @@ For each minute near the historical end of sleep, the profile stores:
 - average wake suitability;
 - sample count.
 
-The final-15-minute predictor requires enough historical evidence before using a candidate. Weak or missing history is ignored.
+The historical fallback is limited to the final 10 minutes before the deadline and requires enough historical evidence before using a candidate. Weak or missing history is ignored.
 
 Raw sleep records are read from Health Connect as needed rather than duplicated into a WakeSync backend.
 
@@ -78,7 +77,7 @@ Raw sleep records are read from Health Connect as needed rather than duplicated 
 - background Health Connect reads when supported
 - configurable earliest wake and hard deadline
 - live Awake / Light wake logic
-- predictive final-15-minute fallback
+- historical fallback limited to the final 10 minutes while live monitoring remains active
 - independent hard-stop alarm
 - exact alarm scheduling
 - full-screen alarm handling
