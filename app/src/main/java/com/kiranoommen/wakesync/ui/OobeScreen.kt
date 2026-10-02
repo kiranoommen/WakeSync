@@ -240,11 +240,8 @@ private fun OobeBrand() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         WakeSyncBrandMark(
-            modifier = Modifier
-                .size(
-                    width = 44.dp,
-                    height = 32.dp
-                )
+            modifier =
+                Modifier.size(42.dp)
         )
 
         Text(
