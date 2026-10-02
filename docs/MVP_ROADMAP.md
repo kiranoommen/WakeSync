@@ -1,4 +1,14 @@
-# WakeSync MVP Roadmap
+# 🗺️ WakeSync MVP Roadmap
+
+<p align="center">
+  <a href="README.md"><strong>Docs Hub</strong></a> ·
+  <a href="BRANDING.md">Brand</a> ·
+  <a href="DESIGN_SYSTEM.md">Design</a> ·
+  <a href="ARCHITECTURE.md">Architecture</a> ·
+  <a href="WAKE_WINDOW_ALGORITHM.md">Wake Algorithm</a> ·
+  <a href="TESTING.md">Testing</a> ·
+  <a href="PRIVACY.md">Privacy</a>
+</p>
 
 ## Milestone 1 — Health Connect proof of concept
 
@@ -18,6 +28,8 @@ Status: **in progress**
 
 Delivered:
 - core WakeSync visual direction;
+- branded adaptive launcher icon and Android 13+ monochrome icon;
+- visual repository/documentation identity;
 - dark/light-aware color system;
 - wake-window hero;
 - Smart Wake setup card;
@@ -27,7 +39,7 @@ Delivered:
 
 Remaining:
 - richer sleep-detail presentation;
-- production app icon / logo;
+- final wordmark lockup / store artwork;
 - onboarding polish;
 - final screenshot and accessibility pass.
 
