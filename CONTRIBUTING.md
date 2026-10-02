@@ -1,4 +1,8 @@
-# Contributing to WakeSync
+<p align="center">
+  <img src="docs/assets/wakesync-mark.svg" alt="WakeSync mark" width="110" />
+</p>
+
+# 🤝 Contributing to WakeSync
 
 WakeSync is still early-stage, so contributions should stay focused on reliability, understandable behavior, privacy, and Android compatibility.
 
