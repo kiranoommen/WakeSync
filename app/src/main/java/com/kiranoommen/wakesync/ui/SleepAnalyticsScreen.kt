@@ -2972,32 +2972,6 @@ private fun NightBreakdownSheet(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(8.dp)
-            ) {
-                MiniMetric(
-                    modifier = Modifier.weight(1f),
-                    label = "HRV",
-                    value =
-                        night.night.averageHrvMs
-                            ?.roundToInt()
-                            ?.toString()
-                            ?.plus(" ms")
-                            ?: "—"
-                )
-                MiniMetric(
-                    modifier = Modifier.weight(1f),
-                    label = "RHR",
-                    value =
-                        night.night.restingHeartRateBpm
-                            ?.toString()
-                            ?.plus(" bpm")
-                            ?: "—"
-                )
-            }
-
             TextButton(
                 modifier =
                     Modifier.align(Alignment.End),
