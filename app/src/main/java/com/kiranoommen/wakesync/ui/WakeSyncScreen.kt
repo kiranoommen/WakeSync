@@ -466,42 +466,11 @@ private fun AppHeader(
             .padding(top = 14.dp, bottom = 18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Canvas(
+        WakeSyncBrandMark(
             modifier = Modifier
-                .width(44.dp)
-                .height(34.dp)
-        ) {
-            fun wave(y: Float): Path = Path().apply {
-                moveTo(0f, y)
-                cubicTo(
-                    size.width * 0.20f,
-                    y - size.height * 0.22f,
-                    size.width * 0.37f,
-                    y + size.height * 0.22f,
-                    size.width * 0.57f,
-                    y
-                )
-                cubicTo(
-                    size.width * 0.74f,
-                    y - size.height * 0.20f,
-                    size.width * 0.86f,
-                    y + size.height * 0.13f,
-                    size.width,
-                    y - size.height * 0.08f
-                )
-            }
-
-            drawPath(
-                path = wave(size.height * 0.36f),
-                color = Lavender,
-                style = Stroke(width = 4.5.dp.toPx(), cap = StrokeCap.Round)
-            )
-            drawPath(
-                path = wave(size.height * 0.66f),
-                color = Sunrise,
-                style = Stroke(width = 4.5.dp.toPx(), cap = StrokeCap.Round)
-            )
-        }
+                .width(46.dp)
+                .height(36.dp)
+        )
 
         Column(
             modifier = Modifier
