@@ -3433,6 +3433,9 @@ private fun CustomRangeSheet(
     }
 }
 
+private val NightAnalytics.totalDurationMinutes: Long
+    get() = asleepMinutes
+
 private fun sortedNights(
     nights: List<NightAnalytics>,
     sort: SleepSort,
@@ -3473,7 +3476,7 @@ private fun sortedNights(
             if (descending) {
                 nights.sortedWith(
                     compareByDescending<NightAnalytics> {
-                        it.asleepMinutes
+                        it.totalDurationMinutes
                     }.thenByDescending {
                         it.date
                     }
@@ -3481,7 +3484,7 @@ private fun sortedNights(
             } else {
                 nights.sortedWith(
                     compareBy<NightAnalytics> {
-                        it.asleepMinutes
+                        it.totalDurationMinutes
                     }.thenBy {
                         it.date
                     }
