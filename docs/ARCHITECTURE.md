@@ -1,4 +1,14 @@
-# WakeSync Architecture
+# 🧭 WakeSync Architecture
+
+<p align="center">
+  <a href="README.md"><strong>Docs Hub</strong></a> ·
+  <a href="BRANDING.md">Brand</a> ·
+  <a href="DESIGN_SYSTEM.md">Design</a> ·
+  <a href="ARCHITECTURE.md">Architecture</a> ·
+  <a href="WAKE_WINDOW_ALGORITHM.md">Wake Algorithm</a> ·
+  <a href="TESTING.md">Testing</a> ·
+  <a href="PRIVACY.md">Privacy</a>
+</p>
 
 ## Current objective
 
@@ -14,7 +24,13 @@ WakeSync is an Android smart alarm that combines sufficiently fresh Health Conne
 - Local SharedPreferences for wake settings and the derived historical profile
 - No required backend
 
-## Smart Wake flow
+## 🌅 Smart Wake flow
+
+<p align="center">
+  <img src="assets/smart-wake-flow.svg" alt="WakeSync smart wake fallback ladder" width="100%" />
+</p>
+
+The same flow in engineering terms:
 
 ```
 Wearable / sleep app
@@ -58,7 +74,7 @@ WakeSync uses:
 
 The 45 minutes before E are observation only.
 
-## Layer 1 — Live stage
+## 🟣 Layer 1 — Live stage
 
 From E until the predictive cutoff, WakeSync polls Health Connect once per minute.
 
@@ -72,7 +88,7 @@ A stage is considered current only when it is ongoing or ended within the last f
 
 This avoids treating delayed wearable sync as live data.
 
-## Layer 2 — Saved historical prediction
+## 🟪 Layer 2 — Saved historical prediction
 
 Whenever recent sleep is loaded, WakeSync uses up to 30 nights to derive a compact wake profile.
 
@@ -90,7 +106,7 @@ At the predictive cutoff, WakeSync evaluates only candidates that remain inside 
 
 The highest-scoring eligible minute is scheduled as an exact predictive alarm. If no eligible minute exists, no predictive alarm is added.
 
-## Layer 3 — Hard deadline
+## 🟠 Layer 3 — Hard deadline
 
 The hard deadline remains scheduled with AlarmManager regardless of live or predictive availability.
 
