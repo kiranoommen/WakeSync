@@ -92,9 +92,14 @@ class WakeMonitorService : Service() {
             val monitorStart = earliestWake.minusMinutes(
                 WakeAlarmScheduler.MONITOR_LEAD_MINUTES
             )
-            val predictiveCutoff = hardDeadline.minusMinutes(
+            val requestedPredictiveCutoff = hardDeadline.minusMinutes(
                 WakeAlarmScheduler.PREDICTIVE_CUTOFF_MINUTES
             )
+            val predictiveCutoff = if (requestedPredictiveCutoff.isAfter(earliestWake)) {
+                requestedPredictiveCutoff
+            } else {
+                earliestWake
+            }
 
             if (now.isBefore(monitorStart.minusMinutes(2))) {
                 stopSelf()
