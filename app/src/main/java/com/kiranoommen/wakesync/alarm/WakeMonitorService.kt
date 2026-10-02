@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import com.kiranoommen.wakesync.MainActivity
 import com.kiranoommen.wakesync.data.HealthConnectManager
+import com.kiranoommen.wakesync.data.WakeHistoryStore
 import com.kiranoommen.wakesync.data.WakePreferencesStore
 import com.kiranoommen.wakesync.model.SleepStageType
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +22,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.time.Duration
 import java.time.ZonedDateTime
 
 class WakeMonitorService : Service() {
@@ -55,11 +55,12 @@ class WakeMonitorService : Service() {
     }
 
     private suspend fun monitorUntilWake() {
-        val store = WakePreferencesStore(applicationContext)
+        val preferencesStore = WakePreferencesStore(applicationContext)
+        val historyStore = WakeHistoryStore(applicationContext)
         val healthConnect = HealthConnectManager(applicationContext)
 
-        val preferences = store.load()
-        if (!preferences.enabled || !preferences.hasValidRange()) {
+        val initialPreferences = preferencesStore.load()
+        if (!initialPreferences.enabled || !initialPreferences.hasValidRange()) {
             stopSelf()
             return
         }
@@ -73,22 +74,27 @@ class WakeMonitorService : Service() {
 
         while (serviceScope.isActive) {
             val now = ZonedDateTime.now()
-            val latestPreferences = store.load()
+            val preferences = preferencesStore.load()
 
-            if (!latestPreferences.enabled || !latestPreferences.hasValidRange()) {
+            if (!preferences.enabled || !preferences.hasValidRange()) {
                 stopSelf()
                 return
             }
 
             val (earliestWake, hardDeadline) = resolveCurrentWakeWindow(
                 now = now,
-                earliestHour = latestPreferences.earliestHour,
-                earliestMinute = latestPreferences.earliestMinute,
-                latestHour = latestPreferences.latestHour,
-                latestMinute = latestPreferences.latestMinute
+                earliestHour = preferences.earliestHour,
+                earliestMinute = preferences.earliestMinute,
+                latestHour = preferences.latestHour,
+                latestMinute = preferences.latestMinute
             )
 
-            val monitorStart = earliestWake.minusMinutes(WakeAlarmScheduler.MONITOR_LEAD_MINUTES)
+            val monitorStart = earliestWake.minusMinutes(
+                WakeAlarmScheduler.MONITOR_LEAD_MINUTES
+            )
+            val predictiveCutoff = hardDeadline.minusMinutes(
+                WakeAlarmScheduler.PREDICTIVE_CUTOFF_MINUTES
+            )
 
             if (now.isBefore(monitorStart.minusMinutes(2))) {
                 stopSelf()
@@ -104,38 +110,75 @@ class WakeMonitorService : Service() {
                 return
             }
 
+            if (!now.isBefore(predictiveCutoff)) {
+                val profile = historyStore.load()
+                val prediction = profile?.let {
+                    PredictiveWakeEngine.chooseWakeTime(
+                        profile = it,
+                        now = now,
+                        deadline = hardDeadline,
+                        fallbackWindowMinutes =
+                            WakeAlarmScheduler.PREDICTIVE_CUTOFF_MINUTES.toInt()
+                    )
+                }
+
+                if (prediction == null) {
+                    // No trustworthy historical pattern. Keep the independent
+                    // hard-deadline alarm and stop spending battery on live reads.
+                    stopSelf()
+                    return
+                }
+
+                if (!prediction.wakeAt.isAfter(now.plusSeconds(30))) {
+                    WakeAlarmController.ring(
+                        context = applicationContext,
+                        reason = "Predictive wake from your recent sleep history"
+                    )
+                    stopSelf()
+                    return
+                }
+
+                WakeAlarmScheduler.schedulePredictiveWake(
+                    context = applicationContext,
+                    wakeAt = prediction.wakeAt,
+                    reason = "Predictive wake from your recent sleep history"
+                )
+
+                // The hard-deadline alarm remains in place as the final fallback.
+                stopSelf()
+                return
+            }
+
             if (!now.isBefore(earliestWake)) {
                 val snapshot = runCatching {
                     healthConnect.readLatestSleepStage()
                 }.getOrNull()
 
-                if (snapshot != null && snapshot.isFresh()) {
-                    val minutesRemaining = Duration.between(now, hardDeadline)
-                        .toMinutes()
-                        .coerceAtLeast(0)
-
-                    val shouldWake = when (snapshot.stage) {
-                        SleepStageType.AWAKE -> true
-                        SleepStageType.LIGHT -> true
-                        SleepStageType.REM -> minutesRemaining <= 10
-                        SleepStageType.DEEP,
-                        SleepStageType.UNKNOWN -> false
-                    }
-
-                    if (shouldWake) {
-                        WakeAlarmController.ring(
-                            context = applicationContext,
-                            reason = "Live sleep stage: ${snapshot.stage.name.lowercase()}"
-                        )
-                        stopSelf()
-                        return
-                    }
+                if (snapshot != null &&
+                    snapshot.isFresh() &&
+                    isLiveWakeStage(snapshot.stage)
+                ) {
+                    WakeAlarmController.ring(
+                        context = applicationContext,
+                        reason = "Live sleep stage: ${snapshot.stage.name.lowercase()}"
+                    )
+                    stopSelf()
+                    return
                 }
             }
 
             delay(POLL_INTERVAL_MILLIS)
         }
     }
+
+    private fun isLiveWakeStage(stage: SleepStageType): Boolean =
+        when (stage) {
+            SleepStageType.AWAKE,
+            SleepStageType.LIGHT -> true
+            SleepStageType.REM,
+            SleepStageType.DEEP,
+            SleepStageType.UNKNOWN -> false
+        }
 
     private fun resolveCurrentWakeWindow(
         now: ZonedDateTime,
@@ -168,7 +211,9 @@ class WakeMonitorService : Service() {
         val notification = Notification.Builder(this, MONITOR_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("WakeSync is watching your sleep")
-            .setContentText("Live sleep monitoring is active for your wake window.")
+            .setContentText(
+                "Live sleep monitoring is active. Historical fallback begins 15 minutes before your deadline."
+            )
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .setCategory(Notification.CATEGORY_SERVICE)
