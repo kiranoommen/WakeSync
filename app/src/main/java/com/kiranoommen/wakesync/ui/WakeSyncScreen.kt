@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -1106,53 +1107,74 @@ private fun DashboardGlassCard(
     onInfo: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val isDark =
+        MaterialTheme.colorScheme.background
+            .luminance() < 0.5f
+
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
+        shape =
+            RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
             wakeGlassBorderBrush()
         ),
-        colors = CardDefaults.cardColors(
-            containerColor =
-                wakeGlassFill(),
-            contentColor =
-                MaterialTheme.colorScheme.onSurface
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.Transparent,
+                contentColor =
+                    MaterialTheme.colorScheme.onSurface
+            ),
         elevation =
             CardDefaults.cardElevation(
-                defaultElevation = 8.dp
+                defaultElevation =
+                    if (isDark) {
+                        8.dp
+                    } else {
+                        2.dp
+                    }
             )
     ) {
-        Column(
+        Box(
             modifier =
-                Modifier.padding(15.dp)
+                Modifier.fillMaxWidth()
         ) {
-            Row(
+            WakeGlassBackdrop(
                 modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.SpaceBetween,
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-                Text(
-                    modifier =
-                        Modifier.weight(1f),
-                    text = title,
-                    style =
-                        MaterialTheme.typography.titleMedium,
-                    fontWeight =
-                        FontWeight.ExtraBold,
-                    color =
-                        MaterialTheme.colorScheme.onSurface
-                )
-                InfoTrigger(
-                    onClick = onInfo
-                )
-            }
+                    Modifier.matchParentSize()
+            )
 
-            content()
+            Column(
+                modifier =
+                    Modifier.padding(15.dp)
+            ) {
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Text(
+                        modifier =
+                            Modifier.weight(1f),
+                        text = title,
+                        style =
+                            MaterialTheme.typography.titleMedium,
+                        fontWeight =
+                            FontWeight.ExtraBold,
+                        color =
+                            MaterialTheme.colorScheme.onSurface
+                    )
+                    InfoTrigger(
+                        onClick = onInfo
+                    )
+                }
+
+                content()
+            }
         }
     }
 }
@@ -1696,9 +1718,11 @@ private fun wakeGlassFill(): Color =
         MaterialTheme.colorScheme.background
             .luminance() < 0.5f
     ) {
-        Color(0x80161B26)
+        Color(0x33161B26)
     } else {
-        Color(0xF0F8FAFC)
+        Color.White.copy(
+            alpha = 0.60f
+        )
     }
 
 @Composable
@@ -1710,13 +1734,13 @@ private fun wakeGlassBorderBrush(): Brush =
         Brush.linearGradient(
             listOf(
                 Color.White.copy(
-                    alpha = 0.14f
+                    alpha = 0.25f
                 ),
                 Cyan.copy(
-                    alpha = 0.26f
+                    alpha = 0.10f
                 ),
                 Color.White.copy(
-                    alpha = 0.06f
+                    alpha = 0.03f
                 )
             )
         )
@@ -1724,13 +1748,15 @@ private fun wakeGlassBorderBrush(): Brush =
         Brush.linearGradient(
             listOf(
                 Color.White.copy(
-                    alpha = 0.88f
+                    alpha = 0.82f
                 ),
                 Cyan.copy(
-                    alpha = 0.16f
+                    alpha = 0.08f
                 ),
                 MaterialTheme.colorScheme.outlineVariant
-                    .copy(alpha = 0.55f)
+                    .copy(
+                        alpha = 0.22f
+                    )
             )
         )
     }
@@ -1800,7 +1826,7 @@ private fun MorningBriefingCard(
             wakeGlassBorderBrush()
         ),
         colors = CardDefaults.cardColors(
-            containerColor = wakeGlassFill(),
+            containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSurface
         ),
         elevation = CardDefaults.cardElevation(
@@ -1808,6 +1834,10 @@ private fun MorningBriefingCard(
         )
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
+            WakeGlassBackdrop(
+                modifier = Modifier.matchParentSize()
+            )
+
             Canvas(modifier = Modifier.matchParentSize()) {
                 drawCircle(
                     color = statusColor.copy(alpha = 0.10f),
@@ -4271,6 +4301,9 @@ private fun SettingsBentoCard(
     onInfo: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val isDark =
+        MaterialTheme.colorScheme.background
+            .luminance() < 0.5f
     val accentBrush =
         if (
             borderColor !=
@@ -4278,9 +4311,20 @@ private fun SettingsBentoCard(
         ) {
             Brush.linearGradient(
                 listOf(
-                    borderColor.copy(alpha = 0.30f),
-                    Cyan.copy(alpha = 0.22f),
-                    borderColor.copy(alpha = 0.08f)
+                    borderColor.copy(
+                        alpha = 0.28f
+                    ),
+                    Color.White.copy(
+                        alpha =
+                            if (isDark) {
+                                0.16f
+                            } else {
+                                0.70f
+                            }
+                    ),
+                    borderColor.copy(
+                        alpha = 0.04f
+                    )
                 )
             )
         } else {
@@ -4288,8 +4332,10 @@ private fun SettingsBentoCard(
         }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        modifier =
+            Modifier.fillMaxWidth(),
+        shape =
+            RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
             accentBrush
@@ -4297,41 +4343,59 @@ private fun SettingsBentoCard(
         colors =
             CardDefaults.cardColors(
                 containerColor =
-                    wakeGlassFill(),
+                    Color.Transparent,
                 contentColor =
                     MaterialTheme.colorScheme.onSurface
             ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp
-        )
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    if (isDark) {
+                        8.dp
+                    } else {
+                        2.dp
+                    }
+            )
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(12.dp)
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
         ) {
-            Row(
+            WakeGlassBackdrop(
                 modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.SpaceBetween,
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    style =
-                        MaterialTheme.typography.titleMedium,
-                    fontWeight =
-                        FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                InfoTrigger(
-                    onClick = onInfo
-                )
-            }
+                    Modifier.matchParentSize()
+            )
 
-            content()
+            Column(
+                modifier =
+                    Modifier.padding(18.dp),
+                verticalArrangement =
+                    Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        style =
+                            MaterialTheme.typography.titleMedium,
+                        fontWeight =
+                            FontWeight.ExtraBold,
+                        color =
+                            MaterialTheme.colorScheme.onSurface
+                    )
+                    InfoTrigger(
+                        onClick = onInfo
+                    )
+                }
+
+                content()
+            }
         }
     }
 }
