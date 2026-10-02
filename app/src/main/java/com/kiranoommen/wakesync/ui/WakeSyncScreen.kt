@@ -153,7 +153,6 @@ fun WakeSyncScreen(
     onToggleSchedule: (AlarmSchedule, Boolean) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit,
-    onRequestExactAlarmAccess: () -> Unit,
     onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
@@ -330,7 +329,6 @@ fun WakeSyncScreen(
                                 displayName = displayName,
                                 nights = nights,
                                 onConnect = onConnect,
-                                onRequestExactAlarmAccess = onRequestExactAlarmAccess,
                                 onRequestAnalyticsAccess = onRequestAnalyticsAccess,
                                 onRequestHistoryAccess = onRequestHistoryAccess,
                                 onThemeModeChange = onThemeModeChange,
@@ -3333,7 +3331,6 @@ private fun SettingsTab(
     displayName: String,
     nights: List<SleepNight>,
     onConnect: () -> Unit,
-    onRequestExactAlarmAccess: () -> Unit,
     onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
@@ -3656,8 +3653,8 @@ private fun SettingsTab(
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Exact alarm reliability",
-                        meaning = "Android exact-alarm access lets WakeSync protect the wake-by deadline with precise OS scheduling.",
-                        measurement = "WakeSync checks Android's exact-alarm capability and schedules the deadline through the system alarm service.",
+                        meaning = "Android exact-alarm access lets WakeSync protect the Guardrail Wake Time with precise OS scheduling.",
+                        measurement = "WakeSync checks Android's exact-alarm capability. New users configure this during onboarding; this Settings row is status-only.",
                         importance = "Without exact-alarm access, Android power management can delay time-critical alarms."
                     )
                 }
@@ -3691,7 +3688,7 @@ private fun SettingsTab(
                                 ) {
                                     "Reliable wake-by scheduling enabled"
                                 } else {
-                                    "Android may delay alarms until access is granted"
+                                    "Action Required · exact-alarm access was not granted during setup"
                                 },
                             style =
                                 MaterialTheme.typography.bodySmall,
