@@ -8,7 +8,8 @@ class WakeAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         WakeAlarmController.ring(
             context = context,
-            reason = "Hard wake deadline reached"
+            reason = intent?.getStringExtra(WakeAlarmScheduler.EXTRA_ALARM_REASON)
+                ?: "WakeSync alarm"
         )
     }
 }
