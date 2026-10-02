@@ -1,4 +1,14 @@
-# Live Smart Wake Algorithm — Version 2
+# ⏰ Live Smart Wake Algorithm — Version 2
+
+<p align="center">
+  <a href="README.md"><strong>Docs Hub</strong></a> ·
+  <a href="BRANDING.md">Brand</a> ·
+  <a href="DESIGN_SYSTEM.md">Design</a> ·
+  <a href="ARCHITECTURE.md">Architecture</a> ·
+  <a href="WAKE_WINDOW_ALGORITHM.md">Wake Algorithm</a> ·
+  <a href="TESTING.md">Testing</a> ·
+  <a href="PRIVACY.md">Privacy</a>
+</p>
 
 ## Goal
 
@@ -13,7 +23,11 @@ Example:
 
 The 45-minute pre-window period is observation only. WakeSync never intentionally wakes the user before 6:20 AM.
 
-## Fallback ladder
+## 🌅 Fallback ladder
+
+<p align="center">
+  <img src="assets/smart-wake-flow.svg" alt="WakeSync smart wake fallback ladder" width="100%" />
+</p>
 
 WakeSync uses three layers, in this order:
 
@@ -23,7 +37,7 @@ WakeSync uses three layers, in this order:
 
 The hard deadline is scheduled independently before the other two layers run.
 
-## Layer 1 — Live sleep
+## 🟣 Layer 1 — Live sleep
 
 Starting 45 minutes before the earliest allowed wake, WakeSync checks Health Connect once per minute.
 
@@ -43,7 +57,7 @@ A Health Connect stage counts as fresh only when it is still ongoing or ended no
 
 WakeSync does not extrapolate a current stage from stale records.
 
-## Layer 2 — Saved historical prediction
+## 🟪 Layer 2 — Saved historical prediction
 
 The predictive cutoff is:
 
@@ -85,7 +99,7 @@ If the best predicted time is effectively now, the alarm rings immediately. Othe
 
 The independent hard-deadline alarm stays scheduled.
 
-## Layer 3 — Hard deadline
+## 🟠 Layer 3 — Hard deadline
 
 If there is not enough saved history, every historical candidate is weak, the predictive alarm cannot be scheduled, or anything else fails, WakeSync does not guess.
 
