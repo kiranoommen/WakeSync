@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -619,7 +618,7 @@ private fun ScoreHeroCard(
         borderColor = scoreColor.copy(alpha = 0.28f)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            Canvas(modifier = Modifier.matchParentSize()) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
                 drawCircle(
                     color = Lavender.copy(alpha = 0.12f),
                     radius =
@@ -996,7 +995,7 @@ private fun InsightCard(
         borderColor = Lavender.copy(alpha = 0.30f)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            Canvas(modifier = Modifier.matchParentSize()) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
                 drawCircle(
                     color = Lavender.copy(alpha = 0.13f),
                     radius =
@@ -2696,7 +2695,7 @@ private fun BentoCard(
         ) {
             WakeGlassBackdrop(
                 modifier =
-                    Modifier.matchParentSize()
+                    Modifier.fillMaxSize()
             )
 
             Box(
