@@ -3586,8 +3586,7 @@ private fun SettingsTab(
                         10,
                         15,
                         20,
-                        30,
-                        45
+                        30
                     ).forEach { minutes ->
                         FilterChip(
                             selected =
@@ -4722,7 +4721,7 @@ private fun AlarmEditorDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                    listOf(0, 10, 15, 20, 30, 45)
+                    listOf(0, 10, 15, 20, 30)
                         .filter { it == 0 || it <= maxSmartWindowMinutes }
                         .forEach { minutes ->
                         FilterChip(
@@ -4749,7 +4748,7 @@ private fun AlarmEditorDialog(
                         15 -> "Gentle: up to 15 minutes early."
                         20 -> "Balanced: up to 20 minutes early."
                         30 -> "Flexible: up to 30 minutes early."
-                        else -> "Wide: up to 45 minutes early. Use only if you are comfortable waking substantially before the deadline."
+                        else -> "Flexible: up to 30 minutes early. The Guardrail Wake Time remains the hard deadline."
                     },
                     style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
