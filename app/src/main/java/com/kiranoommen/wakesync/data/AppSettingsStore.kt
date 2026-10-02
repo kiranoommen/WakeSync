@@ -25,7 +25,7 @@ class AppSettingsStore(context: Context) {
         get() = prefs.getInt(KEY_SLEEP_GOAL, 480)
         set(value) {
             prefs.edit()
-                .putInt(KEY_SLEEP_GOAL, value.coerceIn(360, 600))
+                .putInt(KEY_SLEEP_GOAL, value.coerceIn(240, 720))
                 .apply()
         }
 
