@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
+import com.kiranoommen.wakesync.model.WakePreferences
 import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Indigo
 import com.kiranoommen.wakesync.ui.theme.Lavender
@@ -44,10 +45,20 @@ import java.time.temporal.ChronoUnit
 fun WakeSyncScreen(
     sdkStatus: Int,
     hasPermission: Boolean,
+    backgroundReadAvailable: Boolean,
+    hasBackgroundReadPermission: Boolean,
+    exactAlarmAccess: Boolean,
+    notificationsAllowed: Boolean,
+    wakePreferences: WakePreferences,
     loading: Boolean,
     nights: List<SleepNight>,
     errorMessage: String?,
     onConnect: () -> Unit,
+    onRequestExactAlarmAccess: () -> Unit,
+    onRequestNotifications: () -> Unit,
+    onWakePreferencesChanged: (WakePreferences) -> Unit,
+    onAlarmEnabledChanged: (Boolean) -> Unit,
+    onImAwake: () -> Unit,
     onRefresh: () -> Unit
 ) {
     WakeSyncTheme {
@@ -84,7 +95,27 @@ fun WakeSyncScreen(
 
                 Spacer(Modifier.height(18.dp))
 
-                WakeWindowHero(hasPermission = hasPermission)
+                WakeWindowHero(
+                    hasPermission = hasPermission,
+                    preferences = wakePreferences,
+                    onImAwake = onImAwake
+                )
+
+                Spacer(Modifier.height(14.dp))
+
+                WakeSettingsCard(
+                    preferences = wakePreferences,
+                    sleepPermissionGranted = hasPermission,
+                    backgroundReadAvailable = backgroundReadAvailable,
+                    backgroundReadGranted = hasBackgroundReadPermission,
+                    exactAlarmAccess = exactAlarmAccess,
+                    notificationsAllowed = notificationsAllowed,
+                    onPreferencesChanged = onWakePreferencesChanged,
+                    onRequestHealthPermissions = onConnect,
+                    onRequestExactAlarmAccess = onRequestExactAlarmAccess,
+                    onRequestNotifications = onRequestNotifications,
+                    onAlarmEnabledChanged = onAlarmEnabledChanged
+                )
 
                 Spacer(Modifier.height(14.dp))
 
@@ -185,7 +216,11 @@ fun WakeSyncScreen(
 }
 
 @Composable
-private fun WakeWindowHero(hasPermission: Boolean) {
+private fun WakeWindowHero(
+    hasPermission: Boolean,
+    preferences: WakePreferences,
+    onImAwake: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -221,7 +256,11 @@ private fun WakeWindowHero(hasPermission: Boolean) {
 
                 Text(
                     modifier = Modifier.padding(top = 12.dp),
-                    text = if (hasPermission) "Learning your pattern" else "Connect sleep data",
+                    text = when {
+                        !hasPermission -> "Connect sleep data"
+                        preferences.enabled -> formatWakeRange(preferences)
+                        else -> "Set your wake range"
+                    },
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White
@@ -229,10 +268,13 @@ private fun WakeWindowHero(hasPermission: Boolean) {
 
                 Text(
                     modifier = Modifier.padding(top = 6.dp),
-                    text = if (hasPermission) {
-                        "We’ll calculate a different wake window each night from your own sleep history."
-                    } else {
-                        "Read-only Health Connect access is the first step."
+                    text = when {
+                        !hasPermission ->
+                            "Read-only Health Connect access is the first step."
+                        preferences.enabled ->
+                            "Live monitoring starts 45 minutes before your range. WakeSync favors Awake or Light sleep, can use REM near the deadline, and never goes past your end time."
+                        else ->
+                            "Choose the earliest and latest time you are willing to wake."
                     },
                     color = Color.White.copy(alpha = 0.82f)
                 )
@@ -240,8 +282,8 @@ private fun WakeWindowHero(hasPermission: Boolean) {
                 Spacer(Modifier.height(18.dp))
 
                 Button(
-                    onClick = { },
-                    enabled = false,
+                    onClick = onImAwake,
+                    enabled = preferences.enabled,
                     shape = RoundedCornerShape(22.dp),
                     colors = ButtonDefaults.buttonColors(
                         disabledContainerColor = Color.White.copy(alpha = 0.16f),
@@ -499,3 +541,11 @@ private fun formatMinutes(minutes: Long): String {
     val remainder = minutes % 60
     return if (hours > 0) hours.toString() + "h " + remainder + "m" else remainder.toString() + "m"
 }
+
+
+private val wakeRangeTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+
+private fun formatWakeRange(preferences: WakePreferences): String =
+    preferences.earliest.format(wakeRangeTimeFormatter) +
+        " – " +
+        preferences.latest.format(wakeRangeTimeFormatter)
