@@ -450,8 +450,8 @@ private fun alarmReasonCopy(reason: String): String =
         reason.startsWith("Historical fallback") ->
             "Your saved sleep pattern reached its fallback wake point."
 
-        reason.startsWith("Hard wake deadline") ->
-            "You reached your hard wake deadline."
+        reason.startsWith("Must be awake by time") ->
+            "You reached your latest wake time."
 
         reason.startsWith("Backup alarm") ->
             "This is one of your backup alarms."
