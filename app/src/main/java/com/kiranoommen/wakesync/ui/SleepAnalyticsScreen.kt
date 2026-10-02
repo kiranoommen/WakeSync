@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -2615,62 +2616,96 @@ private fun BentoCard(
     val isDark =
         MaterialTheme.colorScheme.background
             .luminance() < 0.5f
-    val fill =
-        if (isDark) {
-            Color(0x80161B26)
-        } else {
-            Color(0xF0F8FAFC)
-        }
     val edgeBrush =
         if (borderColor != null) {
             Brush.linearGradient(
                 listOf(
-                    borderColor.copy(alpha = 0.22f),
-                    Cyan.copy(alpha = 0.24f),
-                    borderColor.copy(alpha = 0.08f)
+                    borderColor.copy(
+                        alpha = 0.28f
+                    ),
+                    Color.White.copy(
+                        alpha =
+                            if (isDark) {
+                                0.16f
+                            } else {
+                                0.76f
+                            }
+                    ),
+                    borderColor.copy(
+                        alpha = 0.04f
+                    )
                 )
             )
         } else if (isDark) {
             Brush.linearGradient(
                 listOf(
-                    Color.White.copy(alpha = 0.14f),
-                    Cyan.copy(alpha = 0.24f),
-                    Color.White.copy(alpha = 0.05f)
+                    Color.White.copy(
+                        alpha = 0.25f
+                    ),
+                    Cyan.copy(
+                        alpha = 0.10f
+                    ),
+                    Color.White.copy(
+                        alpha = 0.03f
+                    )
                 )
             )
         } else {
             Brush.linearGradient(
                 listOf(
-                    Color.White.copy(alpha = 0.92f),
-                    Cyan.copy(alpha = 0.14f),
+                    Color.White.copy(
+                        alpha = 0.84f
+                    ),
+                    Cyan.copy(
+                        alpha = 0.07f
+                    ),
                     MaterialTheme.colorScheme.outlineVariant
-                        .copy(alpha = 0.48f)
+                        .copy(alpha = 0.20f)
                 )
             )
         }
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
+        shape =
+            RoundedCornerShape(20.dp),
         border = BorderStroke(
             1.dp,
             edgeBrush
         ),
-        colors = CardDefaults.cardColors(
-            containerColor = fill,
-            contentColor =
-                MaterialTheme.colorScheme.onSurface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.Transparent,
+                contentColor =
+                    MaterialTheme.colorScheme.onSurface
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    if (isDark) {
+                        8.dp
+                    } else {
+                        2.dp
+                    }
+            )
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(17.dp)
+            modifier =
+                Modifier.fillMaxWidth()
         ) {
-            content()
+            WakeGlassBackdrop(
+                modifier =
+                    Modifier.matchParentSize()
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(17.dp)
+            ) {
+                content()
+            }
         }
     }
 }
