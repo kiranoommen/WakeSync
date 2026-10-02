@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -24,6 +25,35 @@ fun WakeSyncBrandMark(
             .copy(alpha = 0.92f)
 
     Canvas(modifier = modifier) {
+        drawRoundRect(
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color(0xFF14142F),
+                    Color(0xFF0B101E)
+                )
+            ),
+            cornerRadius =
+                CornerRadius(
+                    x = size.minDimension * 0.24f,
+                    y = size.minDimension * 0.24f
+                )
+        )
+        drawRoundRect(
+            color =
+                Color.White.copy(
+                    alpha = 0.16f
+                ),
+            cornerRadius =
+                CornerRadius(
+                    x = size.minDimension * 0.24f,
+                    y = size.minDimension * 0.24f
+                ),
+            style = Stroke(
+                width =
+                    1.25.dp.toPx()
+            )
+        )
+
         val horizonY =
             size.height * 0.53f
         val sunRadius =
