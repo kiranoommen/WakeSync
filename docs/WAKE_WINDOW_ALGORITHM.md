@@ -1,4 +1,4 @@
-# ⏰ Live Smart Wake Algorithm — Version 2
+# ⏰ Live Smart Wake Algorithm — Version 3
 
 <p align="center">
   <a href="README.md"><strong>Docs Hub</strong></a> ·
@@ -18,32 +18,29 @@ Example:
 
 - earliest acceptable wake: 6:20 AM
 - must be awake by: 7:00 AM
-- live monitoring begins: 5:35 AM
-- predictive fallback begins: 6:45 AM
+- live monitoring begins: 6:05 AM
+- historical fallback window begins: 6:50 AM
+- hard stop: 7:00 AM
 
-The 45-minute pre-window period is observation only. WakeSync never intentionally wakes the user before 6:20 AM.
+The 15-minute pre-window period is observation only. WakeSync never intentionally wakes the user before 6:20 AM.
 
-## 🌅 Fallback ladder
+## 🌅 Wake hierarchy
 
-<p align="center">
-  <img src="assets/smart-wake-flow.svg" alt="WakeSync smart wake fallback ladder" width="100%" />
-</p>
+WakeSync uses three independent layers:
 
-WakeSync uses three layers, in this order:
+1. **Live sleep stage — primary**
+2. **Saved historical fallback — final 10 minutes**
+3. **Hard deadline — guaranteed**
 
-1. **Live sleep stage**
-2. **Saved historical prediction at T-15**
-3. **Hard deadline**
-
-The hard deadline is scheduled independently before the other two layers run.
+The historical fallback and hard deadline are scheduled independently. Live monitoring does **not** shut off when the historical fallback window begins.
 
 ## 🟣 Layer 1 — Live sleep
 
-Starting 45 minutes before the earliest allowed wake, WakeSync checks Health Connect once per minute.
+Starting 15 minutes before the earliest allowed wake, WakeSync checks Health Connect once per minute.
 
 Before the earliest wake time, it only observes.
 
-From the earliest wake time until the predictive cutoff:
+From the earliest wake time until the user is awakened or the hard deadline arrives:
 
 | Fresh live stage | Action |
 | --- | --- |
@@ -57,13 +54,19 @@ A Health Connect stage counts as fresh only when it is still ongoing or ended no
 
 WakeSync does not extrapolate a current stage from stale records.
 
-## 🟪 Layer 2 — Saved historical prediction
+## 🟪 Layer 2 — Saved historical fallback
 
-The predictive cutoff is:
+The fallback window starts at:
 
-`max(earliest allowed wake, hard deadline - 15 minutes)`
+`max(earliest allowed wake, hard deadline - 10 minutes)`
 
-At that point WakeSync stops relying on live-stage timing and uses the sleep-history profile it has already saved locally.
+WakeSync chooses the strongest eligible historical candidate inside that final window and arms an exact alarm for it ahead of time.
+
+**Important:** arming the historical fallback does not replace live monitoring.
+
+If a fresh Awake or Light stage appears before the historical fallback fires, live sleep wins and WakeSync cancels the remaining alarms for that morning.
+
+If the historical fallback time arrives first, it wakes the user even if live data has remained REM, Deep, stale, missing, or unavailable.
 
 ### Building the saved profile
 
@@ -84,9 +87,7 @@ For each minute-before-wake position, WakeSync stores:
 
 Raw sleep records do not need to be duplicated locally; the stored profile is a compact derived summary.
 
-### Choosing the final-15-minute wake point
-
-At the predictive cutoff, WakeSync evaluates candidate times between the cutoff and the hard deadline.
+### Choosing the fallback point
 
 A candidate is eligible only when:
 
@@ -95,21 +96,33 @@ A candidate is eligible only when:
 
 WakeSync chooses the highest-scoring eligible candidate. Ties go to the earlier candidate.
 
-If the best predicted time is effectively now, the alarm rings immediately. Otherwise WakeSync schedules an exact predictive alarm for that time.
+If the best historical candidate would be exactly the hard deadline, WakeSync does not add a duplicate fallback alarm; the independent hard-stop alarm already covers that time.
 
-The independent hard-deadline alarm stays scheduled.
+If no candidate qualifies, live monitoring continues and the hard stop remains.
 
 ## 🟠 Layer 3 — Hard deadline
 
-If there is not enough saved history, every historical candidate is weak, the predictive alarm cannot be scheduled, or anything else fails, WakeSync does not guess.
+The hard deadline is always scheduled independently.
 
-It waits for the already-scheduled hard deadline and rings then.
+If live data is stale or unavailable, there is not enough history, the historical candidate is weak, the monitor service stops, or anything else fails, the hard-stop alarm still fires at the user's latest acceptable time.
+
+## Why 15 minutes before the range?
+
+Starting 45 minutes early did not materially improve the wake decision because WakeSync cannot intentionally wake before the user's range. A 15-minute lead gives the monitoring service time to start, verify background Health Connect access, and observe freshness without running the foreground service unnecessarily early.
+
+WakeSync still polls only once per minute.
+
+## Why a final 10-minute historical fallback?
+
+Historical prediction is useful as a fallback, but it should not take a large portion of the user's live wake window away from fresh data.
+
+Using only the final 10 minutes keeps live sleep primary for most of the allowed range while retaining a meaningful pre-deadline fallback.
 
 ## Data-source limitation
 
 WakeSync reads Health Connect; it does not control when Fitbit, Samsung Health, another wearable, or another sleep app writes its data.
 
-If the source does not publish stages during sleep, the live layer may contribute nothing. WakeSync then falls through to saved history and finally the hard deadline.
+If the source does not publish stages during sleep, the live layer may contribute nothing. The separately armed historical fallback can still fire, followed by the hard deadline if needed.
 
 ## Interpretation
 
