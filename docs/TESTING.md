@@ -109,9 +109,7 @@ With Backup Alarms enabled:
 - verify the remaining backup alarms still fire;
 - verify “I’m awake — stop remaining alarms” cancels all remaining alarms in the current sequence;
 - verify the next recurring occurrence is still scheduled;
-- verify Snooze is not offered while Backup Alarms are active.
-
-With Backup Alarms disabled, verify Snooze remains available when configured.
+- verify there is no separate Snooze control; Backup Alarms are the only repeat/safety mechanism.
 
 Hard-stop validation:
 
