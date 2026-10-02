@@ -3978,6 +3978,7 @@ private fun SettingsTab(
     )
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun SleepTargetWheel(
     selectedMinutes: Int,
