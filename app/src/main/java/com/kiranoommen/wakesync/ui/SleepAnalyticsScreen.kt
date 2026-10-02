@@ -618,7 +618,7 @@ private fun ScoreHeroCard(
         borderColor = scoreColor.copy(alpha = 0.28f)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
                 drawCircle(
                     color = Lavender.copy(alpha = 0.12f),
                     radius =
@@ -995,7 +995,7 @@ private fun InsightCard(
         borderColor = Lavender.copy(alpha = 0.30f)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
                 drawCircle(
                     color = Lavender.copy(alpha = 0.13f),
                     radius =
@@ -2695,7 +2695,7 @@ private fun BentoCard(
         ) {
             WakeGlassBackdrop(
                 modifier =
-                    Modifier.fillMaxSize()
+                    Modifier.matchParentSize()
             )
 
             Box(
