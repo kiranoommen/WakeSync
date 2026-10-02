@@ -10,6 +10,7 @@ data class AlarmSchedule(
     val hour: Int,
     val minute: Int,
     val days: Set<Int>,
+    val mode: AlarmMode = AlarmMode.SMART_WAKE,
     val smartWindowMinutes: Int = 20,
     val smartOffsetMinutes: Int = 0,
     val enabled: Boolean = true,
