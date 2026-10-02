@@ -49,20 +49,20 @@ private val DarkColors = darkColorScheme(
 )
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFFE45F42),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFE7DE),
-    onPrimaryContainer = Color(0xFF3A160F),
+    primary = Sunrise,
+    onPrimary = DayText,
+    primaryContainer = Color(0xFFFFE7CC),
+    onPrimaryContainer = Color(0xFF3B1C00),
 
-    secondary = Color(0xFF6D55D9),
+    secondary = Color(0xFF403B77),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFEDE9FE),
-    onSecondaryContainer = Color(0xFF25145D),
+    secondaryContainer = Color(0xFFECEBFA),
+    onSecondaryContainer = Color(0xFF14142F),
 
-    tertiary = Color(0xFF087C8F),
+    tertiary = Color(0xFF008EA0),
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFD8F5FA),
-    onTertiaryContainer = Color(0xFF052D33),
+    tertiaryContainer = Color(0xFFD8FAFF),
+    onTertiaryContainer = Color(0xFF00363D),
 
     background = DayBackground,
     onBackground = DayText,
