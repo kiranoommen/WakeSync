@@ -10,8 +10,8 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import com.kiranoommen.wakesync.MainActivity
+import com.kiranoommen.wakesync.data.AlarmStore
 import com.kiranoommen.wakesync.data.HealthConnectManager
-import com.kiranoommen.wakesync.data.WakePreferencesStore
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.SleepStageType
 import kotlinx.coroutines.CoroutineScope
@@ -22,12 +22,15 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.concurrent.ConcurrentHashMap
 
 class WakeMonitorService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var monitorJob: Job? = null
+    private val monitorJobs = ConcurrentHashMap<String, Job>()
 
     override fun onCreate() {
         super.onCreate()
@@ -36,14 +39,33 @@ class WakeMonitorService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (monitorJob?.isActive != true) {
-            monitorJob = serviceScope.launch { monitorUntilWake() }
+        val scheduleId =
+            intent?.getStringExtra(AlarmScheduler.EXTRA_SCHEDULE_ID)
+                ?: return START_NOT_STICKY
+        val deadlineMillis =
+            intent.getLongExtra(AlarmScheduler.EXTRA_DEADLINE_MILLIS, 0L)
+
+        if (deadlineMillis <= 0L) return START_NOT_STICKY
+
+        if (monitorJobs[scheduleId]?.isActive != true) {
+            val job = serviceScope.launch {
+                monitorSchedule(scheduleId, deadlineMillis)
+            }
+            monitorJobs[scheduleId] = job
+            job.invokeOnCompletion {
+                monitorJobs.remove(scheduleId)
+                if (monitorJobs.isEmpty()) {
+                    stopSelf()
+                }
+            }
         }
+
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        monitorJob?.cancel()
+        monitorJobs.values.forEach { it.cancel() }
+        monitorJobs.clear()
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -54,63 +76,41 @@ class WakeMonitorService : Service() {
         stopSelf(startId)
     }
 
-    private suspend fun monitorUntilWake() {
-        val preferencesStore = WakePreferencesStore(applicationContext)
+    private suspend fun monitorSchedule(
+        scheduleId: String,
+        deadlineMillis: Long
+    ) {
         val healthConnect = HealthConnectManager(applicationContext)
-
-        val initialPreferences = preferencesStore.load()
-        if (!initialPreferences.enabled ||
-            initialPreferences.mode != AlarmMode.SMART_WAKE ||
-            !initialPreferences.hasValidRange()
-        ) {
-            stopSelf()
-            return
-        }
+        val zone = ZoneId.systemDefault()
+        val deadline = ZonedDateTime.ofInstant(
+            Instant.ofEpochMilli(deadlineMillis),
+            zone
+        )
 
         if (!healthConnect.backgroundReadAvailable() ||
             !healthConnect.hasBackgroundReadPermission()
         ) {
-            // The historical fallback and hard-stop alarms were scheduled
-            // independently, so they remain intact even if live reads cannot run.
-            stopSelf()
             return
         }
 
         while (serviceScope.isActive) {
-            val now = ZonedDateTime.now()
-            val preferences = preferencesStore.load()
+            val schedule = AlarmStore(applicationContext)
+                .load()
+                .firstOrNull { it.id == scheduleId }
+                ?: return
 
-            if (!preferences.enabled ||
-                preferences.mode != AlarmMode.SMART_WAKE ||
-                !preferences.hasValidRange()
+            if (!schedule.enabled ||
+                schedule.mode != AlarmMode.SMART_WAKE ||
+                schedule.smartWindowMinutes <= 0
             ) {
-                stopSelf()
                 return
             }
 
-            val (earliestWake, hardDeadline) = resolveCurrentWakeWindow(
-                now = now,
-                earliestHour = preferences.earliestHour,
-                earliestMinute = preferences.earliestMinute,
-                latestHour = preferences.latestHour,
-                latestMinute = preferences.latestMinute
-            )
+            val now = ZonedDateTime.now(zone)
+            val earliestWake =
+                deadline.minusMinutes(schedule.smartWindowMinutes.toLong())
 
-            val monitorStart = earliestWake.minusMinutes(
-                WakeAlarmScheduler.MONITOR_LEAD_MINUTES
-            )
-
-            if (now.isBefore(monitorStart.minusMinutes(2))) {
-                stopSelf()
-                return
-            }
-
-            if (!now.isBefore(hardDeadline)) {
-                WakeAlarmController.ring(
-                    context = applicationContext,
-                    reason = "Hard wake deadline reached"
-                )
-                stopSelf()
+            if (!now.isBefore(deadline)) {
                 return
             }
 
@@ -123,19 +123,17 @@ class WakeMonitorService : Service() {
                     snapshot.isFresh() &&
                     isLiveWakeStage(snapshot.stage)
                 ) {
-                    WakeAlarmController.ring(
+                    MultiAlarmController.ring(
                         context = applicationContext,
+                        scheduleId = scheduleId,
+                        kind = KIND_LIVE,
+                        deadlineMillis = deadlineMillis,
                         reason = "Live sleep stage: ${snapshot.stage.name.lowercase()}"
                     )
-                    stopSelf()
                     return
                 }
             }
 
-            // Live monitoring intentionally continues through the final part
-            // of the wake window. The separately scheduled historical fallback
-            // will interrupt this service only if its chosen wake time arrives
-            // before a favorable fresh live stage is observed.
             delay(POLL_INTERVAL_MILLIS)
         }
     }
@@ -149,26 +147,6 @@ class WakeMonitorService : Service() {
             SleepStageType.UNKNOWN -> false
         }
 
-    private fun resolveCurrentWakeWindow(
-        now: ZonedDateTime,
-        earliestHour: Int,
-        earliestMinute: Int,
-        latestHour: Int,
-        latestMinute: Int
-    ): Pair<ZonedDateTime, ZonedDateTime> {
-        var date = now.toLocalDate()
-        var earliest = date.atTime(earliestHour, earliestMinute).atZone(now.zone)
-        var deadline = date.atTime(latestHour, latestMinute).atZone(now.zone)
-
-        if (!now.isBefore(deadline)) {
-            date = date.plusDays(1)
-            earliest = date.atTime(earliestHour, earliestMinute).atZone(now.zone)
-            deadline = date.atTime(latestHour, latestMinute).atZone(now.zone)
-        }
-
-        return earliest to deadline
-    }
-
     private fun startAsForeground() {
         val openAppIntent = PendingIntent.getActivity(
             this,
@@ -179,9 +157,9 @@ class WakeMonitorService : Service() {
 
         val notification = Notification.Builder(this, MONITOR_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("WakeSync is watching your sleep")
+            .setContentTitle("WakeSync is watching your Smart Wake alarms")
             .setContentText(
-                "Live sleep stays active through your wake window. Historical fallback and hard stop remain armed."
+                "Live sleep stays primary. History fallback and hard deadlines remain armed."
             )
             .setContentIntent(openAppIntent)
             .setOngoing(true)
@@ -214,6 +192,7 @@ class WakeMonitorService : Service() {
     }
 
     private companion object {
+        const val KIND_LIVE = "live"
         const val MONITOR_CHANNEL_ID = "wake_monitoring"
         const val MONITOR_NOTIFICATION_ID = 4200
         const val POLL_INTERVAL_MILLIS = 60_000L
