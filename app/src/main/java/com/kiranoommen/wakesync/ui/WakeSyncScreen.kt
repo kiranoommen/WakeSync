@@ -4019,7 +4019,7 @@ private fun SettingsTab(
                     infoSheet = MetricInfo(
                         title = "Support WakeSync",
                         meaning = "WakeSync is built privacy-first with no ads. Donations are optional and do not unlock features.",
-                        measurement = "The PayPal button opens the official PayPal donation page in your browser. The QR code encodes the same donation URL.",
+                        measurement = "The PayPal button opens the official WakeSync donation page in your browser.",
                         importance = "Optional support can help fund future development while keeping the app free of advertising."
                     )
                 }
