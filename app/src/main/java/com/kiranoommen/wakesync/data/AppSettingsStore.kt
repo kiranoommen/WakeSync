@@ -24,8 +24,15 @@ class AppSettingsStore(context: Context) {
     var sleepGoalMinutes: Int
         get() = prefs.getInt(KEY_SLEEP_GOAL, 480)
         set(value) {
+            val clamped =
+                value.coerceIn(240, 720)
+            val quarterHour =
+                ((clamped + 7) / 15) * 15
             prefs.edit()
-                .putInt(KEY_SLEEP_GOAL, value.coerceIn(240, 720))
+                .putInt(
+                    KEY_SLEEP_GOAL,
+                    quarterHour.coerceIn(240, 720)
+                )
                 .apply()
         }
 
