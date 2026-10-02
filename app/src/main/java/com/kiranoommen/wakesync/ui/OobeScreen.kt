@@ -386,169 +386,187 @@ private fun OobeTheme(
 }
 
 @Composable
-private fun OobeHealthConnect(
+private fun OobePermissions(
     modifier: Modifier,
     sdkStatus: Int,
-    connected: Boolean,
-    onConnect: () -> Unit
+    healthConnected: Boolean,
+    exactAlarmGranted: Boolean,
+    onConnectHealth: () -> Unit,
+    onGrantExactAlarm: () -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
-    val unavailable =
-        sdkStatus == HealthConnectClient.SDK_UNAVAILABLE ||
+    val colors =
+        MaterialTheme.colorScheme
+    val healthUnavailable =
+        sdkStatus ==
+            HealthConnectClient.SDK_UNAVAILABLE ||
             sdkStatus ==
             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 42.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Text(
-            text = "HEALTH CONNECT",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = Cyan
-        )
-        Text(
-            text = "Connect your sleep data.",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = colors.onBackground
-        )
-        Text(
-            text = "WakeSync uses read-only Health Connect access for sleep sessions and stages. No vendor-specific account is required.",
-            color = colors.onSurfaceVariant
-        )
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = colors.surface.copy(alpha = 0.68f),
-                contentColor = colors.onSurface
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = if (connected) {
-                        "✓ Health Connect Integration"
-                    } else {
-                        "Health Connect Integration"
-                    },
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (connected) {
-                        Color(0xFF10B981)
-                    } else {
-                        colors.onSurface
-                    }
-                )
-                Text(
-                    text = "Compatible with Pixel Watch, Galaxy Watch, Garmin, Oura, Fitbit, and all Health Connect wearables.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
-                )
-
-                if (!connected && !unavailable) {
-                    Button(
-                        onClick = onConnect,
-                        shape = RoundedCornerShape(999.dp)
-                    ) {
-                        Text(
-                            text = "Connect Health Connect",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                if (unavailable) {
-                    Text(
-                        text = "Health Connect is not currently available on this device. You can finish setup and use WakeSync alarms, then connect later.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Sunrise
-                    )
-                }
-
-                if (!connected && !unavailable) {
-                    Text(
-                        text = "You can also finish setup now and connect later from Settings.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun OobeExactAlarm(
-    modifier: Modifier,
-    granted: Boolean,
-    onGrant: () -> Unit
-) {
-    val colors =
-        MaterialTheme.colorScheme
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 42.dp),
+            .padding(top = 34.dp),
         verticalArrangement =
             Arrangement.spacedBy(14.dp)
     ) {
         Text(
-            text = "ALARM RELIABILITY",
+            text = "PERMISSIONS",
             style =
                 MaterialTheme.typography.labelLarge,
             fontWeight =
                 FontWeight.ExtraBold,
-            color = Sunrise
+            color = Cyan
         )
 
         Text(
             text =
-                "Protect your wake deadline.",
+                "Two permissions. One setup page.",
             style =
                 MaterialTheme.typography.headlineLarge,
             fontWeight =
                 FontWeight.ExtraBold,
-            color = colors.onBackground
+            color =
+                colors.onBackground
         )
 
         Text(
             text =
-                "Android restricts exact timers by default. Granting Exact Alarm access ensures your wake schedule fires precisely on time without battery-saver delays.",
+                "WakeSync needs read-only sleep access for your sleep history and Exact Alarm access so your Guardrail Wake Time can fire on time.",
             color =
                 colors.onSurfaceVariant
         )
 
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            shape =
-                RoundedCornerShape(24.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        colors.surface.copy(
-                            alpha = 0.68f
+        OobePermissionCard(
+            title =
+                "Health Connect Integration",
+            status =
+                when {
+                    healthConnected ->
+                        "✓ Connected"
+                    healthUnavailable ->
+                        "Unavailable"
+                    else ->
+                        "Action required"
+                },
+            statusColor =
+                when {
+                    healthConnected ->
+                        Color(0xFF10B981)
+                    healthUnavailable ->
+                        Sunrise
+                    else ->
+                        Cyan
+                },
+            body =
+                if (healthUnavailable) {
+                    "Health Connect is not currently available on this device. You can finish setup and connect later from Settings."
+                } else {
+                    "Read-only access lets WakeSync read sleep sessions and sleep stages. Compatible with Pixel Watch, Galaxy Watch, Garmin, Oura, Fitbit, and all Health Connect wearables."
+                },
+            actionLabel =
+                if (
+                    healthConnected ||
+                    healthUnavailable
+                ) {
+                    null
+                } else {
+                    "Connect Health Connect"
+                },
+            onAction =
+                onConnectHealth
+        )
+
+        OobePermissionCard(
+            title =
+                "Exact Alarm Access",
+            status =
+                if (exactAlarmGranted) {
+                    "✓ Granted"
+                } else {
+                    "Action required"
+                },
+            statusColor =
+                if (exactAlarmGranted) {
+                    Color(0xFF10B981)
+                } else {
+                    Sunrise
+                },
+            body =
+                "Android restricts exact timers by default. Granting Exact Alarm access helps your Guardrail Wake Time fire precisely without battery-saver delays.",
+            actionLabel =
+                if (exactAlarmGranted) {
+                    null
+                } else {
+                    "Grant Exact Alarm Permission"
+                },
+            onAction =
+                onGrantExactAlarm
+        )
+
+        Text(
+            text =
+                "You can finish setup now and revisit any missing permission later in Settings.",
+            style =
+                MaterialTheme.typography.bodySmall,
+            color =
+                colors.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun OobePermissionCard(
+    title: String,
+    status: String,
+    statusColor: Color,
+    body: String,
+    actionLabel: String?,
+    onAction: () -> Unit
+) {
+    Card(
+        modifier =
+            Modifier.fillMaxWidth(),
+        shape =
+            RoundedCornerShape(22.dp),
+        border =
+            BorderStroke(
+                1.dp,
+                Brush.linearGradient(
+                    listOf(
+                        Color.White.copy(
+                            alpha = 0.22f
                         ),
-                    contentColor =
-                        colors.onSurface
+                        statusColor.copy(
+                            alpha = 0.12f
+                        ),
+                        Color.White.copy(
+                            alpha = 0.03f
+                        )
+                    )
                 )
+            ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.Transparent,
+                contentColor =
+                    MaterialTheme.colorScheme.onSurface
+            )
+    ) {
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
         ) {
+            WakeGlassBackdrop(
+                modifier =
+                    Modifier.matchParentSize()
+            )
+
             Column(
                 modifier =
-                    Modifier.padding(18.dp),
+                    Modifier.padding(16.dp),
                 verticalArrangement =
-                    Arrangement.spacedBy(12.dp)
+                    Arrangement.spacedBy(9.dp)
             ) {
                 Row(
                     modifier =
@@ -558,92 +576,53 @@ private fun OobeExactAlarm(
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
-                    Column(
+                    Text(
                         modifier =
-                            Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text =
-                                "Exact Alarm Access",
-                            fontWeight =
-                                FontWeight.ExtraBold
-                        )
-                        Text(
-                            modifier =
-                                Modifier.padding(
-                                    top = 3.dp
-                                ),
-                            text =
-                                if (granted) {
-                                    "Granted · precise wake scheduling is ready"
-                                } else {
-                                    "Action required for precise wake deadlines"
-                                },
-                            style =
-                                MaterialTheme.typography.bodySmall,
-                            color =
-                                if (granted) {
-                                    Color(0xFF10B981)
-                                } else {
-                                    Sunrise
-                                }
-                        )
-                    }
+                            Modifier.weight(1f),
+                        text = title,
+                        fontWeight =
+                            FontWeight.ExtraBold,
+                        color =
+                            MaterialTheme.colorScheme.onSurface
+                    )
 
                     Text(
-                        text =
-                            if (granted) {
-                                "✓ Granted"
-                            } else {
-                                "Required"
-                            },
+                        text = status,
                         style =
                             MaterialTheme.typography.labelMedium,
                         fontWeight =
                             FontWeight.ExtraBold,
-                        color =
-                            if (granted) {
-                                Color(0xFF10B981)
-                            } else {
-                                Sunrise
-                            }
+                        color = statusColor
                     )
                 }
 
-                if (!granted) {
+                Text(
+                    text = body,
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (actionLabel != null) {
                     Button(
                         modifier =
                             Modifier.fillMaxWidth(),
-                        onClick = onGrant,
+                        onClick =
+                            onAction,
                         shape =
                             RoundedCornerShape(
                                 999.dp
-                            ),
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor =
-                                    Sunrise,
-                                contentColor =
-                                    Color(0xFF0F172A)
                             )
                     ) {
                         Text(
                             text =
-                                "Grant Exact Alarm Permission",
+                                actionLabel,
                             fontWeight =
                                 FontWeight.ExtraBold
                         )
                     }
                 }
-
-                Text(
-                    text =
-                        "After granting access in Android settings, return to WakeSync. The status above updates automatically.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        colors.onSurfaceVariant
-                )
             }
         }
     }
