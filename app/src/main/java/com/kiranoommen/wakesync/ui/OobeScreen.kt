@@ -28,7 +28,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,11 +59,9 @@ import com.kiranoommen.wakesync.ui.theme.WakeSyncTheme
 fun OobeScreen(
     sdkStatus: Int,
     themeMode: String,
-    displayName: String,
     hasPermission: Boolean,
     exactAlarmAccess: Boolean,
     onThemeModeChange: (String) -> Unit,
-    onDisplayNameChange: (String) -> Unit,
     onConnect: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onFinish: () -> Unit
@@ -238,69 +235,10 @@ private fun OobeWelcome(
     OobePage(
         modifier = modifier,
         eyebrow = "WELCOME",
-        title = "Let’s set up WakeSync.",
-        body = "A quick first-run setup covers appearance, optional sleep connection, and alarm reliability. Standard Alarm works without health data.",
-        footer = "Your health data stays on your device."
+        title = "Wake smarter, without risking your morning.",
+        body = "WakeSync is built around Smart Wake: it looks for a better moment to wake you before the time you absolutely need to be up.",
+        footer = "Smart Wake uses read-only Health Connect sleep data and keeps processing on your device."
     )
-}
-
-@Composable
-private fun OobeName(
-    modifier: Modifier,
-    name: String,
-    onNameChange: (String) -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 42.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Text(
-            text = "PERSONALIZE",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = Lavender
-        )
-        Text(
-            text = "What should WakeSync call you?",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = colors.onBackground
-        )
-        Text(
-            text = "This is only used for greetings like “Good morning, Alex” and is stored locally.",
-            color = colors.onSurfaceVariant
-        )
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = colors.surface.copy(alpha = 0.68f),
-                contentColor = colors.onSurface
-            )
-        ) {
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                value = name,
-                onValueChange = onNameChange,
-                singleLine = true,
-                label = {
-                    Text("Preferred name")
-                },
-                placeholder = {
-                    Text("Alex")
-                }
-            )
-        }
-    }
 }
 
 @Composable
@@ -403,7 +341,7 @@ private fun OobePermissions(
 
         Text(
             text =
-                "Two permissions. One setup page.",
+                "Get Smart Wake ready.",
             style =
                 MaterialTheme.typography.headlineLarge,
             fontWeight =
@@ -414,7 +352,7 @@ private fun OobePermissions(
 
         Text(
             text =
-                "Health Connect enables Smart Wake and sleep insights. Standard Alarm works without it. Exact Alarm access keeps your configured alarm time precise.",
+                "Smart Wake requires Health Connect sleep data and works best with a fitness tracker. Your phone alone usually cannot provide fresh live sleep stages overnight. Exact Alarm access protects your latest wake time.",
             color =
                 colors.onSurfaceVariant
         )
@@ -444,7 +382,7 @@ private fun OobePermissions(
                 if (healthUnavailable) {
                     "Health Connect is not currently available on this device. You can finish setup and connect later from Settings."
                 } else {
-                    "Optional read-only access enables Smart Wake and sleep insights from compatible Health Connect sources. Standard Alarm does not require it."
+                    "Read-only sleep access is required for Smart Wake. For live overnight sleep stages, connect a compatible fitness tracker through Health Connect; phone-only sleep estimates usually are not enough."
                 },
             actionLabel =
                 if (
@@ -475,7 +413,7 @@ private fun OobePermissions(
                     Sunrise
                 },
             body =
-                "Android restricts exact timers by default. Granting Exact Alarm access helps your Guardrail Wake Time fire precisely without battery-saver delays.",
+                "Android restricts exact timers by default. Granting Exact Alarm access helps your Must be awake by time fire precisely without battery-saver delays.",
             actionLabel =
                 if (exactAlarmGranted) {
                     null
@@ -488,7 +426,7 @@ private fun OobePermissions(
 
         Text(
             text =
-                "You can finish setup now and revisit any missing permission later in Settings.",
+                "You can finish setup now, but WakeSync will clearly flag anything that still needs attention in Settings."
             style =
                 MaterialTheme.typography.bodySmall,
             color =
