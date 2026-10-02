@@ -337,7 +337,7 @@ private fun HomeTab(
         item { PrivacyBanner() }
 
         when {
-            preferences.mode == AlarmMode.STANDARD && !hasPermission -> item {
+            wakePreferences.mode == AlarmMode.STANDARD && !hasPermission -> item {
                 ConnectCard(onConnect = onConnect, optional = true)
             }
             sdkStatus == HealthConnectClient.SDK_UNAVAILABLE -> item {
