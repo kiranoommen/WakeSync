@@ -49,6 +49,7 @@ fun WakeSyncScreen(
     hasBackgroundReadPermission: Boolean,
     exactAlarmAccess: Boolean,
     notificationsAllowed: Boolean,
+    fullScreenAlarmAccess: Boolean,
     wakePreferences: WakePreferences,
     loading: Boolean,
     nights: List<SleepNight>,
@@ -56,6 +57,7 @@ fun WakeSyncScreen(
     onConnect: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onRequestNotifications: () -> Unit,
+    onRequestFullScreenAlarmAccess: () -> Unit,
     onWakePreferencesChanged: (WakePreferences) -> Unit,
     onAlarmEnabledChanged: (Boolean) -> Unit,
     onImAwake: () -> Unit,
@@ -110,10 +112,12 @@ fun WakeSyncScreen(
                     backgroundReadGranted = hasBackgroundReadPermission,
                     exactAlarmAccess = exactAlarmAccess,
                     notificationsAllowed = notificationsAllowed,
+                    fullScreenAlarmAccess = fullScreenAlarmAccess,
                     onPreferencesChanged = onWakePreferencesChanged,
                     onRequestHealthPermissions = onConnect,
                     onRequestExactAlarmAccess = onRequestExactAlarmAccess,
                     onRequestNotifications = onRequestNotifications,
+                    onRequestFullScreenAlarmAccess = onRequestFullScreenAlarmAccess,
                     onAlarmEnabledChanged = onAlarmEnabledChanged
                 )
 
