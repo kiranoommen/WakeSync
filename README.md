@@ -15,7 +15,9 @@ The core idea is simple:
 
 - recurring weekday schedules;
 - different times for different day groups;
-- adjustable smart windows: Off / 10 / 20 / 30 / 45 minutes;
+- Guardrail Wake Time as the hard deadline;
+- adjustable Smart Wake Windows: Off / 10 / 15 / 20 / 30 / 45 minutes;
+- rolling seven-day schedule overview beginning today;
 - exact Android alarm scheduling;
 - hard deadline backup;
 - skip-once with automatic recurring resume;
@@ -28,7 +30,7 @@ The core idea is simple:
 
 - Past Week, Past 2 Weeks, Past Month and dual-calendar custom ranges;
 - previous-period comparison mode;
-- WakeSync Sleep Performance score;
+- transparent WakeSync Sleep Performance score: 40% duration, 25% efficiency, 20% regularity, 15% latency;
 - total sleep, estimated efficiency, latency and WASO;
 - Deep / Light / REM / Awake stage distribution;
 - interactive duration + efficiency trend chart;
@@ -37,17 +39,19 @@ The core idea is simple:
 - expandable sortable sleep log;
 - optional HRV and resting-heart-rate metrics when Health Connect provides them;
 - local trend-based WakeSync insights;
-- CSV and PDF export generated locally.
+- CSV, PDF and story-card export generated locally.
 
 ### Dashboard
 
-- contextual morning briefing and color-coded Sleep Score hero;
-- transparent four-pillar score breakdown;
-- customizable Home widgets;
-- pin/unpin and reorder;
+- first-run onboarding for preferred name, appearance and Health Connect setup;
+- contextual morning briefing and color-coded daily Sleep Score hero;
+- transparent four-pillar daily score breakdown;
+- asymmetric two-column Bento dashboard;
+- six pinnable dashboard modules including debt, weekly hypnogram and alarm quick controls;
+- drag-handle dashboard reordering;
 - next wake-window hero;
-- sleep-goal progress ring and streak;
-- last-night bento metrics;
+- optional sleep-goal progress and streak;
+- last-night duration / efficiency Bento metrics;
 - local personalized insight card;
 - universal metric info drawers explaining meaning, measurement and relevance.
 
@@ -75,6 +79,6 @@ See [docs/PRIVACY.md](docs/PRIVACY.md) and [docs/SLEEP_METRICS.md](docs/SLEEP_ME
 
 WakeSync does not treat consumer wearable sleep stages as clinical ground truth.
 
-The score and smart-wake recommendation are wellness features, not medical diagnoses. Stage mix is deliberately low-weight, sleep duration is protected, and weak wake predictions fall back to the user's later deadline.
+The score and smart-wake recommendation are wellness features, not medical diagnoses. Consumer wearable stages remain visible as trends rather than a direct score pillar, sleep duration is protected, and weak wake predictions fall back to the Guardrail Wake Time.
 
 See [docs/SLEEP_METRICS.md](docs/SLEEP_METRICS.md) for the methodology and research references.
