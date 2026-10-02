@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="280" viewBox="0 0 1200 280" role="img" aria-labelledby="title desc">
+  <title id="title">WakeSync privacy</title>
+  <desc id="desc">Processed on your device. Read-only Health Connect access.</desc>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#080D1F"/><stop offset=".65" stop-color="#11172C"/><stop offset="1" stop-color="#252040"/></linearGradient></defs>
+  <rect width="1200" height="280" rx="28" fill="url(#bg)"/>
+  <g transform="translate(74 54)">
+    <path d="M82 0 L150 28 V86 C150 136 120 165 82 184 C44 165 14 136 14 86 V28Z" fill="#6F63FF" opacity=".24" stroke="#9A84FF" stroke-width="4"/>
+    <rect x="57" y="75" width="50" height="42" rx="9" fill="#E9ECFF"/>
+    <path d="M67 75 V60 C67 39 97 39 97 60 V75" fill="none" stroke="#E9ECFF" stroke-width="9" stroke-linecap="round"/>
+  </g>
+  <text x="300" y="96" fill="#F7F8FF" font-family="Inter,Roboto,Arial,sans-serif" font-size="34" font-weight="700">Processed on your device</text>
+  <text x="300" y="142" fill="#AEB7D4" font-family="Inter,Roboto,Arial,sans-serif" font-size="22">Read-only Health Connect access. No WakeSync health-data backend.</text>
+  <g transform="translate(300 178)" font-family="Inter,Roboto,Arial,sans-serif" font-size="17" font-weight="600">
+    <rect width="152" height="42" rx="21" fill="#6F63FF" opacity=".22" stroke="#7F75FF"/><text x="76" y="27" text-anchor="middle" fill="#E9ECFF">Read only</text>
+    <rect x="168" width="164" height="42" rx="21" fill="#9A84FF" opacity=".18" stroke="#A996FF"/><text x="250" y="27" text-anchor="middle" fill="#E9ECFF">Local analysis</text>
+    <rect x="348" width="184" height="42" rx="21" fill="#FFB44A" opacity=".14" stroke="#FFB44A"/><text x="440" y="27" text-anchor="middle" fill="#FFF3D5">No cloud account</text>
+  </g>
+</svg>
