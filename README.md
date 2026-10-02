@@ -1,20 +1,31 @@
 # WakeSync
 
-WakeSync is an Android smart alarm that uses sleep-stage data from Health Connect to choose a wake point inside a user-defined wake range.
+WakeSync is an Android smart alarm that uses Health Connect sleep-stage data to choose a wake point inside a user-defined wake range.
 
 ## Smart Wake 0.2
 
-The live Smart Wake flow is designed around a hard user boundary:
+WakeSync now uses a three-step fallback ladder:
 
-1. The user chooses the earliest and latest acceptable wake time.
-2. WakeSync schedules the latest time as an independent hard-deadline alarm.
-3. Live monitoring starts **45 minutes before the earliest wake time**.
-4. During the allowed wake range, WakeSync re-reads the newest Health Connect sleep stage once per minute.
-5. A stage is only treated as live when it is still ongoing or ended within the last five minutes.
-6. WakeSync wakes immediately in **Awake** or **Light** sleep, may use **REM** in the final 10 minutes, and avoids waking from **Deep** sleep when time remains.
-7. If live data is missing, stale, or delayed, WakeSync does not guess. The hard-deadline alarm still fires at the user's latest time.
+1. **Live sleep stage first**
+2. **Saved historical prediction at 15 minutes before the hard stop**
+3. **Hard-stop alarm if all else fails**
 
-The 45-minute pre-window period is observation only. WakeSync never intentionally wakes the user before the start of the range.
+For a user range of 6:20–7:00 AM:
+
+- 5:35 AM — live monitoring starts;
+- 6:20 AM — earliest time the app is allowed to wake the user;
+- 6:20–6:45 AM — fresh live Awake/Light stages can trigger the alarm;
+- 6:45 AM — live timing hands off to the locally saved historical profile;
+- 6:45–7:00 AM — the predictor can choose the strongest historical wake point;
+- 7:00 AM — independent hard-stop alarm fires no matter what.
+
+The 45-minute pre-window period is observation only. WakeSync never intentionally wakes the user before the start of their range.
+
+## Historical prediction
+
+Whenever recent sleep history is loaded, WakeSync derives and saves a compact profile from up to 30 nights. The profile stores stage quality by minute-before-natural-wake, rather than duplicating raw health records.
+
+The predictive fallback requires at least three historical samples for a candidate minute and ignores weak candidates. If no trustworthy prediction is available, WakeSync simply keeps the hard-stop alarm.
 
 ## Android requirements
 
@@ -30,7 +41,7 @@ All sleep-stage analysis remains on-device.
 
 ## Data source reality
 
-WakeSync can only react to sleep stages that a watch/app has already written into Health Connect. A connected wearable may publish data in real time, in batches, or only after a sleep session ends. WakeSync checks record freshness so delayed data is never presented as live.
+WakeSync can only react to sleep stages that a watch or sleep app has already written into Health Connect. A connected wearable may publish data live, in batches, or only after a session ends. WakeSync only treats a stage as live when it is ongoing or no more than five minutes old.
 
 ## Privacy
 
