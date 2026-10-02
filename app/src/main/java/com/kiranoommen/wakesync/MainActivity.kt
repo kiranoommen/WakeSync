@@ -255,7 +255,6 @@ class MainActivity : ComponentActivity() {
                         themeMode = newMode
                         appSettings.themeMode = newMode
                     },
-                    onDisplayNameChange = { },
                     onConnect = {
                         healthPermissionLauncher.launch(
                             healthConnectManager.requestedPermissions()
@@ -281,73 +280,120 @@ class MainActivity : ComponentActivity() {
                 )
             } else {
                 WakeSyncScreen(
-                    sdkStatus = healthConnectManager.sdkStatus(),
-                    hasPermission = hasPermission,
-                    loading = loading,
-                    nights = nights,
-                    schedules = schedules,
-                    exactAlarmAccess = exactAlarmAccessState.value,
-                    hasHistoryPermission = hasHistoryPermission,
-                    historyReadAvailable = historyReadAvailable,
-                    themeMode = themeMode,
-                    sleepGoalMinutes = sleepGoalMinutes,
-                    goalsEnabled = goalsEnabled,
-                    displayName = "",
-                    maxSmartWindowMinutes = maxSmartWindowMinutes,
-                    errorMessage = errorMessage,
+                    sdkStatus =
+                        healthConnectManager.sdkStatus(),
+                    hasPermission =
+                        hasPermission,
+                    loading =
+                        loading,
+                    nights =
+                        nights,
+                    schedules =
+                        schedules,
+                    exactAlarmAccess =
+                        exactAlarmAccessState.value,
+                    hasHistoryPermission =
+                        hasHistoryPermission,
+                    historyReadAvailable =
+                        historyReadAvailable,
+                    themeMode =
+                        themeMode,
+                    sleepGoalMinutes =
+                        sleepGoalMinutes,
+                    goalsEnabled =
+                        goalsEnabled,
+                    maxSmartWindowMinutes =
+                        maxSmartWindowMinutes,
+                    errorMessage =
+                        errorMessage,
                     onConnect = {
                         healthPermissionLauncher.launch(
-                            healthConnectManager.requestedPermissions()
+                            healthConnectManager
+                                .requestedPermissions()
                         )
                     },
-                    onRefresh = ::refreshSleep,
+                    onRefresh =
+                        ::refreshSleep,
                     onSaveSchedule = { schedule ->
                         val cappedWindow =
                             schedule.smartWindowMinutes
-                                .coerceIn(10, maxSmartWindowMinutes)
+                                .coerceIn(
+                                    10,
+                                    maxSmartWindowMinutes
+                                )
 
-                        val capped = schedule.copy(
-                            smartWindowMinutes = cappedWindow,
-                            smartOffsetMinutes =
-                                schedule.smartOffsetMinutes
-                                    .coerceAtMost(cappedWindow),
-                            backupRingCount =
-                                schedule.backupRingCount
-                                    .coerceIn(
-                                        0,
-                                        AlarmScheduler.MAX_BACKUP_RINGS
-                                    )
-                        )
+                        val capped =
+                            schedule.copy(
+                                smartWindowMinutes =
+                                    cappedWindow,
+                                smartOffsetMinutes =
+                                    schedule.smartOffsetMinutes
+                                        .coerceAtMost(
+                                            cappedWindow
+                                        ),
+                                backupRingCount =
+                                    schedule.backupRingCount
+                                        .coerceIn(
+                                            0,
+                                            AlarmScheduler
+                                                .MAX_BACKUP_RINGS
+                                        )
+                            )
 
                         persist(
-                            schedules.filterNot { it.id == capped.id } + capped
+                            schedules.filterNot {
+                                it.id == capped.id
+                            } + capped
                         )
                     },
                     onDeleteSchedule = { schedule ->
-                        alarmScheduler.cancel(schedule.id)
+                        alarmScheduler.cancel(
+                            schedule.id
+                        )
                         persist(
-                            schedules.filterNot { it.id == schedule.id }
+                            schedules.filterNot {
+                                it.id == schedule.id
+                            }
                         )
                     },
                     onDuplicateSchedule = { schedule ->
-                        val copy = schedule.copy(
-                            id = UUID.randomUUID().toString(),
-                            label =
-                                if (schedule.label.isBlank()) {
-                                    "Alarm copy"
-                                } else {
-                                    schedule.label + " copy"
-                                },
-                            enabled = true,
-                            skippedDates = emptySet()
+                        val copy =
+                            schedule.copy(
+                                id =
+                                    UUID.randomUUID()
+                                        .toString(),
+                                label =
+                                    if (
+                                        schedule.label
+                                            .isBlank()
+                                    ) {
+                                        "Alarm copy"
+                                    } else {
+                                        schedule.label +
+                                            " copy"
+                                    },
+                                enabled = true,
+                                skippedDates =
+                                    emptySet()
+                            )
+
+                        persist(
+                            schedules + copy
                         )
-                        persist(schedules + copy)
                     },
-                    onToggleSchedule = { schedule, enabled ->
+                    onToggleSchedule = {
+                            schedule,
+                            enabled ->
                         persist(
                             schedules.map {
-                                if (it.id == schedule.id) {
-                                    it.copy(enabled = enabled)
+                                if (
+                                    it.id ==
+                                    schedule.id
+                                ) {
+                                    it.copy(
+                                        enabled =
+                                            enabled
+                                    )
                                 } else {
                                     it
                                 }
@@ -355,22 +401,42 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     onSkipNext = { schedule ->
-                        val nextBase = schedule.nextBaseDeadline()
+                        val nextBase =
+                            schedule
+                                .nextBaseDeadline()
+
                         if (nextBase != null) {
                             val dateKey =
-                                nextBase.toLocalDate().toString()
+                                nextBase
+                                    .toLocalDate()
+                                    .toString()
+
                             val updatedSkips =
-                                if (schedule.skippedDates.contains(dateKey)) {
-                                    schedule.skippedDates - dateKey
+                                if (
+                                    schedule
+                                        .skippedDates
+                                        .contains(
+                                            dateKey
+                                        )
+                                ) {
+                                    schedule
+                                        .skippedDates -
+                                        dateKey
                                 } else {
-                                    schedule.skippedDates + dateKey
+                                    schedule
+                                        .skippedDates +
+                                        dateKey
                                 }
 
                             persist(
                                 schedules.map {
-                                    if (it.id == schedule.id) {
+                                    if (
+                                        it.id ==
+                                        schedule.id
+                                    ) {
                                         schedule.copy(
-                                            skippedDates = updatedSkips
+                                            skippedDates =
+                                                updatedSkips
                                         )
                                     } else {
                                         it
@@ -382,9 +448,13 @@ class MainActivity : ComponentActivity() {
                     onClearSkips = { schedule ->
                         persist(
                             schedules.map {
-                                if (it.id == schedule.id) {
+                                if (
+                                    it.id ==
+                                    schedule.id
+                                ) {
                                     schedule.copy(
-                                        skippedDates = emptySet()
+                                        skippedDates =
+                                            emptySet()
                                     )
                                 } else {
                                     it
@@ -393,18 +463,26 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     onRequestHistoryAccess = {
-                        if (historyReadAvailable) {
-                            historyPermissionLauncher.launch(
-                                HealthConnectManager.historyPermissions
-                            )
+                        if (
+                            historyReadAvailable
+                        ) {
+                            historyPermissionLauncher
+                                .launch(
+                                    HealthConnectManager
+                                        .historyPermissions
+                                )
                         }
                     },
                     onRequestExactAlarmAccess = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (
+                            Build.VERSION.SDK_INT >=
+                            Build.VERSION_CODES.S
+                        ) {
                             runCatching {
                                 startActivity(
                                     Intent(
-                                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                                        Settings
+                                            .ACTION_REQUEST_SCHEDULE_EXACT_ALARM
                                     ).apply {
                                         data =
                                             Uri.parse(
@@ -415,34 +493,52 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     },
-                    onThemeModeChange = { newMode ->
+                    onThemeModeChange = {
+                            newMode ->
                         themeMode = newMode
-                        appSettings.themeMode = newMode
+                        appSettings.themeMode =
+                            newMode
                     },
-                    onMaxSmartWindowChange = { minutes ->
-                        maxSmartWindowMinutes = minutes
-                        appSettings.maxSmartWindowMinutes = minutes
+                    onMaxSmartWindowChange = {
+                            minutes ->
+                        maxSmartWindowMinutes =
+                            minutes
+                        appSettings
+                            .maxSmartWindowMinutes =
+                            minutes
 
                         persist(
-                            schedules.map { schedule ->
+                            schedules.map {
+                                    schedule ->
                                 val capped =
-                                    schedule.smartWindowMinutes
-                                        .coerceAtMost(minutes)
-                                        .coerceAtLeast(10)
+                                    schedule
+                                        .smartWindowMinutes
+                                        .coerceAtMost(
+                                            minutes
+                                        )
+                                        .coerceAtLeast(
+                                            10
+                                        )
+
                                 schedule.copy(
-                                    smartWindowMinutes = capped,
+                                    smartWindowMinutes =
+                                        capped,
                                     smartOffsetMinutes =
-                                        if (schedule.mode == AlarmMode.STANDARD) {
+                                        if (
+                                            schedule.mode ==
+                                            AlarmMode.STANDARD
+                                        ) {
                                             0
                                         } else {
-                                            schedule.smartOffsetMinutes
-                                                .coerceAtMost(capped)
+                                            schedule
+                                                .smartOffsetMinutes
+                                                .coerceAtMost(
+                                                    capped
+                                                )
                                         }
                                 )
                             }
                         )
-                    },
-                )
                     }
                 )
             }
