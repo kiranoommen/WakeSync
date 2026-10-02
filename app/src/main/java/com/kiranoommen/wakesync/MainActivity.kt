@@ -80,7 +80,10 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(
                     appSettings.oobeCompleted ||
                         schedules.isNotEmpty() ||
-                        appSettings.hasExistingUserState()
+                        (
+                            !appSettings.oobeStarted &&
+                                appSettings.hasExistingUserState()
+                            )
                 )
             }
 
@@ -199,7 +202,10 @@ class MainActivity : ComponentActivity() {
                     !appSettings.oobeCompleted &&
                     (
                         schedules.isNotEmpty() ||
-                            appSettings.hasExistingUserState()
+                            (
+                                !appSettings.oobeStarted &&
+                                    appSettings.hasExistingUserState()
+                                )
                         )
                 ) {
                     appSettings.oobeCompleted = true
@@ -241,6 +247,12 @@ class MainActivity : ComponentActivity() {
             }
 
             if (!oobeCompleted) {
+                LaunchedEffect(Unit) {
+                    if (!appSettings.oobeStarted) {
+                        appSettings.oobeStarted = true
+                    }
+                }
+
                 OobeScreen(
                     sdkStatus = healthConnectManager.sdkStatus(),
                     themeMode = themeMode,
