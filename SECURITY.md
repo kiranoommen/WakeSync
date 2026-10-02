@@ -1,4 +1,8 @@
-# Security Policy
+<p align="center">
+  <img src="docs/assets/wakesync-mark.svg" alt="WakeSync mark" width="110" />
+</p>
+
+# 🔒 Security Policy
 
 WakeSync handles sleep information through Android Health Connect, so privacy and alarm reliability are security-sensitive parts of the product.
 
