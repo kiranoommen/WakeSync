@@ -92,7 +92,7 @@ WakeSync should not sound:
 ## Voice examples
 
 Preferred:
-- “Live sleep monitoring starts 45 minutes before your wake range.”
+- “Live sleep monitoring starts 15 minutes before your wake range.”
 - “No fresh sleep data? WakeSync will use your saved sleep pattern near the deadline.”
 - “Your hard-stop alarm stays scheduled.”
 
@@ -201,8 +201,8 @@ Screenshots should show a realistic wake range and clearly expose the fallback b
 Recommended demo range:
 - earliest wake: 6:20 AM
 - hard stop: 7:00 AM
-- live monitor start: 5:35 AM
-- predictive handoff: 6:45 AM
+- live monitor start: 6:05 AM
+- historical fallback window: 6:50–7:00 AM
 
 Do not use screenshots that imply WakeSync can see live stages when the underlying data source has not actually synced them.
 
@@ -257,7 +257,7 @@ Preferred repository description:
 
 Preferred short social copy:
 
-> WakeSync picks a smarter moment to wake inside the range you choose—live sleep data first, your history second, hard stop always.
+> WakeSync keeps live sleep primary inside the range you choose, arms history only near the deadline, and keeps a hard stop always.
 
 ## Related documents
 
