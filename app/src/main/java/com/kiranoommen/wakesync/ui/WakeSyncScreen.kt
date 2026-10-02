@@ -1,6 +1,8 @@
 package com.kiranoommen.wakesync.ui
 
 import android.app.TimePickerDialog
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.animateColorAsState
@@ -12,7 +14,9 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
@@ -22,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +43,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -56,6 +63,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +84,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -2690,6 +2699,11 @@ private fun AlarmsTab(
     var infoSheet by remember {
         mutableStateOf<MetricInfo?>(null)
     }
+    var showDonationQr by remember {
+        mutableStateOf(false)
+    }
+    val settingsContext =
+        LocalContext.current
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -3407,49 +3421,16 @@ private fun SettingsTab(
                             MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Row(
-                        modifier = Modifier
-                            .horizontalScroll(
-                                rememberScrollState()
-                            )
-                            .padding(top = 6.dp),
-                        horizontalArrangement =
-                            Arrangement.spacedBy(7.dp)
-                    ) {
-                        listOf(
-                            420 to "7h",
-                            450 to "7.5h",
-                            480 to "8h",
-                            510 to "8.5h",
-                            540 to "9h"
-                        ).forEach { (minutes, label) ->
-                            FilterChip(
-                                selected =
-                                    sleepGoalMinutes == minutes,
-                                onClick = {
-                                    onSleepGoalChange(minutes)
-                                },
-                                label = {
-                                    Text(
-                                        label,
-                                        fontWeight =
-                                            if (
-                                                sleepGoalMinutes ==
-                                                minutes
-                                            ) {
-                                                FontWeight.Bold
-                                            } else {
-                                                FontWeight.Medium
-                                            }
-                                    )
-                                }
-                            )
-                        }
-                    }
+                    SleepTargetWheel(
+                        selectedMinutes =
+                            sleepGoalMinutes,
+                        onSelected =
+                            onSleepGoalChange
+                    )
 
                     Text(
                         text =
-                            "Used for goal progress and sleep-debt estimates.",
+                            "Choose any target from 4h 00m to 12h 00m in 15-minute steps. Used for goal progress and sleep-debt estimates.",
                         style =
                             MaterialTheme.typography.bodySmall,
                         color =
@@ -3728,34 +3709,11 @@ private fun SettingsTab(
                     ConnectionBadge(
                         connected =
                             exactAlarmAccess,
-                        connectedLabel = "Ready",
-                        disconnectedLabel = "Action"
+                        connectedLabel = "Granted",
+                        disconnectedLabel = "Action Required"
                     )
                 }
 
-                if (!exactAlarmAccess) {
-                    Button(
-                        modifier =
-                            Modifier.padding(top = 12.dp),
-                        onClick =
-                            onRequestExactAlarmAccess,
-                        shape =
-                            RoundedCornerShape(999.dp),
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor =
-                                    Sunrise,
-                                contentColor =
-                                    Color(0xFF0F172A)
-                            )
-                    ) {
-                        Text(
-                            "Allow exact alarms",
-                            fontWeight =
-                                FontWeight.Bold
-                        )
-                    }
-                }
             }
         }
 
@@ -3861,11 +3819,153 @@ private fun SettingsTab(
         }
 
         item {
+            Text(
+                text = "About & Support",
+                style =
+                    MaterialTheme.typography.titleLarge,
+                fontWeight =
+                    FontWeight.ExtraBold,
+                color =
+                    MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        item {
+            SettingsBentoCard(
+                title = "Support WakeSync",
+                borderColor =
+                    Lavender.copy(alpha = 0.30f),
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Support WakeSync",
+                        meaning = "WakeSync is built privacy-first with no ads. Donations are optional and do not unlock features.",
+                        measurement = "The PayPal button opens the official PayPal donation page in your browser. The QR code encodes the same donation URL.",
+                        importance = "Optional support can help fund future development while keeping the app free of advertising."
+                    )
+                }
+            ) {
+                Text(
+                    text =
+                        "WakeSync is built privacy-first with no ads. If you find it helpful, consider supporting future development!",
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Button(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    onClick = {
+                        val intent =
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse(
+                                    PAYPAL_DONATION_URL
+                                )
+                            )
+                        settingsContext.startActivity(
+                            intent
+                        )
+                    },
+                    shape =
+                        RoundedCornerShape(999.dp)
+                ) {
+                    Text(
+                        text = "Donate via PayPal",
+                        fontWeight =
+                            FontWeight.ExtraBold
+                    )
+                }
+
+                OutlinedButton(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    onClick = {
+                        showDonationQr = true
+                    },
+                    shape =
+                        RoundedCornerShape(999.dp)
+                ) {
+                    Text(
+                        text = "Show QR Code",
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        item {
             Spacer(
                 modifier =
                     Modifier.height(12.dp)
             )
         }
+    }
+
+    if (showDonationQr) {
+        AlertDialog(
+            onDismissRequest = {
+                showDonationQr = false
+            },
+            title = {
+                Text(
+                    text = "PayPal Donation QR",
+                    fontWeight =
+                        FontWeight.ExtraBold
+                )
+            },
+            text = {
+                Column(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally,
+                    verticalArrangement =
+                        Arrangement.spacedBy(12.dp)
+                ) {
+                    Card(
+                        shape =
+                            RoundedCornerShape(20.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    Color.White
+                            )
+                    ) {
+                        Image(
+                            modifier = Modifier
+                                .size(260.dp)
+                                .padding(12.dp),
+                            painter =
+                                painterResource(
+                                    id =
+                                        R.drawable.paypal_qr_code
+                                ),
+                            contentDescription =
+                                "PayPal donation QR code"
+                        )
+                    }
+
+                    Text(
+                        text =
+                            "Scan this code from another device to open the WakeSync PayPal donation page.",
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDonationQr = false
+                    }
+                ) {
+                    Text("Done")
+                }
+            }
+        )
     }
 
     MetricInfoBottomSheet(
@@ -3874,6 +3974,221 @@ private fun SettingsTab(
             infoSheet = null
         }
     )
+}
+
+@Composable
+private fun SleepTargetWheel(
+    selectedMinutes: Int,
+    onSelected: (Int) -> Unit
+) {
+    val options =
+        remember {
+            (240..720 step 15).toList()
+        }
+    val selectedIndex =
+        options.indexOf(
+            selectedMinutes
+                .coerceIn(240, 720)
+        )
+            .coerceAtLeast(0)
+    val listState =
+        rememberLazyListState(
+            initialFirstVisibleItemIndex =
+                (selectedIndex - 1)
+                    .coerceAtLeast(0)
+        )
+    val fling =
+        rememberSnapFlingBehavior(
+            lazyListState =
+                listState
+        )
+
+    LaunchedEffect(
+        listState.isScrollInProgress,
+        options
+    ) {
+        if (!listState.isScrollInProgress) {
+            val layout =
+                listState.layoutInfo
+            val center =
+                (
+                    layout.viewportStartOffset +
+                        layout.viewportEndOffset
+                    ) / 2
+            val item =
+                layout.visibleItemsInfo
+                    .minByOrNull {
+                        abs(
+                            (
+                                it.offset +
+                                    it.size / 2
+                                ) -
+                                center
+                        )
+                    }
+            item?.index
+                ?.takeIf {
+                    it in
+                        options.indices
+                }
+                ?.let { index ->
+                    val minutes =
+                        options[index]
+                    if (
+                        minutes !=
+                        selectedMinutes
+                    ) {
+                        onSelected(
+                            minutes
+                        )
+                    }
+                }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(168.dp),
+        contentAlignment =
+            Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape =
+                RoundedCornerShape(18.dp),
+            border = BorderStroke(
+                1.dp,
+                Lavender.copy(
+                    alpha = 0.38f
+                )
+            ),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        Lavender.copy(
+                            alpha = 0.12f
+                        )
+                )
+        ) {
+            Box(
+                modifier =
+                    Modifier.fillMaxSize()
+            )
+        }
+
+        LazyColumn(
+            modifier =
+                Modifier.fillMaxSize(),
+            state = listState,
+            flingBehavior = fling,
+            contentPadding =
+                PaddingValues(
+                    vertical = 58.dp
+                ),
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+            itemsIndexed(
+                options,
+                key = {
+                        _,
+                        minutes ->
+                    minutes
+                }
+            ) {
+                    _,
+                    minutes ->
+                val distance =
+                    abs(
+                        minutes -
+                            selectedMinutes
+                    ) / 15
+                val alpha =
+                    when (distance) {
+                        0 -> 1f
+                        1 -> 0.62f
+                        else -> 0.34f
+                    }
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .padding(top = 13.dp),
+                    text =
+                        formatSleepTarget(
+                            minutes
+                        ),
+                    style =
+                        MaterialTheme.typography.titleLarge,
+                    fontWeight =
+                        if (
+                            minutes ==
+                            selectedMinutes
+                        ) {
+                            FontWeight.ExtraBold
+                        } else {
+                            FontWeight.Medium
+                        },
+                    color =
+                        MaterialTheme.colorScheme.onSurface
+                            .copy(alpha = alpha),
+                    textAlign =
+                        androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(42.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.surface
+                                .copy(alpha = 0.88f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(42.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Transparent,
+                            MaterialTheme.colorScheme.surface
+                                .copy(alpha = 0.88f)
+                        )
+                    )
+                )
+        )
+    }
+}
+
+private fun formatSleepTarget(
+    minutes: Int
+): String {
+    val hours =
+        minutes / 60
+    val remainder =
+        minutes % 60
+    return hours.toString() +
+        "h " +
+        remainder.toString()
+            .padStart(
+                2,
+                '0'
+            ) +
+        "m"
 }
 
 @Composable
