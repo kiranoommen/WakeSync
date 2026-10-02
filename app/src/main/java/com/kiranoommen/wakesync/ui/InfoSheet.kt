@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -36,28 +37,60 @@ fun InfoTrigger(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark =
+        MaterialTheme.colorScheme.background
+            .luminance() < 0.5f
+
     Card(
         onClick = onClick,
-        modifier = modifier.size(30.dp),
+        modifier =
+            modifier.size(36.dp),
         shape = CircleShape,
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        border =
+            if (isDark) {
+                BorderStroke(
+                    1.dp,
+                    Color.White.copy(
+                        alpha = 0.10f
+                    )
+                )
+            } else {
+                null
+            },
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    MaterialTheme.colorScheme.surfaceVariant
+                        .copy(
+                            alpha =
+                                if (isDark) {
+                                    0.42f
+                                } else {
+                                    0.30f
+                                }
+                        ),
+                contentColor =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier.fillMaxSize(),
+            contentAlignment =
+                Alignment.Center
         ) {
             Text(
                 text = "i",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                modifier =
+                    Modifier.align(
+                        Alignment.Center
+                    ),
+                style =
+                    MaterialTheme.typography.labelLarge,
+                fontWeight =
+                    FontWeight.ExtraBold,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
