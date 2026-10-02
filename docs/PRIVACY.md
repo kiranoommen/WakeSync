@@ -20,19 +20,25 @@ WakeSync processes sleep data locally on the user's Android device.
 
 WakeSync requests read-only access to sleep sessions and sleep stages through Android Health Connect.
 
+WakeSync may separately request **optional** read-only access to heart-rate variability (HRV) and resting heart rate for the sleep analytics dashboard. Smart Wake does not require those two metrics.
+
+When supported, the user may also grant Health Connect's extended-history permission so WakeSync can analyze more than the default recent-history window.
+
 When Smart Wake is enabled and the device supports it, WakeSync also requests Health Connect background-read access. This allows the app to re-check the newest sleep stage during the short monitoring period before and during the user's wake range.
 
 WakeSync does not request permission to write sleep data.
 
 ## 📱 Local processing
 
-Smart Wake decisions are made on-device. WakeSync stores only the user's wake settings locally for the current implementation; raw sleep records are read from Health Connect as needed rather than uploaded to a WakeSync server.
+Smart Wake and sleep-analytics calculations are made on-device. WakeSync stores wake preferences, UI preferences, and a compact derived wake-history profile locally. Raw Health Connect records are read as needed rather than copied to a WakeSync server.
+
+CSV, PDF, and story-card exports are generated locally only when the user requests them. By default exports are temporary; the user can choose to retain generated copies locally and can clear them from Settings.
 
 ## 🚫 What WakeSync does not do
 
 WakeSync does not:
 
-- upload sleep or health data to a WakeSync server;
+- upload sleep, HRV, resting-heart-rate, or other Health Connect data to a WakeSync server;
 - sell health data;
 - share health data with advertisers or third parties;
 - modify Health Connect records;
