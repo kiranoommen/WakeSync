@@ -68,10 +68,15 @@ class AlarmRingingService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val standard = reason == "Standard alarm"
         val notification = Notification.Builder(this, ALARM_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("WakeSync")
-            .setContentText("It’s time to wake up.")
+            .setContentTitle(
+                if (standard) "WakeSync · Standard Alarm" else "WakeSync · Smart Wake"
+            )
+            .setContentText(
+                if (standard) "Your alarm is ringing." else "WakeSync chose this wake moment."
+            )
             .setCategory(Notification.CATEGORY_ALARM)
             .setPriority(Notification.PRIORITY_MAX)
             .setOngoing(true)
