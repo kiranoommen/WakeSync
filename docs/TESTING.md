@@ -48,8 +48,8 @@ Verify:
 - enabling Standard Alarm does not schedule the live monitor or historical fallback;
 - switching from Smart Wake to Standard Alarm stops any active live monitor;
 - Standard Alarm rings with the Standard Alarm UI/reason;
-- with Backup Rings off, the next recurrence remains scheduled normally;
-- with 2 Backup Rings enabled, the primary alarm is followed by rings at +5 and +10 minutes unless the user explicitly stops the remaining sequence.
+- with Backup Alarms off, the next recurrence remains scheduled normally;
+- with 2 Backup Alarms enabled, the primary alarm is followed by rings at +5 and +10 minutes unless the user explicitly stops the remaining sequence.
 
 ### 3. Wake-range boundaries
 
@@ -98,20 +98,20 @@ With insufficient history:
 - no predictive alarm should be trusted;
 - hard stop should remain the final wake path.
 
-### 7. Backup rings and hard stop
+### 7. Backup alarms and hard stop
 
 This is mandatory.
 
-With Backup Rings enabled:
+With Backup Alarms enabled:
 - verify 1, 2, and 3-ring configurations;
 - verify rings occur every five minutes after the hard deadline;
 - verify “Dismiss this ring” stops only the current sound/vibration;
 - verify the remaining backup alarms still fire;
 - verify “I’m awake — stop remaining alarms” cancels all remaining alarms in the current sequence;
 - verify the next recurring occurrence is still scheduled;
-- verify Snooze is not offered while Backup Rings are active.
+- verify Snooze is not offered while Backup Alarms are active.
 
-With Backup Rings disabled, verify Snooze remains available when configured.
+With Backup Alarms disabled, verify Snooze remains available when configured.
 
 Hard-stop validation:
 
@@ -175,3 +175,18 @@ Record only non-sensitive diagnostics such as:
 - scheduled and actual alarm timestamps.
 
 Do not store or publish raw personal sleep records for debugging.
+
+
+## 0.7 alarm-list and one-time regression checks
+
+Verify:
+- Tomorrow-only creates a one-time alarm for the next calendar day;
+- a completed one-time alarm automatically becomes disabled rather than silently becoming recurring;
+- Daily, Weekdays and Custom presets schedule the expected dates;
+- duplicate creates a separate alarm ID and preserves the original;
+- swipe right toggles an alarm and returns the card to rest;
+- swipe left duplicates an alarm and returns the card to rest;
+- swipe actions provide haptic feedback;
+- deleting remains an explicit editor action rather than a destructive quick swipe;
+- Backup Alarms remain scheduled when an early Smart Wake alarm is merely dismissed;
+- **I’m awake — stop all** cancels the rest of the current wake sequence.
