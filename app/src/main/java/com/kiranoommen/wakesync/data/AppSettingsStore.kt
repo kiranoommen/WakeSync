@@ -71,38 +71,11 @@ class AppSettingsStore(context: Context) {
                 .apply()
         }
 
-    var displayName: String
-        get() = prefs.getString(KEY_DISPLAY_NAME, "") ?: ""
-        set(value) {
-            prefs.edit()
-                .putString(KEY_DISPLAY_NAME, value.trim().take(24))
-                .apply()
-        }
-
     var maxSmartWindowMinutes: Int
         get() = prefs.getInt(KEY_MAX_SMART_WINDOW, 30).coerceIn(10, 30)
         set(value) {
             prefs.edit()
                 .putInt(KEY_MAX_SMART_WINDOW, value.coerceIn(10, 30))
-                .apply()
-        }
-
-    var retainGeneratedExports: Boolean
-        get() = prefs.getBoolean(KEY_RETAIN_EXPORTS, false)
-        set(value) {
-            prefs.edit()
-                .putBoolean(KEY_RETAIN_EXPORTS, value)
-                .apply()
-        }
-
-    var dashboardWidgets: List<String>
-        get() = prefs.getString(KEY_DASHBOARD_WIDGETS, null)
-            ?.split(",")
-            ?.filter { it.isNotBlank() }
-            ?: DEFAULT_DASHBOARD_WIDGETS
-        set(value) {
-            prefs.edit()
-                .putString(KEY_DASHBOARD_WIDGETS, value.distinct().joinToString(","))
                 .apply()
         }
 
@@ -126,15 +99,6 @@ class AppSettingsStore(context: Context) {
         const val WIDGET_DEBT = "DEBT"
         const val WIDGET_HYPNOGRAM = "HYPNOGRAM"
         const val WIDGET_ALARM = "ALARM"
-
-        val DEFAULT_DASHBOARD_WIDGETS =
-            listOf(
-                WIDGET_GOAL,
-                WIDGET_DEBT,
-                WIDGET_SLEEP,
-                WIDGET_INSIGHT,
-                WIDGET_ALARM
-            )
 
         private const val KEY_OOBE_STARTED = "oobe_started"
         private const val KEY_OOBE_COMPLETED = "oobe_completed"
