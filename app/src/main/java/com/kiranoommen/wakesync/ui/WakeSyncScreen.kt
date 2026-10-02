@@ -1804,7 +1804,7 @@ private fun MorningBriefingCard(
 
             Column(
                 modifier =
-                    Modifier.padding(17.dp)
+                    Modifier.padding(15.dp)
             ) {
                 Row(
                     modifier =
@@ -1890,7 +1890,7 @@ private fun MorningBriefingCard(
                     HomeScoreGauge(
                         modifier = Modifier
                             .padding(
-                                start = 12.dp
+                                start = 10.dp
                             )
                             .size(92.dp),
                         score = score,
