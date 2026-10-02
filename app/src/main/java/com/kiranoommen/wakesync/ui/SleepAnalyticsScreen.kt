@@ -2998,20 +2998,6 @@ private fun NightBreakdownSheet(
                 )
             }
 
-            if (
-                night.night.averageHrvMs != null ||
-                night.night.restingHeartRateBpm != null
-            ) {
-                Text(
-                    text =
-                        "HRV = Heart Rate Variability, a beat-to-beat recovery trend. RHR = Resting Heart Rate. WakeSync currently receives nightly recovery values rather than a full trace, so it does not fabricate overlay graphs.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
             TextButton(
                 modifier =
                     Modifier.align(Alignment.End),
@@ -3023,7 +3009,6 @@ private fun NightBreakdownSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomRangeSheet(
