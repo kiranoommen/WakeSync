@@ -3341,9 +3341,6 @@ private fun SettingsTab(
     onRetainGeneratedExportsChange: (Boolean) -> Unit,
     onClearGeneratedExports: () -> Unit
 ) {
-    val source =
-        nights.firstOrNull()?.sourcePackage
-            ?: "No source detected yet"
     var infoSheet by remember {
         mutableStateOf<MetricInfo?>(null)
     }
@@ -3396,7 +3393,7 @@ private fun SettingsTab(
                     infoSheet = MetricInfo(
                         title = "Sleep targets & goals",
                         meaning = "Optional personal targets for nightly sleep duration, goal progress and sleep-debt estimates.",
-                        measurement = "When enabled, WakeSync compares estimated nightly sleep minutes with your selected target. When disabled, target and debt indicators are hidden.",
+                        measurement = "When enabled, WakeSync stores your 4–12 hour target as total minutes in 15-minute increments and uses that exact value for goal progress and sleep-debt calculations. When disabled, target and debt indicators are hidden.",
                         importance = "Some people find targets motivating; others prefer neutral duration and efficiency trends. WakeSync supports both."
                     )
                 }
