@@ -30,7 +30,26 @@ class AppSettingsStore(context: Context) {
         }
 
     var sleepGoalMinutes: Int
-        get() = prefs.getInt(KEY_SLEEP_GOAL, 480)
+        get() {
+            val stored =
+                prefs.getInt(
+                    KEY_SLEEP_GOAL,
+                    480
+                )
+                    .coerceIn(
+                        240,
+                        720
+                    )
+            return (
+                (stored + 7) /
+                    15 *
+                    15
+                )
+                .coerceIn(
+                    240,
+                    720
+                )
+        }
         set(value) {
             val clamped =
                 value.coerceIn(240, 720)
