@@ -21,8 +21,10 @@ import androidx.compose.runtime.setValue
 import androidx.health.connect.client.PermissionController
 import com.kiranoommen.wakesync.alarm.WakeAlarmController
 import com.kiranoommen.wakesync.alarm.WakeAlarmScheduler
+import com.kiranoommen.wakesync.alarm.PredictiveWakeEngine
 import com.kiranoommen.wakesync.alarm.WakeMonitorService
 import com.kiranoommen.wakesync.data.HealthConnectManager
+import com.kiranoommen.wakesync.data.WakeHistoryStore
 import com.kiranoommen.wakesync.data.WakePreferencesStore
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.WakePreferences
@@ -33,12 +35,14 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var healthConnectManager: HealthConnectManager
     private lateinit var wakePreferencesStore: WakePreferencesStore
+    private lateinit var wakeHistoryStore: WakeHistoryStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         healthConnectManager = HealthConnectManager(this)
         wakePreferencesStore = WakePreferencesStore(this)
+        wakeHistoryStore = WakeHistoryStore(this)
 
         setContent {
             val scope = rememberCoroutineScope()
@@ -79,7 +83,12 @@ class MainActivity : ComponentActivity() {
                 errorMessage = null
                 scope.launch {
                     runCatching { healthConnectManager.readRecentSleep() }
-                        .onSuccess { nights = it }
+                        .onSuccess {
+                            nights = it
+                            wakeHistoryStore.save(
+                                PredictiveWakeEngine.buildProfile(it)
+                            )
+                        }
                         .onFailure {
                             errorMessage = it.message ?: "Unable to read sleep data."
                         }
@@ -152,7 +161,12 @@ class MainActivity : ComponentActivity() {
                 if (hasPermission) {
                     loading = true
                     runCatching { healthConnectManager.readRecentSleep() }
-                        .onSuccess { nights = it }
+                        .onSuccess {
+                            nights = it
+                            wakeHistoryStore.save(
+                                PredictiveWakeEngine.buildProfile(it)
+                            )
+                        }
                         .onFailure {
                             errorMessage = it.message ?: "Unable to read sleep data."
                         }
