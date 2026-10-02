@@ -16,140 +16,190 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.health.connect.client.PermissionController
+import androidx.lifecycle.lifecycleScope
+import com.kiranoommen.wakesync.alarm.AlarmScheduler
 import com.kiranoommen.wakesync.alarm.PredictiveWakeEngine
-import com.kiranoommen.wakesync.alarm.WakeAlarmController
-import com.kiranoommen.wakesync.alarm.WakeAlarmScheduler
-import com.kiranoommen.wakesync.alarm.WakeMonitorService
+import com.kiranoommen.wakesync.data.AlarmStore
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.HealthConnectManager
 import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.data.WakeHistoryStore
-import com.kiranoommen.wakesync.data.WakePreferencesStore
 import com.kiranoommen.wakesync.model.AlarmMode
+import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
-import com.kiranoommen.wakesync.model.WakePreferences
 import com.kiranoommen.wakesync.ui.OobeScreen
 import com.kiranoommen.wakesync.ui.WakeSyncScreen
 import kotlinx.coroutines.launch
+import java.time.ZonedDateTime
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var healthConnectManager: HealthConnectManager
-    private lateinit var wakePreferencesStore: WakePreferencesStore
-    private lateinit var wakeHistoryStore: WakeHistoryStore
+    private lateinit var alarmStore: AlarmStore
+    private lateinit var alarmScheduler: AlarmScheduler
     private lateinit var appSettings: AppSettingsStore
+    private lateinit var wakeHistoryStore: WakeHistoryStore
+
+    private val exactAlarmAccessState = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         healthConnectManager = HealthConnectManager(this)
-        wakePreferencesStore = WakePreferencesStore(this)
-        wakeHistoryStore = WakeHistoryStore(this)
+        alarmStore = AlarmStore(this)
+        alarmScheduler = AlarmScheduler(this)
         appSettings = AppSettingsStore(this)
+        wakeHistoryStore = WakeHistoryStore(this)
+        exactAlarmAccessState.value = alarmScheduler.canScheduleExactAlarms()
 
         setContent {
-            val scope = rememberCoroutineScope()
-
             var hasPermission by remember { mutableStateOf(false) }
-            var backgroundReadAvailable by remember {
-                mutableStateOf(healthConnectManager.backgroundReadAvailable())
-            }
-            var hasBackgroundReadPermission by remember { mutableStateOf(false) }
             var hasAnalyticsPermission by remember { mutableStateOf(false) }
             var hasHistoryPermission by remember { mutableStateOf(false) }
-            var exactAlarmAccess by remember {
-                mutableStateOf(WakeAlarmScheduler.canScheduleExactAlarms(this))
-            }
-            var notificationsAllowed by remember {
-                mutableStateOf(areNotificationsAllowed())
-            }
-            var fullScreenAlarmAccess by remember {
-                mutableStateOf(canUseFullScreenAlarms())
-            }
-            var wakePreferences by remember {
-                mutableStateOf(wakePreferencesStore.load())
-            }
             var nights by remember { mutableStateOf<List<SleepNight>>(emptyList()) }
+            var schedules by remember { mutableStateOf(alarmStore.load()) }
             var loading by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
-
             var themeMode by remember { mutableStateOf(appSettings.themeMode) }
-            var sleepGoalMinutes by remember { mutableStateOf(appSettings.sleepGoalMinutes) }
-            var goalsEnabled by remember { mutableStateOf(appSettings.goalsEnabled) }
-            var displayName by remember { mutableStateOf(appSettings.displayName) }
+            var sleepGoalMinutes by remember {
+                mutableStateOf(appSettings.sleepGoalMinutes)
+            }
+            var goalsEnabled by remember {
+                mutableStateOf(appSettings.goalsEnabled)
+            }
+            var dashboardWidgets by remember {
+                mutableStateOf(appSettings.dashboardWidgets)
+            }
+            var maxSmartWindowMinutes by remember {
+                mutableStateOf(appSettings.maxSmartWindowMinutes)
+            }
             var retainGeneratedExports by remember {
                 mutableStateOf(appSettings.retainGeneratedExports)
             }
-            var oobeCompleted by remember { mutableStateOf(appSettings.oobeCompleted) }
+            var oobeCompleted by remember {
+                mutableStateOf(
+                    appSettings.oobeCompleted ||
+                        schedules.isNotEmpty() ||
+                        (!appSettings.oobeStarted && appSettings.hasExistingUserState())
+                )
+            }
 
             val historyReadAvailable = healthConnectManager.historyReadAvailable()
 
-            fun setupReady(preferences: WakePreferences = wakePreferences): Boolean {
-                val alarmBasicsReady =
-                    exactAlarmAccess &&
-                        notificationsAllowed &&
-                        fullScreenAlarmAccess &&
-                        preferences.hasValidSchedule()
-
-                if (!alarmBasicsReady) return false
-
-                return when (preferences.mode) {
-                    AlarmMode.STANDARD -> true
-                    AlarmMode.SMART_WAKE ->
-                        hasPermission &&
-                            backgroundReadAvailable &&
-                            hasBackgroundReadPermission &&
-                            preferences.hasValidRange()
+            fun withForecasts(
+                input: List<AlarmSchedule>,
+                sleepHistory: List<SleepNight> = nights
+            ): List<AlarmSchedule> {
+                if (sleepHistory.isEmpty()) {
+                    return input.map {
+                        if (it.mode == AlarmMode.STANDARD) {
+                            it.copy(smartOffsetMinutes = 0)
+                        } else {
+                            it
+                        }
+                    }
                 }
+
+                val profile = PredictiveWakeEngine.buildProfile(sleepHistory)
+                val now = ZonedDateTime.now()
+
+                return input.map { schedule ->
+                    if (schedule.mode == AlarmMode.STANDARD ||
+                        schedule.smartWindowMinutes <= 0
+                    ) {
+                        schedule.copy(smartOffsetMinutes = 0)
+                    } else {
+                        val deadline = schedule.nextDeadline(now)
+                        val prediction = deadline?.let {
+                            PredictiveWakeEngine.chooseWakeTime(
+                                profile = profile,
+                                now = now,
+                                deadline = it,
+                                fallbackWindowMinutes = minOf(
+                                    AlarmScheduler.HISTORICAL_FALLBACK_WINDOW_MINUTES.toInt(),
+                                    schedule.smartWindowMinutes
+                                )
+                            )
+                        }
+
+                        schedule.copy(
+                            smartOffsetMinutes =
+                                prediction?.minutesBeforeDeadline ?: 0
+                        )
+                    }
+                }
+            }
+
+            fun persist(input: List<AlarmSchedule>) {
+                val today = java.time.LocalDate.now()
+                val cleaned = input.map { schedule ->
+                    schedule.copy(
+                        skippedDates = schedule.futureSkippedDates(today)
+                    )
+                }
+                val updated = withForecasts(cleaned)
+                schedules = updated
+                alarmStore.save(updated)
+                alarmScheduler.scheduleAll(updated)
+            }
+
+            fun applySleepHistory(input: List<SleepNight>) {
+                nights = input
+                val profile = PredictiveWakeEngine.buildProfile(input)
+                wakeHistoryStore.save(profile)
+
+                val updated = withForecasts(schedules, input)
+                if (updated != schedules) {
+                    schedules = updated
+                    alarmStore.save(updated)
+                }
+                alarmScheduler.scheduleAll(updated)
             }
 
             fun refreshSleep() {
                 if (!hasPermission) return
+
                 loading = true
                 errorMessage = null
 
-                scope.launch {
+                lifecycleScope.launch {
                     val days = if (hasHistoryPermission) 190L else 30L
-
-                    runCatching { healthConnectManager.readRecentSleep(days) }
-                        .onSuccess {
-                            nights = it
-                            wakeHistoryStore.save(
-                                PredictiveWakeEngine.buildProfile(it)
-                            )
-                        }
+                    runCatching {
+                        healthConnectManager.readRecentSleep(days)
+                    }
+                        .onSuccess(::applySleepHistory)
                         .onFailure {
-                            errorMessage = it.message ?: "Unable to read sleep data."
+                            errorMessage =
+                                it.message ?: "Unable to read sleep data."
                         }
-
                     loading = false
                 }
             }
 
             val healthPermissionLauncher = rememberLauncherForActivityResult(
-                contract = PermissionController.createRequestPermissionResultContract()
+                contract =
+                    PermissionController.createRequestPermissionResultContract()
             ) {
-                scope.launch {
-                    hasPermission = healthConnectManager.hasRequiredPermissions()
-                    backgroundReadAvailable = healthConnectManager.backgroundReadAvailable()
-                    hasBackgroundReadPermission =
-                        healthConnectManager.hasBackgroundReadPermission()
+                lifecycleScope.launch {
+                    hasPermission =
+                        healthConnectManager.hasRequiredPermissions()
+                    hasAnalyticsPermission =
+                        healthConnectManager.hasAnalyticsPermissions()
+                    hasHistoryPermission =
+                        healthConnectManager.hasHistoryPermission()
 
                     if (hasPermission) refreshSleep()
-
-                    if (wakePreferences.enabled && setupReady()) {
-                        WakeAlarmScheduler.schedule(this@MainActivity, wakePreferences)
-                    }
                 }
             }
 
             val analyticsPermissionLauncher = rememberLauncherForActivityResult(
-                contract = PermissionController.createRequestPermissionResultContract()
+                contract =
+                    PermissionController.createRequestPermissionResultContract()
             ) {
-                scope.launch {
+                lifecycleScope.launch {
                     hasAnalyticsPermission =
                         healthConnectManager.hasAnalyticsPermissions()
                     if (hasPermission) refreshSleep()
@@ -157,9 +207,10 @@ class MainActivity : ComponentActivity() {
             }
 
             val historyPermissionLauncher = rememberLauncherForActivityResult(
-                contract = PermissionController.createRequestPermissionResultContract()
+                contract =
+                    PermissionController.createRequestPermissionResultContract()
             ) {
-                scope.launch {
+                lifecycleScope.launch {
                     hasHistoryPermission =
                         healthConnectManager.hasHistoryPermission()
                     if (hasPermission) refreshSleep()
@@ -168,41 +219,22 @@ class MainActivity : ComponentActivity() {
 
             val notificationPermissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestPermission()
-            ) { granted ->
-                notificationsAllowed = granted || areNotificationsAllowed()
-
-                if (wakePreferences.enabled && setupReady()) {
-                    WakeAlarmScheduler.schedule(this, wakePreferences)
-                }
-            }
-
-            val fullScreenAlarmAccessLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) {
-                fullScreenAlarmAccess = canUseFullScreenAlarms()
-
-                if (wakePreferences.enabled && setupReady()) {
-                    WakeAlarmScheduler.schedule(this, wakePreferences)
-                }
-            }
-
-            val exactAlarmAccessLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) {
-                exactAlarmAccess = WakeAlarmScheduler.canScheduleExactAlarms(this)
-
-                if (wakePreferences.enabled && setupReady()) {
-                    WakeAlarmScheduler.schedule(this, wakePreferences)
-                }
-            }
+            ) { }
 
             LaunchedEffect(Unit) {
-                backgroundReadAvailable = healthConnectManager.backgroundReadAvailable()
+                if (!appSettings.oobeCompleted &&
+                    (
+                        schedules.isNotEmpty() ||
+                            (!appSettings.oobeStarted &&
+                                appSettings.hasExistingUserState())
+                        )
+                ) {
+                    appSettings.oobeCompleted = true
+                    oobeCompleted = true
+                }
+
                 hasPermission = runCatching {
                     healthConnectManager.hasRequiredPermissions()
-                }.getOrDefault(false)
-                hasBackgroundReadPermission = runCatching {
-                    healthConnectManager.hasBackgroundReadPermission()
                 }.getOrDefault(false)
                 hasAnalyticsPermission = runCatching {
                     healthConnectManager.hasAnalyticsPermissions()
@@ -210,41 +242,25 @@ class MainActivity : ComponentActivity() {
                 hasHistoryPermission = runCatching {
                     healthConnectManager.hasHistoryPermission()
                 }.getOrDefault(false)
-                exactAlarmAccess =
-                    WakeAlarmScheduler.canScheduleExactAlarms(this@MainActivity)
-                notificationsAllowed = areNotificationsAllowed()
-                fullScreenAlarmAccess = canUseFullScreenAlarms()
 
-                // Existing users should not be forced through first-run onboarding
-                // after upgrading from the earlier Smart Wake build.
-                if (!appSettings.oobeCompleted &&
-                    !appSettings.oobeStarted &&
-                    (hasPermission || wakePreferences.enabled)
-                ) {
-                    appSettings.oobeCompleted = true
-                    oobeCompleted = true
-                }
+                alarmScheduler.scheduleAll(schedules)
 
                 if (hasPermission) {
-                    loading = true
-                    val days = if (hasHistoryPermission) 190L else 30L
-
-                    runCatching { healthConnectManager.readRecentSleep(days) }
-                        .onSuccess {
-                            nights = it
-                            wakeHistoryStore.save(
-                                PredictiveWakeEngine.buildProfile(it)
-                            )
-                        }
-                        .onFailure {
-                            errorMessage = it.message ?: "Unable to read sleep data."
-                        }
-
-                    loading = false
+                    refreshSleep()
                 }
+            }
 
-                if (wakePreferences.enabled && setupReady()) {
-                    WakeAlarmScheduler.schedule(this@MainActivity, wakePreferences)
+            LaunchedEffect(oobeCompleted) {
+                if (oobeCompleted &&
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this@MainActivity,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    notificationPermissionLauncher.launch(
+                        Manifest.permission.POST_NOTIFICATIONS
+                    )
                 }
             }
 
@@ -258,17 +274,14 @@ class MainActivity : ComponentActivity() {
                 OobeScreen(
                     sdkStatus = healthConnectManager.sdkStatus(),
                     themeMode = themeMode,
-                    displayName = displayName,
+                    displayName = "",
                     hasPermission = hasPermission,
-                    exactAlarmAccess = exactAlarmAccess,
-                    onThemeModeChange = { value ->
-                        themeMode = value
-                        appSettings.themeMode = value
+                    exactAlarmAccess = exactAlarmAccessState.value,
+                    onThemeModeChange = { newMode ->
+                        themeMode = newMode
+                        appSettings.themeMode = newMode
                     },
-                    onDisplayNameChange = { value ->
-                        displayName = value
-                        appSettings.displayName = value
-                    },
+                    onDisplayNameChange = { },
                     onConnect = {
                         healthPermissionLauncher.launch(
                             healthConnectManager.requestedPermissions()
@@ -276,13 +289,15 @@ class MainActivity : ComponentActivity() {
                     },
                     onRequestExactAlarmAccess = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            exactAlarmAccessLauncher.launch(
-                                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                    data = Uri.parse("package:$packageName")
-                                }
-                            )
-                        } else {
-                            exactAlarmAccess = true
+                            runCatching {
+                                startActivity(
+                                    Intent(
+                                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                                    ).apply {
+                                        data = Uri.parse("package:$packageName")
+                                    }
+                                )
+                            }
                         }
                     },
                     onFinish = {
@@ -294,26 +309,96 @@ class MainActivity : ComponentActivity() {
                 WakeSyncScreen(
                     sdkStatus = healthConnectManager.sdkStatus(),
                     hasPermission = hasPermission,
-                    backgroundReadAvailable = backgroundReadAvailable,
-                    hasBackgroundReadPermission = hasBackgroundReadPermission,
-                    exactAlarmAccess = exactAlarmAccess,
-                    notificationsAllowed = notificationsAllowed,
-                    fullScreenAlarmAccess = fullScreenAlarmAccess,
+                    loading = loading,
+                    nights = nights,
+                    schedules = schedules,
+                    exactAlarmAccess = exactAlarmAccessState.value,
                     hasAnalyticsPermission = hasAnalyticsPermission,
                     hasHistoryPermission = hasHistoryPermission,
                     historyReadAvailable = historyReadAvailable,
-                    wakePreferences = wakePreferences,
-                    loading = loading,
-                    nights = nights,
                     themeMode = themeMode,
                     sleepGoalMinutes = sleepGoalMinutes,
                     goalsEnabled = goalsEnabled,
-                    displayName = displayName,
+                    dashboardWidgets = dashboardWidgets,
+                    displayName = "",
+                    maxSmartWindowMinutes = maxSmartWindowMinutes,
                     retainGeneratedExports = retainGeneratedExports,
                     errorMessage = errorMessage,
                     onConnect = {
                         healthPermissionLauncher.launch(
                             healthConnectManager.requestedPermissions()
+                        )
+                    },
+                    onRefresh = ::refreshSleep,
+                    onSaveSchedule = { schedule ->
+                        val cappedWindow =
+                            schedule.smartWindowMinutes
+                                .coerceIn(10, maxSmartWindowMinutes)
+
+                        val capped = schedule.copy(
+                            smartWindowMinutes = cappedWindow,
+                            smartOffsetMinutes =
+                                schedule.smartOffsetMinutes
+                                    .coerceAtMost(cappedWindow)
+                        )
+
+                        persist(
+                            schedules.filterNot { it.id == capped.id } + capped
+                        )
+                    },
+                    onDeleteSchedule = { schedule ->
+                        alarmScheduler.cancel(schedule.id)
+                        persist(
+                            schedules.filterNot { it.id == schedule.id }
+                        )
+                    },
+                    onToggleSchedule = { schedule, enabled ->
+                        persist(
+                            schedules.map {
+                                if (it.id == schedule.id) {
+                                    it.copy(enabled = enabled)
+                                } else {
+                                    it
+                                }
+                            }
+                        )
+                    },
+                    onSkipNext = { schedule ->
+                        val nextBase = schedule.nextBaseDeadline()
+                        if (nextBase != null) {
+                            val dateKey =
+                                nextBase.toLocalDate().toString()
+                            val updatedSkips =
+                                if (schedule.skippedDates.contains(dateKey)) {
+                                    schedule.skippedDates - dateKey
+                                } else {
+                                    schedule.skippedDates + dateKey
+                                }
+
+                            persist(
+                                schedules.map {
+                                    if (it.id == schedule.id) {
+                                        schedule.copy(
+                                            skippedDates = updatedSkips
+                                        )
+                                    } else {
+                                        it
+                                    }
+                                }
+                            )
+                        }
+                    },
+                    onClearSkips = { schedule ->
+                        persist(
+                            schedules.map {
+                                if (it.id == schedule.id) {
+                                    schedule.copy(
+                                        skippedDates = emptySet()
+                                    )
+                                } else {
+                                    it
+                                }
+                            }
                         )
                     },
                     onRequestAnalyticsAccess = {
@@ -328,117 +413,65 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     },
-                    onRequestExactAlarmAccess = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            exactAlarmAccessLauncher.launch(
-                                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                    data = Uri.parse("package:$packageName")
-                                }
-                            )
-                        } else {
-                            exactAlarmAccess = true
-                        }
+                    onThemeModeChange = { newMode ->
+                        themeMode = newMode
+                        appSettings.themeMode = newMode
                     },
-                    onRequestNotifications = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-                            PackageManager.PERMISSION_GRANTED
-                        ) {
-                            notificationPermissionLauncher.launch(
-                                Manifest.permission.POST_NOTIFICATIONS
-                            )
-                        } else if (!areNotificationsAllowed()) {
-                            startActivity(
-                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                                }
-                            )
-                        } else {
-                            notificationsAllowed = true
-                        }
+                    onSleepGoalChange = { minutes ->
+                        sleepGoalMinutes = minutes
+                        appSettings.sleepGoalMinutes = minutes
                     },
-                    onRequestFullScreenAlarmAccess = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                            fullScreenAlarmAccessLauncher.launch(
-                                Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
-                                    data = Uri.parse("package:$packageName")
-                                }
-                            )
-                        } else {
-                            fullScreenAlarmAccess = true
-                        }
+                    onGoalsEnabledChange = { enabled ->
+                        goalsEnabled = enabled
+                        appSettings.goalsEnabled = enabled
                     },
-                    onWakePreferencesChanged = { updated ->
-                        wakePreferences = updated
-                        wakePreferencesStore.save(updated)
+                    onDashboardWidgetsChange = { widgets ->
+                        dashboardWidgets = widgets
+                        appSettings.dashboardWidgets = widgets
+                    },
+                    onDisplayNameChange = { },
+                    onMaxSmartWindowChange = { minutes ->
+                        maxSmartWindowMinutes = minutes
+                        appSettings.maxSmartWindowMinutes = minutes
 
-                        if (updated.enabled) {
-                            if (setupReady(updated)) {
-                                WakeAlarmScheduler.schedule(this, updated)
-                            } else {
-                                WakeAlarmScheduler.cancelAll(this)
+                        persist(
+                            schedules.map { schedule ->
+                                val capped =
+                                    schedule.smartWindowMinutes
+                                        .coerceAtMost(minutes)
+                                        .coerceAtLeast(10)
+                                schedule.copy(
+                                    smartWindowMinutes = capped,
+                                    smartOffsetMinutes =
+                                        if (schedule.mode == AlarmMode.STANDARD) {
+                                            0
+                                        } else {
+                                            schedule.smartOffsetMinutes
+                                                .coerceAtMost(capped)
+                                        }
+                                )
                             }
-                        }
+                        )
                     },
-                    onAlarmEnabledChanged = { enabled ->
-                        val updated = wakePreferences.copy(enabled = enabled)
-                        wakePreferences = updated
-                        wakePreferencesStore.save(updated)
-
-                        if (enabled && setupReady(updated)) {
-                            WakeAlarmScheduler.schedule(this, updated)
-                        } else {
-                            WakeAlarmScheduler.cancelAll(this)
-                            stopService(Intent(this, WakeMonitorService::class.java))
-                        }
-                    },
-                    onThemeModeChange = { value ->
-                        themeMode = value
-                        appSettings.themeMode = value
-                    },
-                    onSleepGoalChange = { value ->
-                        sleepGoalMinutes = value
-                        appSettings.sleepGoalMinutes = value
-                    },
-                    onGoalsEnabledChange = { value ->
-                        goalsEnabled = value
-                        appSettings.goalsEnabled = value
-                    },
-                    onDisplayNameChange = { value ->
-                        displayName = value
-                        appSettings.displayName = value
-                    },
-                    onRetainGeneratedExportsChange = { value ->
-                        retainGeneratedExports = value
-                        appSettings.retainGeneratedExports = value
+                    onRetainGeneratedExportsChange = { retain ->
+                        retainGeneratedExports = retain
+                        appSettings.retainGeneratedExports = retain
                     },
                     onClearGeneratedExports = {
-                        SleepExporter.clearGeneratedExports(this)
-                    },
-                    onImAwake = {
-                        WakeAlarmController.markAwake(this)
-                    },
-                    onRefresh = ::refreshSleep
+                        SleepExporter.clearGeneratedExports(
+                            this@MainActivity
+                        )
+                    }
                 )
             }
         }
     }
 
-    private fun canUseFullScreenAlarms(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
-        return getSystemService(NotificationManager::class.java)
-            .canUseFullScreenIntent()
-    }
-
-    private fun areNotificationsAllowed(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return false
+    override fun onResume() {
+        super.onResume()
+        if (::alarmScheduler.isInitialized) {
+            exactAlarmAccessState.value =
+                alarmScheduler.canScheduleExactAlarms()
         }
-
-        return getSystemService(NotificationManager::class.java)
-            .areNotificationsEnabled()
     }
 }

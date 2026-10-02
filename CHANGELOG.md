@@ -8,6 +8,27 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+## 0.5.0 — 2026-10-02
+
+### Restored
+- four-tab **Home / Alarms / Sleep / Settings** interface;
+- horizontal swipe navigation between tabs;
+- recovered ambient/glass visual treatment and dashboard layout;
+- multi-alarm recurring schedules, weekday selection, skip-next/resume, and per-alarm editing;
+- donation button in Settings.
+
+### Added
+- explicit **Smart Wake / Standard Alarm** choice for every alarm;
+- multi-alarm Smart Wake scheduling with live Health Connect monitoring, final-10-minute historical fallback, and independent hard deadline;
+- per-alarm snooze, sound, vibration, label, and full-screen ringing context.
+
+### Removed
+- greeting-name setting and greeting-name onboarding.
+
+### Fixed
+- dark-theme text contrast regression introduced by the simplified 0.4 UI shell;
+- loss of swipe navigation and the dedicated Alarms tab.
+
 ## 0.4.0 — 2026-10-02
 
 ### Added
