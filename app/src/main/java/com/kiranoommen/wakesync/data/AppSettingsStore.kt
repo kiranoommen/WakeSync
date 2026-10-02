@@ -93,13 +93,6 @@ class AppSettingsStore(context: Context) {
         const val THEME_DARK = "DARK"
         const val THEME_LIGHT = "LIGHT"
 
-        const val WIDGET_GOAL = "GOAL"
-        const val WIDGET_SLEEP = "SLEEP"
-        const val WIDGET_INSIGHT = "INSIGHT"
-        const val WIDGET_DEBT = "DEBT"
-        const val WIDGET_HYPNOGRAM = "HYPNOGRAM"
-        const val WIDGET_ALARM = "ALARM"
-
         private const val KEY_OOBE_STARTED = "oobe_started"
         private const val KEY_OOBE_COMPLETED = "oobe_completed"
         private const val KEY_THEME = "theme_mode"
