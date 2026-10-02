@@ -3330,29 +3330,29 @@ private fun SleepTab(
     loading: Boolean,
     sleepGoalMinutes: Int,
     goalsEnabled: Boolean,
-    onRefresh: () -> Unit,
-    onShareCsv: (List<com.kiranoommen.wakesync.domain.NightAnalytics>) -> Unit,
-    onSharePdf: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit,
-    onShareStory: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit
+    onRefresh: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement =
+            Arrangement.spacedBy(14.dp)
     ) {
         item {
             SleepAnalyticsScreen(
                 nights = nights,
                 loading = loading,
-                targetSleepMinutes = sleepGoalMinutes,
+                targetSleepMinutes =
+                    sleepGoalMinutes,
                 goalsEnabled = goalsEnabled,
-                onRefresh = onRefresh,
-                onShareCsv = onShareCsv,
-                onSharePdf = onSharePdf,
-                onShareStory = onShareStory
+                onRefresh = onRefresh
             )
         }
 
-        item { Spacer(Modifier.height(8.dp)) }
+        item {
+            Spacer(
+                Modifier.height(8.dp)
+            )
+        }
     }
 }
 
@@ -3360,40 +3360,18 @@ private fun SleepTab(
 private fun SettingsTab(
     hasPermission: Boolean,
     exactAlarmAccess: Boolean,
-    hasAnalyticsPermission: Boolean,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
-    sleepGoalMinutes: Int,
-    goalsEnabled: Boolean,
     maxSmartWindowMinutes: Int,
-    retainGeneratedExports: Boolean,
-    displayName: String,
-    nights: List<SleepNight>,
     onConnect: () -> Unit,
-    onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
-    onSleepGoalChange: (Int) -> Unit,
-    onGoalsEnabledChange: (Boolean) -> Unit,
-    onDisplayNameChange: (String) -> Unit,
-    onMaxSmartWindowChange: (Int) -> Unit,
-    onRetainGeneratedExportsChange: (Boolean) -> Unit,
-    onClearGeneratedExports: () -> Unit
+    onMaxSmartWindowChange: (Int) -> Unit
 ) {
     var infoSheet by remember {
         mutableStateOf<MetricInfo?>(null)
-    }
-    var showSleepTargetPicker by remember {
-        mutableStateOf(false)
-    }
-    var sleepTargetDraft by remember(
-        sleepGoalMinutes
-    ) {
-        mutableStateOf(
-            sleepGoalMinutes
-        )
     }
     val settingsContext =
         LocalContext.current
@@ -3405,168 +3383,22 @@ private fun SettingsTab(
     ) {
         item {
             SettingsBentoCard(
-                title = "Targets & Goals",
+                title = "Smart Wake",
                 onInfo = {
                     infoSheet = MetricInfo(
-                        title = "Sleep targets & goals",
-                        meaning = "Optional personal targets for nightly sleep duration, goal progress and sleep-debt estimates.",
-                        measurement = "When enabled, WakeSync stores your 4–12 hour target as total minutes in 15-minute increments and uses that exact value for goal progress and sleep-debt calculations. When disabled, target and debt indicators are hidden.",
-                        importance = "Some people find targets motivating; others prefer neutral duration and efficiency trends. WakeSync supports both."
-                    )
-                }
-            ) {
-                SettingsToggleRow(
-                    title = "Enable Sleep Targets & Goals",
-                    subtitle =
-                        if (goalsEnabled) {
-                            "Target progress and sleep-debt indicators are shown"
-                        } else {
-                            "WakeSync shows duration and efficiency without target/debt labels"
-                        },
-                    checked = goalsEnabled,
-                    enabled = true,
-                    onCheckedChange = onGoalsEnabledChange
-                )
-
-                if (goalsEnabled) {
-                    Text(
-                        text = "Sleep target",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Card(
-                        onClick = {
-                            sleepTargetDraft =
-                                sleepGoalMinutes
-                            showSleepTargetPicker =
-                                true
-                        },
-                        modifier =
-                            Modifier.fillMaxWidth(),
-                        shape =
-                            RoundedCornerShape(18.dp),
-                        border =
-                            if (
-                                MaterialTheme.colorScheme.background
-                                    .luminance() <
-                                    0.5f
-                            ) {
-                                BorderStroke(
-                                    1.dp,
-                                    Color.White.copy(
-                                        alpha = 0.10f
-                                    )
-                                )
-                            } else {
-                                null
-                            },
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                        .copy(
-                                            alpha =
-                                                if (
-                                                    MaterialTheme.colorScheme.background
-                                                        .luminance() <
-                                                        0.5f
-                                                ) {
-                                                    0.34f
-                                                } else {
-                                                    0.24f
-                                                }
-                                        ),
-                                contentColor =
-                                    MaterialTheme.colorScheme.onSurface
-                            )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = 16.dp,
-                                    vertical = 14.dp
-                                ),
-                            horizontalArrangement =
-                                Arrangement.SpaceBetween,
-                            verticalAlignment =
-                                Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text =
-                                        "Nightly target",
-                                    style =
-                                        MaterialTheme.typography.labelMedium,
-                                    color =
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    modifier =
-                                        Modifier.padding(
-                                            top = 2.dp
-                                        ),
-                                    text =
-                                        formatSleepTarget(
-                                            sleepGoalMinutes
-                                        ),
-                                    style =
-                                        MaterialTheme.typography.titleLarge,
-                                    fontWeight =
-                                        FontWeight.ExtraBold
-                                )
-                            }
-
-                            Text(
-                                text = "Tap to adjust",
-                                style =
-                                    MaterialTheme.typography.labelSmall,
-                                color = Lavender,
-                                fontWeight =
-                                    FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Text(
-                        text =
-                            "Tap the target field to choose any duration from 4h 00m to 12h 00m in 15-minute steps. Changes apply only after you confirm.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    Text(
-                        text =
-                            "Targets are off. Sleep views now emphasize actual sleep duration, efficiency, stages and consistency.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-        item {
-            SettingsBentoCard(
-                title = "Smart Alarm Guardrails",
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Smart alarm guardrail",
-                        meaning = "The maximum amount of time any WakeSync alarm is allowed to move earlier than its protected wake-by deadline.",
-                        measurement = "Each alarm can choose a smaller smart window, but no schedule may exceed this global maximum.",
-                        importance = "This prevents a smart alarm from waking you dramatically earlier than you are comfortable with."
+                        title = "Smart Wake window",
+                        meaning =
+                            "The maximum amount of time WakeSync may wake you before your “Must be awake by” time.",
+                        measurement =
+                            "Each Smart Wake alarm can use a smaller window, but never one wider than this setting.",
+                        importance =
+                            "This keeps Smart Wake useful without allowing unexpectedly early alarms."
                     )
                 }
             ) {
                 Text(
                     text =
-                        "Maximum smart-window flexibility",
+                        "Maximum early-wake window",
                     style =
                         MaterialTheme.typography.bodySmall,
                     color =
@@ -3611,7 +3443,7 @@ private fun SettingsTab(
                     modifier =
                         Modifier.padding(top = 8.dp),
                     text =
-                        "The wake-by deadline always wins. Existing wider schedules are capped when you lower this guardrail.",
+                        "Your “Must be awake by” time always wins.",
                     style =
                         MaterialTheme.typography.bodySmall,
                     color =
@@ -3622,13 +3454,16 @@ private fun SettingsTab(
 
         item {
             SettingsBentoCard(
-                title = "Data Source Integration",
+                title = "Health Connect",
                 onInfo = {
                     infoSheet = MetricInfo(
-                        title = "Health Connect data source",
-                        meaning = "WakeSync reads sleep records through Android Health Connect rather than talking directly to every wearable vendor.",
-                        measurement = "The source package attached to the latest sleep session identifies which connected app wrote the record.",
-                        importance = "One Health Connect integration keeps WakeSync wearable-agnostic across supported Android health ecosystems."
+                        title = "Smart Wake data",
+                        meaning =
+                            "WakeSync reads sleep through Health Connect. A fitness tracker is strongly recommended because a phone alone usually cannot provide live sleep stages overnight.",
+                        measurement =
+                            "WakeSync checks Health Connect during the wake window and only treats fresh sleep stages as live.",
+                        importance =
+                            "If fresh tracker data is unavailable, WakeSync falls back safely rather than pretending it knows your current sleep stage."
                     )
                 }
             ) {
@@ -3647,27 +3482,21 @@ private fun SettingsTab(
                         Text(
                             text =
                                 if (hasPermission) {
-                                    "Health Connect Integration"
+                                    "Sleep data connected"
                                 } else {
-                                    "Health Connect Integration"
+                                    "Sleep data not connected"
                                 },
-                            style =
-                                MaterialTheme.typography.titleMedium,
                             fontWeight =
-                                FontWeight.ExtraBold,
-                            color =
-                                MaterialTheme.colorScheme.onSurface
+                                FontWeight.ExtraBold
                         )
                         Text(
                             modifier =
-                                Modifier.padding(
-                                    top = 3.dp
-                                ),
+                                Modifier.padding(top = 3.dp),
                             text =
                                 if (hasPermission) {
-                                    "Read-only sleep connection"
+                                    "Read-only Health Connect access"
                                 } else {
-                                    "Sleep permission not granted"
+                                    "Connect Health Connect to use Smart Wake"
                                 },
                             style =
                                 MaterialTheme.typography.bodySmall,
@@ -3676,11 +3505,9 @@ private fun SettingsTab(
                         )
                         Text(
                             modifier =
-                                Modifier.padding(
-                                    top = 7.dp
-                                ),
+                                Modifier.padding(top = 7.dp),
                             text =
-                                "Compatible with Pixel Watch, Galaxy Watch, Garmin, Oura, Fitbit, and all Health Connect wearables.",
+                                "For live overnight stages, use a compatible fitness tracker. Phone-only sleep estimates generally are not enough for live Smart Wake.",
                             style =
                                 MaterialTheme.typography.bodySmall,
                             color =
@@ -3690,45 +3517,39 @@ private fun SettingsTab(
 
                     ConnectionBadge(
                         connected =
-                            hasPermission
+                            hasPermission,
+                        connectedLabel =
+                            "Connected",
+                        disconnectedLabel =
+                            "Not connected"
                     )
                 }
 
                 if (!hasPermission) {
                     Button(
                         modifier =
-                            Modifier.padding(top = 12.dp),
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
                         onClick = onConnect,
                         shape =
                             RoundedCornerShape(999.dp)
                     ) {
-                        Text("Connect")
+                        Text(
+                            "Connect Health Connect"
+                        )
                     }
                 }
 
-                SettingsToggleRow(
-                    title = "Recovery metrics",
-                    subtitle =
-                        "Optional HRV + resting heart rate",
-                    checked =
-                        hasAnalyticsPermission,
-                    enabled =
-                        !hasAnalyticsPermission,
-                    onCheckedChange = {
-                        if (
-                            it &&
-                            !hasAnalyticsPermission
-                        ) {
-                            onRequestAnalyticsAccess()
-                        }
-                    }
-                )
-
-                if (historyReadAvailable) {
+                if (
+                    hasPermission &&
+                    historyReadAvailable
+                ) {
                     SettingsToggleRow(
-                        title = "Extended history",
+                        title =
+                            "Longer sleep history",
                         subtitle =
-                            "Allows longer historical ranges",
+                            "Improves WakeSync's local history when Android allows it",
                         checked =
                             hasHistoryPermission,
                         enabled =
@@ -3748,7 +3569,7 @@ private fun SettingsTab(
 
         item {
             SettingsBentoCard(
-                title = "Permissions & Reliability",
+                title = "Alarm Reliability",
                 borderColor =
                     if (exactAlarmAccess) {
                         Mint.copy(alpha = 0.28f)
@@ -3757,10 +3578,13 @@ private fun SettingsTab(
                     },
                 onInfo = {
                     infoSheet = MetricInfo(
-                        title = "Exact alarm reliability",
-                        meaning = "Android exact-alarm access lets WakeSync protect the Guardrail Wake Time with precise OS scheduling.",
-                        measurement = "WakeSync checks Android's exact-alarm capability. If access was skipped during onboarding, you can grant it here at any time.",
-                        importance = "Without exact-alarm access, Android power management can delay time-critical alarms."
+                        title = "Exact alarm access",
+                        meaning =
+                            "Android exact-alarm access lets WakeSync protect time-critical alarms.",
+                        measurement =
+                            "WakeSync checks Android's exact-alarm capability. If you skipped it during setup, you can grant it here.",
+                        importance =
+                            "Without exact-alarm access, Android power management can delay an alarm."
                     )
                 }
             ) {
@@ -3784,23 +3608,17 @@ private fun SettingsTab(
                         )
                         Text(
                             modifier =
-                                Modifier.padding(
-                                    top = 3.dp
-                                ),
+                                Modifier.padding(top = 3.dp),
                             text =
-                                if (
-                                    exactAlarmAccess
-                                ) {
-                                    "Reliable wake-by scheduling enabled"
+                                if (exactAlarmAccess) {
+                                    "Ready for precise alarm scheduling"
                                 } else {
-                                    "Action Required · exact-alarm access was not granted during setup"
+                                    "Required for reliable wake times"
                                 },
                             style =
                                 MaterialTheme.typography.bodySmall,
                             color =
-                                if (
-                                    exactAlarmAccess
-                                ) {
+                                if (exactAlarmAccess) {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 } else {
                                     Sunrise
@@ -3811,8 +3629,8 @@ private fun SettingsTab(
                     ConnectionBadge(
                         connected =
                             exactAlarmAccess,
-                        connectedLabel = "Granted",
-                        disconnectedLabel = "Action Required"
+                        connectedLabel = "Ready",
+                        disconnectedLabel = "Fix"
                     )
                 }
 
@@ -3821,75 +3639,26 @@ private fun SettingsTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 12.dp),
-                        onClick = onRequestExactAlarmAccess,
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Amber,
-                            contentColor = Color(0xFF15192A)
-                        )
+                        onClick =
+                            onRequestExactAlarmAccess,
+                        shape =
+                            RoundedCornerShape(999.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    Amber,
+                                contentColor =
+                                    Color(0xFF15192A)
+                            )
                     ) {
                         Text(
-                            text = "Grant exact alarm access",
-                            fontWeight = FontWeight.ExtraBold
+                            text =
+                                "Grant exact alarm access",
+                            fontWeight =
+                                FontWeight.ExtraBold
                         )
                     }
                 }
-
-            }
-        }
-
-        item {
-            SettingsBentoCard(
-                title = "Privacy & Local Storage",
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Local storage",
-                        meaning = "Raw Health Connect sleep records are read on-device. WakeSync only retains generated export files if you explicitly enable it.",
-                        measurement = "When retention is off, share files are generated in Android cache. When enabled, generated exports are stored in WakeSync's private app files until you clear them.",
-                        importance = "You control whether shareable reports remain on the device after they are generated."
-                    )
-                }
-            ) {
-                SettingsToggleRow(
-                    title =
-                        "Keep generated exports",
-                    subtitle =
-                        if (
-                            retainGeneratedExports
-                        ) {
-                            "PDF, CSV and story cards remain in WakeSync private storage"
-                        } else {
-                            "Exports use temporary app cache"
-                        },
-                    checked =
-                        retainGeneratedExports,
-                    enabled = true,
-                    onCheckedChange =
-                        onRetainGeneratedExportsChange
-                )
-
-                TextButton(
-                    modifier =
-                        Modifier.padding(top = 4.dp),
-                    onClick =
-                        onClearGeneratedExports
-                ) {
-                    Text(
-                        text =
-                            "Clear generated exports",
-                        color =
-                            MaterialTheme.colorScheme.error
-                    )
-                }
-
-                Text(
-                    text =
-                        "Raw Health Connect data is not copied into a WakeSync cloud database.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
 
@@ -3899,9 +3668,12 @@ private fun SettingsTab(
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Appearance",
-                        meaning = "Choose whether WakeSync follows Android's appearance or forces its dark/light theme.",
-                        measurement = "The selected mode changes Compose color roles only; it does not affect sleep calculations.",
-                        importance = "High-contrast color roles preserve readability in both themes."
+                        meaning =
+                            "Choose whether WakeSync follows Android or uses a fixed light/dark appearance.",
+                        measurement =
+                            "Appearance changes only the interface, not alarm or sleep calculations.",
+                        importance =
+                            "System mode usually gives the most natural Android experience."
                     )
                 }
             ) {
@@ -3940,34 +3712,23 @@ private fun SettingsTab(
         }
 
         item {
-            Text(
-                text = "About & Support",
-                style =
-                    MaterialTheme.typography.titleLarge,
-                fontWeight =
-                    FontWeight.ExtraBold,
-                color =
-                    MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        item {
             SettingsBentoCard(
                 title = "Support WakeSync",
-                borderColor =
-                    Lavender.copy(alpha = 0.30f),
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Support WakeSync",
-                        meaning = "WakeSync is built privacy-first with no ads. Donations are optional and do not unlock features.",
-                        measurement = "The PayPal button opens the official WakeSync donation page in your browser.",
-                        importance = "Optional support can help fund future development while keeping the app free of advertising."
+                        meaning =
+                            "WakeSync has no ads or paid unlocks. Support is optional.",
+                        measurement =
+                            "The button opens the WakeSync PayPal donation page in your browser.",
+                        importance =
+                            "Optional support helps keep development independent without adding ads or a subscription."
                     )
                 }
             ) {
                 Text(
                     text =
-                        "WakeSync is built privacy-first with no ads. If you find it helpful, consider supporting future development!",
+                        "WakeSync is built privacy-first with no ads. If it helps your mornings, you can support future development.",
                     color =
                         MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -3976,15 +3737,13 @@ private fun SettingsTab(
                     modifier =
                         Modifier.fillMaxWidth(),
                     onClick = {
-                        val intent =
+                        settingsContext.startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
                                 Uri.parse(
                                     PAYPAL_DONATION_URL
                                 )
                             )
-                        settingsContext.startActivity(
-                            intent
                         )
                     },
                     shape =
@@ -3996,7 +3755,6 @@ private fun SettingsTab(
                             FontWeight.ExtraBold
                     )
                 }
-
             }
         }
 
@@ -4008,309 +3766,12 @@ private fun SettingsTab(
         }
     }
 
-    if (showSleepTargetPicker) {
-        AlertDialog(
-            onDismissRequest = {
-                showSleepTargetPicker =
-                    false
-                sleepTargetDraft =
-                    sleepGoalMinutes
-            },
-            title = {
-                Text(
-                    text =
-                        "Choose sleep target",
-                    fontWeight =
-                        FontWeight.ExtraBold
-                )
-            },
-            text = {
-                Column(
-                    verticalArrangement =
-                        Arrangement.spacedBy(
-                            10.dp
-                        )
-                ) {
-                    Text(
-                        text =
-                            "Scroll to your preferred nightly sleep target.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    SleepTargetWheel(
-                        selectedMinutes =
-                            sleepTargetDraft,
-                        onSelected = {
-                            sleepTargetDraft =
-                                it
-                        }
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onSleepGoalChange(
-                            sleepTargetDraft
-                        )
-                        showSleepTargetPicker =
-                            false
-                    },
-                    shape =
-                        RoundedCornerShape(
-                            999.dp
-                        )
-                ) {
-                    Text(
-                        text = "✓ Confirm",
-                        fontWeight =
-                            FontWeight.ExtraBold
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        sleepTargetDraft =
-                            sleepGoalMinutes
-                        showSleepTargetPicker =
-                            false
-                    }
-                ) {
-                    Text(
-                        text = "✕ Cancel",
-                        fontWeight =
-                            FontWeight.Bold
-                    )
-                }
-            }
-        )
-    }
-
     MetricInfoBottomSheet(
         info = infoSheet,
         onDismiss = {
             infoSheet = null
         }
     )
-}
-
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Composable
-private fun SleepTargetWheel(
-    selectedMinutes: Int,
-    onSelected: (Int) -> Unit
-) {
-    val options =
-        remember {
-            (240..720 step 15).toList()
-        }
-    val selectedIndex =
-        options.indexOf(
-            selectedMinutes
-                .coerceIn(240, 720)
-        )
-            .coerceAtLeast(0)
-    val listState =
-        rememberLazyListState(
-            initialFirstVisibleItemIndex =
-                selectedIndex
-        )
-    val fling =
-        rememberSnapFlingBehavior(
-            lazyListState =
-                listState
-        )
-
-    LaunchedEffect(
-        listState.isScrollInProgress,
-        options
-    ) {
-        if (!listState.isScrollInProgress) {
-            val layout =
-                listState.layoutInfo
-            val center =
-                (
-                    layout.viewportStartOffset +
-                        layout.viewportEndOffset
-                    ) / 2
-            val item =
-                layout.visibleItemsInfo
-                    .minByOrNull {
-                        abs(
-                            (
-                                it.offset +
-                                    it.size / 2
-                                ) -
-                                center
-                        )
-                    }
-            item?.index
-                ?.takeIf {
-                    it in
-                        options.indices
-                }
-                ?.let { index ->
-                    val minutes =
-                        options[index]
-                    if (
-                        minutes !=
-                        selectedMinutes
-                    ) {
-                        onSelected(
-                            minutes
-                        )
-                    }
-                }
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(168.dp),
-        contentAlignment =
-            Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape =
-                RoundedCornerShape(18.dp),
-            border = BorderStroke(
-                1.dp,
-                Lavender.copy(
-                    alpha = 0.38f
-                )
-            ),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        Lavender.copy(
-                            alpha = 0.12f
-                        )
-                )
-        ) {
-            Box(
-                modifier =
-                    Modifier.fillMaxSize()
-            )
-        }
-
-        LazyColumn(
-            modifier =
-                Modifier.fillMaxSize(),
-            state = listState,
-            flingBehavior = fling,
-            contentPadding =
-                PaddingValues(
-                    vertical = 58.dp
-                ),
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
-            itemsIndexed(
-                options,
-                key = {
-                        _,
-                        minutes ->
-                    minutes
-                }
-            ) {
-                    _,
-                    minutes ->
-                val distance =
-                    abs(
-                        minutes -
-                            selectedMinutes
-                    ) / 15
-                val alpha =
-                    when (distance) {
-                        0 -> 1f
-                        1 -> 0.62f
-                        else -> 0.34f
-                    }
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .padding(top = 13.dp),
-                    text =
-                        formatSleepTarget(
-                            minutes
-                        ),
-                    style =
-                        MaterialTheme.typography.titleLarge,
-                    fontWeight =
-                        if (
-                            minutes ==
-                            selectedMinutes
-                        ) {
-                            FontWeight.ExtraBold
-                        } else {
-                            FontWeight.Medium
-                        },
-                    color =
-                        MaterialTheme.colorScheme.onSurface
-                            .copy(alpha = alpha),
-                    textAlign =
-                        androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .height(42.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.surface
-                                .copy(alpha = 0.88f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(42.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.surface
-                                .copy(alpha = 0.88f)
-                        )
-                    )
-                )
-        )
-    }
-}
-
-private fun formatSleepTarget(
-    minutes: Int
-): String {
-    val hours =
-        minutes / 60
-    val remainder =
-        minutes % 60
-    return hours.toString() +
-        "h " +
-        remainder.toString()
-            .padStart(
-                2,
-                '0'
-            ) +
-        "m"
 }
 
 @Composable
