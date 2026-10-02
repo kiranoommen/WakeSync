@@ -276,7 +276,7 @@ private fun WakeWindowHero(
                         !hasPermission ->
                             "Read-only Health Connect access is the first step."
                         preferences.enabled ->
-                            "Live monitoring starts 45 minutes before your range. WakeSync favors Awake or Light sleep, can use REM near the deadline, and never goes past your end time."
+                            "Live monitoring starts 45 minutes before your range. WakeSync uses fresh Awake or Light sleep first, switches to your saved sleep-history pattern 15 minutes before the deadline, and never goes past your end time."
                         else ->
                             "Choose the earliest and latest time you are willing to wake."
                     },
