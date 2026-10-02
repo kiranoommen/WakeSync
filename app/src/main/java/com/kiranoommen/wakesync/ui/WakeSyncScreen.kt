@@ -984,7 +984,7 @@ private fun DashboardGlassCard(
     modifier: Modifier,
     title: String,
     onInfo: () -> Unit,
-    content: @Composable RowScope.() -> Unit
+    content: @Composable () -> Unit
 ) {
     val isDark =
         MaterialTheme.colorScheme.background
@@ -2763,7 +2763,7 @@ private fun SwipeAlarmCard(
     schedule: AlarmSchedule,
     onDuplicate: () -> Unit,
     onToggle: () -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable RowScope.() -> Unit
 ) {
     val haptics =
         LocalHapticFeedback.current
