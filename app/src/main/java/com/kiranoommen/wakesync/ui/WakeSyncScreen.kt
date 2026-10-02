@@ -60,6 +60,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -85,6 +88,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
@@ -2474,22 +2479,45 @@ private fun AlarmsTab(
         }
 
         items(schedules, key = { it.id }) { schedule ->
-            AlarmScheduleCard(
+            SwipeAlarmCard(
                 schedule = schedule,
-                onEdit = { onEdit(schedule) },
-                onDuplicate = { onDuplicate(schedule) },
-                onToggle = { onToggle(schedule, it) },
-                onSkip = { onSkipNext(schedule) },
-                onClearSkips = { onClearSkips(schedule) },
-                onInfo = {
+                onDuplicate = {
+                    onDuplicate(schedule)
+                },
+                onToggle = {
+                    onToggle(
+                        schedule,
+                        !schedule.enabled
+                    )
+                }
+            ) {
+                AlarmScheduleCard(
+                    schedule = schedule,
+                    onEdit = {
+                        onEdit(schedule)
+                    },
+                    onDuplicate = {
+                        onDuplicate(schedule)
+                    },
+                    onToggle = {
+                        onToggle(schedule, it)
+                    },
+                    onSkip = {
+                        onSkipNext(schedule)
+                    },
+                    onClearSkips = {
+                        onClearSkips(schedule)
+                    },
+                    onInfo = {
                     infoSheet = MetricInfo(
                         title = "Wake schedule",
                         meaning = "A reusable wake schedule that can be Smart Wake or a standard exact alarm.",
                         measurement = "WakeSync stores the schedule locally and protects the selected “Must be awake by” time with Android alarm scheduling.",
                         importance = "Smart Wake may ring earlier inside its window, but never intentionally later than the protected time."
                     )
-                }
-            )
+                    }
+                )
+            }
         }
 
         item { Spacer(Modifier.height(10.dp)) }
@@ -2729,6 +2757,84 @@ private fun WeeklyAlarmOverview(
 }
 
 }
+@Composable
+private fun SwipeAlarmCard(
+    schedule: AlarmSchedule,
+    onDuplicate: () -> Unit,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val haptics =
+        LocalHapticFeedback.current
+
+    val state =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                when (value) {
+                    SwipeToDismissBoxValue.StartToEnd -> {
+                        haptics.performHapticFeedback(
+                            HapticFeedbackType.LongPress
+                        )
+                        onToggle()
+                    }
+
+                    SwipeToDismissBoxValue.EndToStart -> {
+                        haptics.performHapticFeedback(
+                            HapticFeedbackType.LongPress
+                        )
+                        onDuplicate()
+                    }
+
+                    SwipeToDismissBoxValue.Settled ->
+                        Unit
+                }
+
+                // Perform the quick action, then return the card to rest.
+                false
+            }
+        )
+
+    SwipeToDismissBox(
+        state = state,
+        backgroundContent = {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Text(
+                    text =
+                        if (schedule.enabled) {
+                            "Turn off"
+                        } else {
+                            "Turn on"
+                        },
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    color =
+                        if (schedule.enabled) {
+                            Sunrise
+                        } else {
+                            Mint
+                        }
+                )
+
+                Text(
+                    text = "Duplicate",
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    color = Lavender
+                )
+            }
+        },
+        content = content
+    )
+}
+
 @Composable
 private fun AlarmScheduleCard(
     schedule: AlarmSchedule,
