@@ -59,9 +59,11 @@ fun OobeScreen(
     themeMode: String,
     displayName: String,
     hasPermission: Boolean,
+    exactAlarmAccess: Boolean,
     onThemeModeChange: (String) -> Unit,
     onDisplayNameChange: (String) -> Unit,
     onConnect: () -> Unit,
+    onRequestExactAlarmAccess: () -> Unit,
     onFinish: () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -135,7 +137,7 @@ fun OobeScreen(
                         .padding(top = 18.dp),
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
-                    repeat(4) { index ->
+                    repeat(5) { index ->
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -182,11 +184,17 @@ fun OobeScreen(
                             onSelected = onThemeModeChange
                         )
 
-                        else -> OobeHealthConnect(
+                        3 -> OobeHealthConnect(
                             modifier = Modifier.fillMaxSize(),
                             sdkStatus = sdkStatus,
                             connected = hasPermission,
                             onConnect = onConnect
+                        )
+
+                        else -> OobeExactAlarm(
+                            modifier = Modifier.fillMaxSize(),
+                            granted = exactAlarmAccess,
+                            onGrant = onRequestExactAlarmAccess
                         )
                     }
                 }
@@ -222,7 +230,7 @@ fun OobeScreen(
                                     step++
                                 }
 
-                                3 -> {
+                                4 -> {
                                     onDisplayNameChange(
                                         nameDraft.trim()
                                     )
@@ -239,7 +247,7 @@ fun OobeScreen(
                         )
                     ) {
                         Text(
-                            text = if (step == 3) {
+                            text = if (step == 4) {
                                 "Finish setup"
                             } else {
                                 "Continue"
@@ -539,6 +547,169 @@ private fun OobeHealthConnect(
                         color = colors.onSurfaceVariant
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OobeExactAlarm(
+    modifier: Modifier,
+    granted: Boolean,
+    onGrant: () -> Unit
+) {
+    val colors =
+        MaterialTheme.colorScheme
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 42.dp),
+        verticalArrangement =
+            Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "ALARM RELIABILITY",
+            style =
+                MaterialTheme.typography.labelLarge,
+            fontWeight =
+                FontWeight.ExtraBold,
+            color = Sunrise
+        )
+
+        Text(
+            text =
+                "Protect your wake deadline.",
+            style =
+                MaterialTheme.typography.headlineLarge,
+            fontWeight =
+                FontWeight.ExtraBold,
+            color = colors.onBackground
+        )
+
+        Text(
+            text =
+                "Android restricts exact timers by default. Granting Exact Alarm access ensures your wake schedule fires precisely on time without battery-saver delays.",
+            color =
+                colors.onSurfaceVariant
+        )
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            shape =
+                RoundedCornerShape(24.dp),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        colors.surface.copy(
+                            alpha = 0.68f
+                        ),
+                    contentColor =
+                        colors.onSurface
+                )
+        ) {
+            Column(
+                modifier =
+                    Modifier.padding(18.dp),
+                verticalArrangement =
+                    Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier =
+                            Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text =
+                                "Exact Alarm Access",
+                            fontWeight =
+                                FontWeight.ExtraBold
+                        )
+                        Text(
+                            modifier =
+                                Modifier.padding(
+                                    top = 3.dp
+                                ),
+                            text =
+                                if (granted) {
+                                    "Granted · precise wake scheduling is ready"
+                                } else {
+                                    "Action required for precise wake deadlines"
+                                },
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                            color =
+                                if (granted) {
+                                    Color(0xFF10B981)
+                                } else {
+                                    Sunrise
+                                }
+                        )
+                    }
+
+                    Text(
+                        text =
+                            if (granted) {
+                                "✓ Granted"
+                            } else {
+                                "Required"
+                            },
+                        style =
+                            MaterialTheme.typography.labelMedium,
+                        fontWeight =
+                            FontWeight.ExtraBold,
+                        color =
+                            if (granted) {
+                                Color(0xFF10B981)
+                            } else {
+                                Sunrise
+                            }
+                    )
+                }
+
+                if (!granted) {
+                    Button(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        onClick = onGrant,
+                        shape =
+                            RoundedCornerShape(
+                                999.dp
+                            ),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    Sunrise,
+                                contentColor =
+                                    Color(0xFF0F172A)
+                            )
+                    ) {
+                        Text(
+                            text =
+                                "Grant Exact Alarm Permission",
+                            fontWeight =
+                                FontWeight.ExtraBold
+                        )
+                    }
+                }
+
+                Text(
+                    text =
+                        "After granting access in Android settings, return to WakeSync. The status above updates automatically.",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        colors.onSurfaceVariant
+                )
             }
         }
     }
