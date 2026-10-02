@@ -239,47 +239,13 @@ private fun OobeBrand() {
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Canvas(
+        WakeSyncBrandMark(
             modifier = Modifier
-                .size(width = 42.dp, height = 30.dp)
-        ) {
-            fun wave(y: Float): Path = Path().apply {
-                moveTo(0f, y)
-                cubicTo(
-                    size.width * 0.22f,
-                    y - size.height * 0.20f,
-                    size.width * 0.40f,
-                    y + size.height * 0.20f,
-                    size.width * 0.60f,
-                    y
+                .size(
+                    width = 44.dp,
+                    height = 32.dp
                 )
-                cubicTo(
-                    size.width * 0.76f,
-                    y - size.height * 0.18f,
-                    size.width * 0.88f,
-                    y + size.height * 0.12f,
-                    size.width,
-                    y - size.height * 0.06f
-                )
-            }
-
-            drawPath(
-                path = wave(size.height * 0.34f),
-                color = Lavender,
-                style = Stroke(
-                    width = 4.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            )
-            drawPath(
-                path = wave(size.height * 0.66f),
-                color = Sunrise,
-                style = Stroke(
-                    width = 4.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            )
-        }
+        )
 
         Text(
             modifier = Modifier.padding(start = 10.dp),
