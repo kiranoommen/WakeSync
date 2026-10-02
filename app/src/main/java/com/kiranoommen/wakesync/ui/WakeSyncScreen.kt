@@ -2901,7 +2901,7 @@ private fun WeeklyAlarmOverview(
             wakeGlassBorderBrush()
         ),
         colors = CardDefaults.cardColors(
-            containerColor = wakeGlassFill(),
+            containerColor = Color.Transparent,
             contentColor =
                 MaterialTheme.colorScheme.onSurface
         ),
@@ -2909,9 +2909,16 @@ private fun WeeklyAlarmOverview(
             defaultElevation = 6.dp
         )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Box(
+            modifier = Modifier.fillMaxWidth()
         ) {
+            WakeGlassBackdrop(
+                modifier = Modifier.matchParentSize()
+            )
+
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement =
@@ -3141,13 +3148,20 @@ private fun AlarmScheduleCard(
             .scale(cardScale)
             .clickable(onClick = onEdit),
         shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, colors.outlineVariant),
+        border = BorderStroke(
+            1.dp,
+            wakeGlassBorderBrush()
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = colors.surface.copy(alpha = 0.72f),
+            containerColor = Color.Transparent,
             contentColor = cardContent
         )
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
+            WakeGlassBackdrop(
+                modifier = Modifier.matchParentSize()
+            )
+
             if (schedule.enabled) {
                 Canvas(modifier = Modifier.matchParentSize()) {
                     drawCircle(
