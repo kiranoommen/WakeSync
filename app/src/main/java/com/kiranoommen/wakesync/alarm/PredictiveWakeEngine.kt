@@ -3,7 +3,6 @@ package com.kiranoommen.wakesync.alarm
 import com.kiranoommen.wakesync.model.HistoricalWakeProfile
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
-import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
 
