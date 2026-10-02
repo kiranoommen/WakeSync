@@ -30,6 +30,19 @@ object WakeAlarmController {
         }
     }
 
+    fun markAwake(context: Context) {
+        val appContext = context.applicationContext
+        val preferences = WakePreferencesStore(appContext).load()
+
+        WakeAlarmScheduler.cancelAll(appContext)
+        appContext.stopService(Intent(appContext, WakeMonitorService::class.java))
+        appContext.stopService(Intent(appContext, AlarmRingingService::class.java))
+
+        if (preferences.enabled) {
+            WakeAlarmScheduler.scheduleTomorrow(appContext, preferences)
+        }
+    }
+
     fun dismiss(context: Context) {
         context.applicationContext.stopService(
             Intent(context.applicationContext, AlarmRingingService::class.java)
