@@ -36,7 +36,7 @@ The core idea is simple:
 - Deep / Light / REM / Awake stage distribution;
 - interactive duration + efficiency trend chart;
 - wearable-derived Sleep Regularity Index estimate;
-- optional sleep goal from 4h 00m to 12h 00m in 15-minute wheel increments, plus sleep-debt estimate and streaks;
+- optional sleep goal from 4h 00m to 12h 00m using a tap-to-open scroll-wheel picker with explicit Confirm / Cancel actions, plus sleep-debt estimate and streaks;
 - expandable sleep log with Date / Score / numeric Duration sorting, ascending/descending toggles and deterministic date tie-breakers;
 - optional HRV and resting-heart-rate metrics when Health Connect provides them;
 - local trend-based WakeSync insights;
@@ -44,7 +44,7 @@ The core idea is simple:
 
 ### Dashboard
 
-- first-run onboarding for preferred name, appearance, Health Connect and Exact Alarm reliability setup;
+- first-run onboarding for preferred name and appearance, followed by a unified Health Connect + Exact Alarm permissions page;
 - contextual morning briefing and color-coded daily Sleep Score hero;
 - transparent four-pillar daily score breakdown;
 - asymmetric two-column Bento dashboard;
@@ -59,7 +59,7 @@ The core idea is simple:
 ### Appearance
 
 - System / Dark / Light mode;
-- pager-linked procedural ambient mesh background using midnight, violet, amber and cyan light fields;
+- pager-linked procedural ambient mesh background using the WakeSync brand palette plus a subtle brand-guideline wallpaper motif;
 - Home ↔ Alarms ↔ Sleep ↔ Settings horizontal swipe navigation synchronized with the floating bottom bar;
 - reflective translucent Bento glass surfaces with Android 12+ hardware blur and a graceful opacity fallback on older Android versions;
 - high-contrast light-mode text and reduced nested card chrome;
