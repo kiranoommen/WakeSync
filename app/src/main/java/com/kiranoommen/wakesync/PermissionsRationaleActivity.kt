@@ -31,11 +31,11 @@ class PermissionsRationaleActivity : ComponentActivity() {
                     )
                     Text(
                         modifier = Modifier.padding(top = 16.dp),
-                        text = "WakeSync requests read-only access to your sleep sessions and sleep stages through Health Connect so it can calculate personalized wake windows locally on your phone."
+                        text = "WakeSync requests read-only access to your sleep sessions and sleep stages through Health Connect. When Smart Wake is enabled, background read access lets WakeSync check for fresh sleep-stage updates shortly before your wake range."
                     )
                     Text(
                         modifier = Modifier.padding(top = 12.dp),
-                        text = "WakeSync does not upload, sell, share, or modify your health data."
+                        text = "WakeSync processes these reads locally on your phone. It does not upload, sell, share, or modify your health data."
                     )
                 }
             }
