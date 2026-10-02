@@ -12,6 +12,7 @@ import android.os.IBinder
 import com.kiranoommen.wakesync.MainActivity
 import com.kiranoommen.wakesync.data.HealthConnectManager
 import com.kiranoommen.wakesync.data.WakePreferencesStore
+import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.SleepStageType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -58,7 +59,10 @@ class WakeMonitorService : Service() {
         val healthConnect = HealthConnectManager(applicationContext)
 
         val initialPreferences = preferencesStore.load()
-        if (!initialPreferences.enabled || !initialPreferences.hasValidRange()) {
+        if (!initialPreferences.enabled ||
+            initialPreferences.mode != AlarmMode.SMART_WAKE ||
+            !initialPreferences.hasValidRange()
+        ) {
             stopSelf()
             return
         }
@@ -76,7 +80,10 @@ class WakeMonitorService : Service() {
             val now = ZonedDateTime.now()
             val preferences = preferencesStore.load()
 
-            if (!preferences.enabled || !preferences.hasValidRange()) {
+            if (!preferences.enabled ||
+                preferences.mode != AlarmMode.SMART_WAKE ||
+                !preferences.hasValidRange()
+            ) {
                 stopSelf()
                 return
             }
