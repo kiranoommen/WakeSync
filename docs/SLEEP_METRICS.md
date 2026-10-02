@@ -89,6 +89,8 @@ WakeSync displays a simple **sleep debt estimate**:
 sum(max(0, personal nightly target - estimated nightly sleep))
 ```
 
+The personal nightly target is optional and stored as total minutes. The Settings wheel supports 4h 00m through 12h 00m in 15-minute increments, and the same precise stored value is used anywhere WakeSync calculates goal progress or sleep debt.
+
 It is a user-facing planning metric, not a physiological measurement of an exact biological debt.
 
 ## HRV and resting heart rate
