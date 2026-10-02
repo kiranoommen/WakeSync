@@ -512,98 +512,75 @@ private fun HomeTab(
     onClearSkips: (AlarmSchedule) -> Unit,
     onGoAlarms: () -> Unit,
     sleepGoalMinutes: Int,
-    goalsEnabled: Boolean,
-    dashboardWidgets: List<String>,
-    displayName: String,
-    onDashboardWidgetsChange: (List<String>) -> Unit
+    goalsEnabled: Boolean
 ) {
-    val next = remember(schedules) { nextSchedule(schedules) }
-    val nearestSkipped = remember(schedules) { nearestUpcomingSkipped(schedules) }
-    var showCustomize by remember { mutableStateOf(false) }
-    var showScoreBreakdown by remember { mutableStateOf(false) }
-    var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
-    val dashboardNights = remember(nights) {
-        val cutoff =
-            LocalDate.now().minusDays(13)
-        nights
-            .filter {
-                !it.end
-                    .atZone(
-                        ZoneId.systemDefault()
-                    )
-                    .toLocalDate()
-                    .isBefore(cutoff)
-            }
-            .sortedByDescending { it.end }
+    val next =
+        remember(schedules) {
+            nextSchedule(schedules)
+        }
+    val nearestSkipped =
+        remember(schedules) {
+            nearestUpcomingSkipped(schedules)
+        }
+    var infoSheet by remember {
+        mutableStateOf<MetricInfo?>(null)
     }
-    val dashboardAnalytics = remember(
-        dashboardNights,
-        sleepGoalMinutes
-    ) {
-        SleepAnalytics.analyze(
+
+    val dashboardNights =
+        remember(nights) {
+            val cutoff =
+                LocalDate.now().minusDays(13)
+
+            nights
+                .filter {
+                    !it.end
+                        .atZone(
+                            ZoneId.systemDefault()
+                        )
+                        .toLocalDate()
+                        .isBefore(cutoff)
+                }
+                .sortedByDescending {
+                    it.end
+                }
+        }
+
+    val dashboardAnalytics =
+        remember(
             dashboardNights,
             sleepGoalMinutes
-        )
-    }
+        ) {
+            SleepAnalytics.analyze(
+                dashboardNights,
+                sleepGoalMinutes
+            )
+        }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement =
+            Arrangement.spacedBy(14.dp)
     ) {
-        if (hasPermission && dashboardAnalytics.nights.isNotEmpty()) {
-            item {
-                MorningBriefingCard(
-                    analytics = dashboardAnalytics,
-                    displayName = displayName,
-                    goalsEnabled = goalsEnabled,
-                    onScoreClick = {
-                        showScoreBreakdown = true
-                    },
-                    onStatusClick = {
-                        infoSheet =
-                            if (
-                                goalsEnabled &&
-                                dashboardAnalytics.sleepDebtMinutes > 0
-                            ) {
-                                sleepDebtInfo()
-                            } else {
-                                MetricInfo(
-                                    title = "Daily recovery status",
-                                    meaning = "A quick label based on the current WakeSync Sleep Score and, when targets are enabled, recent sleep debt.",
-                                    measurement = "The Daily Score is separate from cumulative Sleep Debt.",
-                                    importance = "Use the label as a summary, then open the score breakdown for the underlying components."
-                                )
-                            }
-                    },
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Morning briefing",
-                            meaning = "A quick status view of your latest sleep period and recent recovery trend.",
-                            measurement = if (goalsEnabled) {
-                                "WakeSync uses your recent Sleep Score, sleep-debt estimate and selected personal sleep target."
-                            } else {
-                                "WakeSync uses recent sleep duration, efficiency, stages and consistency without target/debt indicators."
-                            },
-                            importance = "The briefing gives a quick recovery snapshot without requiring you to dig through charts."
-                        )
-                    }
-                )
-            }
-        }
-
         item {
             if (next != null) {
                 NextWakeCard(
                     schedule = next.first,
                     deadline = next.second,
-                    onEdit = { onEditSchedule(next.first) },
-                    onSkip = { onSkipNext(next.first) },
+                    onEdit = {
+                        onEditSchedule(next.first)
+                    },
+                    onSkip = {
+                        onSkipNext(next.first)
+                    },
                     onInfo = {
                         infoSheet = MetricInfo(
-                            title = "Smart wake window",
-                            meaning = "The range WakeSync is allowed to wake you in, ending at your protected wake-by deadline.",
-                            measurement = "Your schedule sets the deadline and smart-window width. WakeSync may choose an earlier point only inside that range.",
-                            importance = "A narrow, user-controlled window avoids the frustrating early wake-ups common in overly aggressive smart alarms."
+                            title = "Smart Wake window",
+                            meaning =
+                                "WakeSync may wake you during this window, but never later than your “Must be awake by” time.",
+                            measurement =
+                                "Live sleep is checked inside the window. Recent sleep history can provide a fallback near the end.",
+                            importance =
+                                "The latest wake time remains protected even when live tracker data is delayed."
                         )
                     }
                 )
@@ -612,10 +589,13 @@ private fun HomeTab(
                     onGoAlarms = onGoAlarms,
                     onInfo = {
                         infoSheet = MetricInfo(
-                            title = "Smart alarm schedule",
-                            meaning = "Your wake-by schedule defines the latest acceptable wake time for each selected day.",
-                            measurement = "WakeSync combines the recurring schedule with your chosen smart-window width and preserves the deadline.",
-                            importance = "A protected deadline keeps the smart feature from making you late while still allowing a better wake point when appropriate."
+                            title = "Wake schedule",
+                            meaning =
+                                "Create a Smart Wake schedule for the morning you want WakeSync to protect.",
+                            measurement =
+                                "Choose when you must be awake, when it repeats, and how early Smart Wake may ring.",
+                            importance =
+                                "WakeSync is designed around the alarm first; sleep data helps choose the wake moment."
                         )
                     }
                 )
@@ -625,74 +605,79 @@ private fun HomeTab(
         if (nearestSkipped != null) {
             item {
                 SkippedBanner(
-                    schedule = nearestSkipped.first,
-                    skippedDate = nearestSkipped.second,
-                    onUndo = { onSkipNext(nearestSkipped.first) }
+                    schedule =
+                        nearestSkipped.first,
+                    skippedDate =
+                        nearestSkipped.second,
+                    onUndo = {
+                        onSkipNext(
+                            nearestSkipped.first
+                        )
+                    }
                 )
+            }
+        }
+
+        when {
+            sdkStatus ==
+                HealthConnectClient.SDK_UNAVAILABLE ||
+                sdkStatus ==
+                HealthConnectClient
+                    .SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> {
+                item {
+                    InfoCard(
+                        title =
+                            "Health Connect needs attention",
+                        body =
+                            "Smart Wake needs Health Connect sleep data. Standard alarms still work normally."
+                    )
+                }
+            }
+
+            !hasPermission -> {
+                item {
+                    ConnectCard(onConnect)
+                }
             }
         }
 
         if (
-            sdkStatus == HealthConnectClient.SDK_UNAVAILABLE ||
-            sdkStatus == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
+            hasPermission &&
+            dashboardAnalytics.nights.isNotEmpty()
         ) {
             item {
-                InfoCard(
-                    title = "Health Connect needs attention",
-                    body = "WakeSync can still manage alarms, but sleep insights need Health Connect available on this device."
-                )
-            }
-        } else if (!hasPermission) {
-            item { ConnectCard(onConnect) }
-        }
-
-        if (hasPermission) {
-            item {
                 SectionHeader(
-                    title = "Your Dashboard",
-                    action = "Customize",
-                    onAction = {
-                        showCustomize = true
-                    }
+                    title = "Recent sleep",
+                    action = "Refresh",
+                    onAction = onRefresh
                 )
             }
 
             item {
                 DashboardBentoGrid(
-                    widgets = dashboardWidgets,
-                    analytics = dashboardAnalytics,
+                    widgets = listOf(
+                        AppSettingsStore.WIDGET_SLEEP,
+                        AppSettingsStore.WIDGET_INSIGHT
+                    ),
+                    analytics =
+                        dashboardAnalytics,
                     nights = nights,
                     schedules = schedules,
                     loading = loading,
-                    goalsEnabled = goalsEnabled,
-                    sleepGoalMinutes = sleepGoalMinutes,
-                    onEditSchedule = onEditSchedule,
-                    onSkipNext = onSkipNext,
-                    onGoAlarms = onGoAlarms,
+                    goalsEnabled =
+                        goalsEnabled,
+                    sleepGoalMinutes =
+                        sleepGoalMinutes,
+                    onEditSchedule =
+                        onEditSchedule,
+                    onSkipNext =
+                        onSkipNext,
+                    onGoAlarms =
+                        onGoAlarms,
                     onInfo = {
                         infoSheet = it
                     }
                 )
-            }
-
-            item {
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = onRefresh
-                    ) {
-                        Text(
-                            text =
-                                "Refresh sleep data",
-                            color =
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             }
         }
 
@@ -701,9 +686,12 @@ private fun HomeTab(
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "On-device privacy",
-                        meaning = "WakeSync reads permitted Health Connect data locally and does not operate a health-data cloud database.",
-                        measurement = "Sleep analytics and wake recommendations are calculated on the device. Export only happens after you choose a share action.",
-                        importance = "Keeping raw health data local reduces unnecessary exposure and keeps the app usable without a paid server API."
+                        meaning =
+                            "WakeSync reads permitted Health Connect data locally and does not operate a health-data cloud database.",
+                        measurement =
+                            "Smart Wake and sleep summaries are calculated on this device.",
+                        importance =
+                            "The app can remain useful without uploading your raw sleep history to a WakeSync server."
                     )
                 }
             )
@@ -712,43 +700,26 @@ private fun HomeTab(
         errorMessage?.let { message ->
             item {
                 InfoCard(
-                    title = "Something needs attention",
+                    title =
+                        "Something needs attention",
                     body = message
                 )
             }
         }
 
-        item { Spacer(Modifier.height(10.dp)) }
-    }
-
-    if (showCustomize) {
-        DashboardCustomizeDialog(
-            current = dashboardWidgets,
-            goalsEnabled = goalsEnabled,
-            onDismiss = { showCustomize = false },
-            onSave = {
-                onDashboardWidgetsChange(it)
-                showCustomize = false
-            }
-        )
+        item {
+            Spacer(
+                Modifier.height(10.dp)
+            )
+        }
     }
 
     MetricInfoBottomSheet(
         info = infoSheet,
-        onDismiss = { infoSheet = null }
+        onDismiss = {
+            infoSheet = null
+        }
     )
-
-    if (showScoreBreakdown) {
-        ScoreBreakdownSheet(
-            analytics = dashboardAnalytics,
-            dailyNight =
-                dashboardAnalytics.nights
-                    .firstOrNull(),
-            onDismiss = {
-                showScoreBreakdown = false
-            }
-        )
-    }
 }
 
 @Composable
