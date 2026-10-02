@@ -1,4 +1,18 @@
-# WakeSync Brand Guide
+<p align="center">
+  <img src="assets/wakesync-hero.svg" alt="WakeSync brand banner" width="100%" />
+</p>
+
+# 🎨 WakeSync Brand Guide
+
+<p align="center">
+  <a href="README.md"><strong>Docs Hub</strong></a> ·
+  <a href="BRANDING.md">Brand</a> ·
+  <a href="DESIGN_SYSTEM.md">Design</a> ·
+  <a href="ARCHITECTURE.md">Architecture</a> ·
+  <a href="WAKE_WINDOW_ALGORITHM.md">Wake Algorithm</a> ·
+  <a href="TESTING.md">Testing</a> ·
+  <a href="PRIVACY.md">Privacy</a>
+</p>
 
 WakeSync should feel like the transition from night to morning: calm, precise, reassuring, then gently energizing.
 
@@ -88,9 +102,13 @@ Avoid:
 - “WakeSync knows exactly when your body is ready.”
 - “Clinically optimized wake timing.”
 
-## Visual direction
+## 🌌 Visual direction
 
 The visual language moves from **deep night** to **warm wake light**.
+
+<p align="center">
+  <img src="assets/brand-palette.svg" alt="WakeSync brand palette" width="100%" />
+</p>
 
 ### Primary colors
 
@@ -122,25 +140,37 @@ Use the Android system sans / Roboto family until a deliberate custom type decis
 
 Avoid thin weights for wake times, permission states, or other critical information.
 
-## Wordmark and logo usage
+## 🌅 Mark and wordmark
 
-There is not yet a locked production logo asset in the repository.
+<table>
+<tr>
+<td width="34%" align="center"><img src="assets/wakesync-mark.svg" alt="WakeSync sunrise and sleep-wave mark" width="240" /></td>
+<td>
 
-Until one is approved:
+### Current launcher mark
 
-- use the **WakeSync** wordmark;
-- do not invent alternate logos per screen or document;
-- do not treat emoji, moon icons, alarm clocks, or generated marks as the official logo;
-- keep the app icon and wordmark work separate from the product UI design system.
+The current WakeSync mark combines:
 
-When a final logo is added, this document should define:
-- primary mark;
-- monochrome mark;
-- minimum clear space;
-- minimum size;
-- dark/light background variants;
-- app icon safe zone;
-- prohibited treatments.
+- an **amber sunrise arc** for waking;
+- a **pearl horizon** for the user-defined boundary;
+- **indigo and lavender waves** for sleep-stage motion;
+- a **midnight field** for the night state.
+
+The Android launcher icon now uses this same brand language, including a monochrome Android 13+ variant.
+
+The **WakeSync** text wordmark remains the default written brand. Do not invent alternate marks per screen or document.
+
+</td>
+</tr>
+</table>
+
+### Usage
+
+- Keep the mark on Midnight, white, or other high-contrast surfaces.
+- Preserve clear space of at least one quarter of the mark width.
+- Do not recolor individual elements outside the approved palette.
+- Do not rotate, stretch, add drop shadows, or replace the sunrise/waves with generic alarm-clock art.
+- Emoji may decorate docs, but they are not the WakeSync logo.
 
 ## Iconography
 
@@ -160,7 +190,11 @@ Avoid:
 - cortisol or hormone imagery;
 - generic “AI sparkle” branding.
 
-## Product imagery
+## 🖼️ Product imagery
+
+<p align="center">
+  <img src="assets/smart-wake-flow.svg" alt="WakeSync live to predictive to hard stop product story" width="100%" />
+</p>
 
 Screenshots should show a realistic wake range and clearly expose the fallback behavior.
 
@@ -183,7 +217,11 @@ Use stage colors consistently:
 
 Never communicate stage exclusively through color; always include text or another accessible indicator.
 
-## Privacy language
+## 🔒 Privacy language
+
+<p align="center">
+  <img src="assets/privacy-card.svg" alt="WakeSync privacy language" width="100%" />
+</p>
 
 Preferred short form:
 
