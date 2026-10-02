@@ -34,6 +34,8 @@ Verify:
 - Health Connect sleep permission can be granted;
 - background-read permission can be granted where supported;
 - exact-alarm access can be granted;
+- exact-alarm access can be skipped during OOBE, then granted later from Settings → Permissions & Reliability;
+- returning from Android exact-alarm settings refreshes WakeSync's granted/not-granted state;
 - notification permission can be granted;
 - full-screen alarm access is handled on Android 14+;
 - Smart Wake cannot be enabled until required setup is complete.
@@ -46,7 +48,8 @@ Verify:
 - enabling Standard Alarm does not schedule the live monitor or historical fallback;
 - switching from Smart Wake to Standard Alarm stops any active live monitor;
 - Standard Alarm rings with the Standard Alarm UI/reason;
-- dismissing schedules the next day's standard alarm when the alarm remains enabled.
+- with Backup Rings off, the next recurrence remains scheduled normally;
+- with 2 Backup Rings enabled, the primary alarm is followed by rings at +5 and +10 minutes unless the user explicitly stops the remaining sequence.
 
 ### 3. Wake-range boundaries
 
@@ -67,7 +70,7 @@ During the live portion of the range:
 - fresh REM → continue;
 - fresh Deep → continue.
 
-Confirm that triggering a live wake cancels the remaining current-day alarms and schedules the next day.
+Confirm that triggering a live wake cancels competing live/history triggers but **does not cancel the hard deadline**. A normal “Dismiss this ring” must leave the deadline armed; only “I’m awake — stop remaining alarms” may cancel the rest of the current wake sequence.
 
 ### 5. Stale or missing live data
 
@@ -95,9 +98,22 @@ With insufficient history:
 - no predictive alarm should be trusted;
 - hard stop should remain the final wake path.
 
-### 7. Hard stop
+### 7. Backup rings and hard stop
 
 This is mandatory.
+
+With Backup Rings enabled:
+- verify 1, 2, and 3-ring configurations;
+- verify rings occur every five minutes after the hard deadline;
+- verify “Dismiss this ring” stops only the current sound/vibration;
+- verify the remaining backup alarms still fire;
+- verify “I’m awake — stop remaining alarms” cancels all remaining alarms in the current sequence;
+- verify the next recurring occurrence is still scheduled;
+- verify Snooze is not offered while Backup Rings are active.
+
+With Backup Rings disabled, verify Snooze remains available when configured.
+
+Hard-stop validation:
 
 Test with:
 - live data unavailable;
@@ -135,9 +151,9 @@ Verify:
 - full-screen alarm appears when permitted;
 - alarm sound loops;
 - vibration works;
-- “I’m awake” stops sound/vibration;
-- current-day alarms are cleared;
-- next day's wake schedule remains intact.
+- when no safety alarms remain, “I’m awake” stops sound/vibration and preserves the next recurring schedule;
+- when safety alarms remain, “Dismiss this ring” preserves them;
+- “I’m awake — stop remaining alarms” cancels the current sequence and preserves the next recurring schedule.
 
 ### 11. Privacy regression
 
