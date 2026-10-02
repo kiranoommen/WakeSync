@@ -1,5 +1,7 @@
 # WakeSync Design System
 
+For outward-facing naming, voice, positioning, and brand usage, see [BRANDING.md](BRANDING.md).
+
 ## Product direction
 
 WakeSync should feel calm at night, energizing in the morning, and trustworthy at all times.
