@@ -1714,19 +1714,6 @@ private fun WeeklyHypnogramDashboardTile(
 }
 
 @Composable
-private fun wakeGlassFill(): Color =
-    if (
-        MaterialTheme.colorScheme.background
-            .luminance() < 0.5f
-    ) {
-        Color(0x33161B26)
-    } else {
-        Color.White.copy(
-            alpha = 0.60f
-        )
-    }
-
-@Composable
 private fun wakeGlassBorderBrush(): Brush =
     if (
         MaterialTheme.colorScheme.background
