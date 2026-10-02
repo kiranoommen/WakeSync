@@ -21,6 +21,7 @@
 | 🧭 | **[Architecture](ARCHITECTURE.md)** | Android stack, alarm layers, Health Connect flow |
 | ⏰ | **[Wake algorithm](WAKE_WINDOW_ALGORITHM.md)** | Live → predictive → hard-stop decision logic |
 | 🧪 | **[Testing plan](TESTING.md)** | Manual matrix, overnight validation, reliability checks |
+| 📊 | **[Sleep metrics & scoring](SLEEP_METRICS.md)** | Analytics math, score weights, interpretation guardrails |
 | 🔒 | **[Privacy model](PRIVACY.md)** | On-device processing and Health Connect boundaries |
 | 🗺️ | **[MVP roadmap](MVP_ROADMAP.md)** | Delivered milestones and next priorities |
 
