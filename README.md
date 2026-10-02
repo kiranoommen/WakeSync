@@ -7,12 +7,12 @@
   <img alt="Android 28+" src="https://img.shields.io/badge/Android-28%2B-6F63FF?style=flat-square&logo=android&logoColor=white" />
   <img alt="Health Connect read only" src="https://img.shields.io/badge/Health%20Connect-read--only-9A84FF?style=flat-square" />
   <img alt="On-device processing" src="https://img.shields.io/badge/processing-on--device-FFB44A?style=flat-square" />
-  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-E9ECFF?style=flat-square&labelColor=15192A" />
+  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-E9ECFF?style=flat-square&labelColor=15192A" />
 </p>
 
 <p align="center">
   <strong>Better mornings, in sync with you.</strong><br />
-  Private Android smart alarm using Health Connect, on-device prediction, and a guaranteed hard wake deadline.
+  Private Android smart alarm using Health Connect, on-device prediction, and a guaranteed latest wake time.
 </p>
 
 <p align="center">
@@ -74,7 +74,8 @@ Raw sleep records are read from Health Connect as needed rather than duplicated 
 - Android Health Connect sleep reads
 - read-only sleep-stage access
 - background Health Connect reads when supported
-- multiple recurring alarm schedules with weekday selection and skip-next controls
+- recurring and tomorrow-only alarm schedules with weekday selection and skip-next controls
+- duplicate alarms plus swipe-to-toggle / swipe-to-duplicate gestures
 - each alarm independently selects Smart Wake or Standard Alarm
 - Smart Wake uses a user-controlled early window before its hard deadline
 - live Awake / Light wake logic
@@ -83,14 +84,13 @@ Raw sleep records are read from Health Connect as needed rather than duplicated 
 - exact alarm scheduling with recoverable permission setup from Settings
 - full-screen alarm handling
 - four-tab Home / Alarms / Sleep / Settings interface with swipe navigation
-- redesigned full-screen ringing UI with per-alarm label, mode/reason context, and snooze
+- progressive alarm editor with advanced controls under More Options
+- redesigned full-screen ringing UI with per-alarm label, mode/reason context, and Backup Alarm controls
 - alarm sound and vibration
 - reboot, clock-change, and timezone-change schedule restoration
 - local wake settings and derived history
-- sleep analytics dashboard and richer sleep log
-- optional HRV and resting-heart-rate context
+- focused sleep trends and sleep log that support Smart Wake context
 - optional extended Health Connect history
-- local CSV, PDF, and shareable story exports
 - onboarding plus light/dark/system themes
 - Android CI build
 

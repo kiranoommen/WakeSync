@@ -120,10 +120,7 @@ fun SleepAnalyticsScreen(
     loading: Boolean,
     targetSleepMinutes: Int,
     goalsEnabled: Boolean,
-    onRefresh: () -> Unit,
-    onShareCsv: (List<NightAnalytics>) -> Unit,
-    onSharePdf: (PeriodAnalytics) -> Unit,
-    onShareStory: (PeriodAnalytics) -> Unit
+    onRefresh: () -> Unit
 ) {
     var range by remember { mutableStateOf(SleepRange.TWO_WEEKS) }
     var compare by remember { mutableStateOf(false) }
@@ -133,7 +130,6 @@ fun SleepAnalyticsScreen(
     var customEnd by remember { mutableStateOf<LocalDate?>(null) }
     var showCustomRange by remember { mutableStateOf(false) }
     var selectedNight by remember { mutableStateOf<NightAnalytics?>(null) }
-    var showExportPreview by remember { mutableStateOf(false) }
     var showScoreBreakdown by remember { mutableStateOf(false) }
     var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
 
@@ -321,37 +317,18 @@ fun SleepAnalyticsScreen(
                 }
             )
 
-            Row(
+            ArchitectureCard(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(10.dp)
-            ) {
-                ArchitectureCard(
-                    modifier = Modifier.weight(1f),
-                    analytics = analytics,
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Architecture & regularity",
-                            meaning = "Stage ratios summarize Deep and REM trends. SRI estimates how consistent your sleep/wake timing is from day to day.",
-                            measurement = "Stage ratios use wearable-classified stage minutes. SRI compares sleep/wake state in 15-minute clock-time epochs on adjacent tracked days.",
-                            importance = "Regularity can make sleep timing more predictable, while stage ratios are best treated as personal trends rather than fixed targets."
-                        )
-                    }
-                )
-
-                RecoveryCard(
-                    modifier = Modifier.weight(1f),
-                    analytics = analytics,
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Biometric recovery",
-                            meaning = "HRV means Heart Rate Variability: beat-to-beat timing variation used as a recovery trend. RHR means Resting Heart Rate: your resting pulse rate.",
-                            measurement = "WakeSync reads optional HRV and RHR records from Health Connect and summarizes the values associated with recent nights.",
-                            importance = "These metrics are usually most useful relative to your own baseline, not a universal good/bad threshold."
-                        )
-                    }
-                )
-            }
+                analytics = analytics,
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Sleep pattern",
+                        meaning = "A compact look at stage mix and how consistent your sleep timing has been.",
+                        measurement = "Stage ratios come from Health Connect sleep stages. Regularity compares sleep/wake timing across tracked nights.",
+                        importance = "WakeSync keeps this view focused on patterns that can help explain Smart Wake behavior rather than trying to replace a full fitness dashboard."
+                    )
+                }
+            )
 
             SleepLogCard(
                 analytics = allAnalytics,
@@ -376,19 +353,6 @@ fun SleepAnalyticsScreen(
                 }
             )
 
-            ExportCard(
-                onOpenPreview = {
-                    showExportPreview = true
-                },
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Export & share",
-                        meaning = "WakeSync can generate a PDF summary, CSV log or shareable visual card only when you explicitly request it.",
-                        measurement = "Exports are created locally from the currently selected period.",
-                        importance = "The preview tells you exactly what leaves the app before Android's share sheet opens."
-                    )
-                }
-            )
         }
     }
 
@@ -413,33 +377,6 @@ fun SleepAnalyticsScreen(
             goalsEnabled = goalsEnabled,
             onDismiss = {
                 selectedNight = null
-            }
-        )
-    }
-
-    if (showExportPreview) {
-        ExportPreviewSheet(
-            analytics = analytics,
-            onDismiss = {
-                showExportPreview = false
-            },
-            onPdf = {
-                showExportPreview = false
-                onSharePdf(analytics)
-            },
-            onCsv = {
-                showExportPreview = false
-                onShareCsv(
-                    sortedNights(
-                        analytics.nights,
-                        sort,
-                        sortDescending
-                    )
-                )
-            },
-            onStory = {
-                showExportPreview = false
-                onShareStory(analytics)
             }
         )
     }
@@ -2065,68 +2002,6 @@ private fun ArchitectureCard(
 }
 
 @Composable
-private fun RecoveryCard(
-    modifier: Modifier = Modifier,
-    analytics: PeriodAnalytics,
-    onInfo: () -> Unit
-) {
-    BentoCard(
-        modifier = modifier,
-        borderColor = Indigo.copy(alpha = 0.26f)
-    ) {
-        Column {
-            CardTitleRow(
-                title = "Biometric recovery",
-                onInfo = onInfo
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(10.dp)
-            )
-
-            MetricLine(
-                "HRV",
-                analytics.averageHrvMs
-                    ?.let {
-                        it.roundToInt()
-                            .toString() +
-                            " ms avg"
-                    }
-                    ?: "Not available"
-            )
-            MetricLine(
-                "Resting heart rate",
-                analytics.averageRestingHeartRateBpm
-                    ?.let {
-                        it.roundToInt()
-                            .toString() +
-                            " bpm avg"
-                    }
-                    ?: "Not available"
-            )
-
-            Text(
-                modifier = Modifier.padding(top = 8.dp),
-                text =
-                    if (
-                        analytics.averageHrvMs == null &&
-                        analytics.averageRestingHeartRateBpm == null
-                    ) {
-                        "HRV = Heart Rate Variability. RHR = Resting Heart Rate. Grant optional recovery access in Settings if your Health Connect source provides these records."
-                    } else {
-                        "HRV = Heart Rate Variability · RHR = Resting Heart Rate. Use both primarily relative to your own baseline."
-                    },
-                style =
-                    MaterialTheme.typography.bodySmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
 private fun SleepLogCard(
     analytics: PeriodAnalytics,
     sort: SleepSort,
@@ -2479,52 +2354,6 @@ private fun SleepLogCard(
                 showCustomRange = false
             }
         )
-    }
-}
-
-@Composable
-private fun ExportCard(
-    onOpenPreview: () -> Unit,
-    onInfo: () -> Unit
-) {
-    BentoCard {
-        Column {
-            CardTitleRow(
-                title = "Export & share",
-                onInfo = onInfo
-            )
-
-            Text(
-                modifier = Modifier.padding(top = 6.dp),
-                text =
-                    "Preview exactly what will be included before anything leaves WakeSync.",
-                style =
-                    MaterialTheme.typography.bodySmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 14.dp),
-                onClick = onOpenPreview,
-                shape = RoundedCornerShape(999.dp),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor =
-                            Color.White,
-                        contentColor =
-                            Color(0xFF0F172A)
-                    )
-            ) {
-                Text(
-                    text = "Export Data",
-                    fontWeight =
-                        FontWeight.ExtraBold
-                )
-            }
-        }
     }
 }
 
@@ -3143,46 +2972,6 @@ private fun NightBreakdownSheet(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(8.dp)
-            ) {
-                MiniMetric(
-                    modifier = Modifier.weight(1f),
-                    label = "HRV",
-                    value =
-                        night.night.averageHrvMs
-                            ?.roundToInt()
-                            ?.toString()
-                            ?.plus(" ms")
-                            ?: "—"
-                )
-                MiniMetric(
-                    modifier = Modifier.weight(1f),
-                    label = "RHR",
-                    value =
-                        night.night.restingHeartRateBpm
-                            ?.toString()
-                            ?.plus(" bpm")
-                            ?: "—"
-                )
-            }
-
-            if (
-                night.night.averageHrvMs != null ||
-                night.night.restingHeartRateBpm != null
-            ) {
-                Text(
-                    text =
-                        "HRV = Heart Rate Variability, a beat-to-beat recovery trend. RHR = Resting Heart Rate. WakeSync currently receives nightly recovery values rather than a full trace, so it does not fabricate overlay graphs.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
             TextButton(
                 modifier =
                     Modifier.align(Alignment.End),
@@ -3190,167 +2979,6 @@ private fun NightBreakdownSheet(
             ) {
                 Text("Done")
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ExportPreviewSheet(
-    analytics: PeriodAnalytics,
-    onDismiss: () -> Unit,
-    onPdf: () -> Unit,
-    onCsv: () -> Unit,
-    onStory: () -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(
-            topStart = 30.dp,
-            topEnd = 30.dp
-        ),
-        containerColor =
-            MaterialTheme.colorScheme.surface,
-        dragHandle = null
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 22.dp,
-                    vertical = 20.dp
-                ),
-            verticalArrangement =
-                Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = "Data Transparency Preview",
-                style =
-                    MaterialTheme.typography.headlineMedium,
-                fontWeight =
-                    FontWeight.ExtraBold
-            )
-
-            TransparencySection(
-                title = "Included in export",
-                lines = listOf(
-                    "Selected date range",
-                    "WakeSync sleep scores",
-                    "Total sleep duration",
-                    "Stage percentages",
-                    "Efficiency and timing summaries"
-                ),
-                accent = Mint
-            )
-
-            TransparencySection(
-                title = "Excluded / private",
-                lines = listOf(
-                    "Personal identifiers",
-                    "Raw sensor feeds",
-                    "Location information",
-                    "Other unrelated Health Connect records"
-                ),
-                accent =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Button(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                onClick = onPdf,
-                shape =
-                    RoundedCornerShape(999.dp),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor =
-                            Color.White,
-                        contentColor =
-                            Color(0xFF0F172A)
-                    )
-            ) {
-                Text(
-                    "📄 Export PDF Health Report",
-                    fontWeight =
-                        FontWeight.Bold
-                )
-            }
-
-            Button(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                onClick = onCsv,
-                shape =
-                    RoundedCornerShape(999.dp),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor =
-                            Lavender.copy(alpha = 0.20f),
-                        contentColor =
-                            Color.White
-                    )
-            ) {
-                Text(
-                    "📊 Export CSV",
-                    fontWeight =
-                        FontWeight.Bold
-                )
-            }
-
-            Button(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                onClick = onStory,
-                shape =
-                    RoundedCornerShape(999.dp),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor =
-                            Cyan.copy(alpha = 0.18f),
-                        contentColor =
-                            Color.White
-                    )
-            ) {
-                Text(
-                    "🎨 Share Story Card",
-                    fontWeight =
-                        FontWeight.Bold
-                )
-            }
-
-            Text(
-                text =
-                    analytics.nights.size.toString() +
-                        " nights are currently in the selected period.",
-                style =
-                    MaterialTheme.typography.bodySmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun TransparencySection(
-    title: String,
-    lines: List<String>,
-    accent: Color
-) {
-    Column {
-        Text(
-            text = title,
-            fontWeight = FontWeight.Bold,
-            color = accent
-        )
-        lines.forEach { line ->
-            Text(
-                modifier =
-                    Modifier.padding(top = 4.dp),
-                text = "• " + line,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

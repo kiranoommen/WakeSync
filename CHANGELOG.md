@@ -8,6 +8,33 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+## 0.7.0 — 2026-10-02
+
+### Changed
+- renamed the user-facing **Guardrail Wake Time** concept to **Must be awake by**;
+- renamed **Backup Rings** to the clearer **Backup Alarms**;
+- rebuilt the alarm editor around a simpler primary flow with secondary controls under **More options**;
+- refocused Home on the next alarm and a small recent-sleep snapshot instead of a customizable sleep dashboard;
+- simplified Settings to Smart Wake, Health Connect, Alarm Reliability, Appearance, and Support;
+- rewrote onboarding to make Smart Wake the core product and explain that live overnight stages work best with a fitness tracker connected through Health Connect.
+
+### Added
+- tomorrow-only / one-time alarms;
+- duplicate-alarm action;
+- swipe right to toggle and swipe left to duplicate, with haptic feedback;
+- reusable schedule presets for Tomorrow, Daily, Weekdays, and Custom.
+
+### Removed
+- Snooze; Backup Alarms are now the single repeat/safety mechanism;
+- dashboard customization;
+- CSV, PDF, and story-card exports plus their FileProvider infrastructure;
+- HRV/resting-heart-rate recovery UI and the associated Health Connect permissions;
+- retired greeting/profile and export-retention settings.
+
+### Architecture
+- extracted the alarm editor from the monolithic WakeSync screen into a dedicated alarms UI component;
+- removed obsolete dashboard/export plumbing to reduce screen-level state and future regression risk.
+
 ## 0.6.0 — 2026-10-02
 
 ### Added

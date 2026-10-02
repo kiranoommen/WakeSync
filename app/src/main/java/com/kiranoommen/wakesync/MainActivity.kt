@@ -25,7 +25,6 @@ import com.kiranoommen.wakesync.alarm.PredictiveWakeEngine
 import com.kiranoommen.wakesync.data.AlarmStore
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.HealthConnectManager
-import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.data.WakeHistoryStore
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
@@ -34,6 +33,7 @@ import com.kiranoommen.wakesync.ui.OobeScreen
 import com.kiranoommen.wakesync.ui.WakeSyncScreen
 import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
 
@@ -57,27 +57,18 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var hasPermission by remember { mutableStateOf(false) }
-            var hasAnalyticsPermission by remember { mutableStateOf(false) }
             var hasHistoryPermission by remember { mutableStateOf(false) }
             var nights by remember { mutableStateOf<List<SleepNight>>(emptyList()) }
             var schedules by remember { mutableStateOf(alarmStore.load()) }
             var loading by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
             var themeMode by remember { mutableStateOf(appSettings.themeMode) }
-            var sleepGoalMinutes by remember {
-                mutableStateOf(appSettings.sleepGoalMinutes)
-            }
-            var goalsEnabled by remember {
-                mutableStateOf(appSettings.goalsEnabled)
-            }
-            var dashboardWidgets by remember {
-                mutableStateOf(appSettings.dashboardWidgets)
-            }
+            val sleepGoalMinutes =
+                appSettings.sleepGoalMinutes
+            val goalsEnabled =
+                appSettings.goalsEnabled
             var maxSmartWindowMinutes by remember {
                 mutableStateOf(appSettings.maxSmartWindowMinutes)
-            }
-            var retainGeneratedExports by remember {
-                mutableStateOf(appSettings.retainGeneratedExports)
             }
             var oobeCompleted by remember {
                 mutableStateOf(
@@ -186,22 +177,9 @@ class MainActivity : ComponentActivity() {
                 lifecycleScope.launch {
                     hasPermission =
                         healthConnectManager.hasRequiredPermissions()
-                    hasAnalyticsPermission =
-                        healthConnectManager.hasAnalyticsPermissions()
                     hasHistoryPermission =
                         healthConnectManager.hasHistoryPermission()
 
-                    if (hasPermission) refreshSleep()
-                }
-            }
-
-            val analyticsPermissionLauncher = rememberLauncherForActivityResult(
-                contract =
-                    PermissionController.createRequestPermissionResultContract()
-            ) {
-                lifecycleScope.launch {
-                    hasAnalyticsPermission =
-                        healthConnectManager.hasAnalyticsPermissions()
                     if (hasPermission) refreshSleep()
                 }
             }
@@ -235,9 +213,6 @@ class MainActivity : ComponentActivity() {
 
                 hasPermission = runCatching {
                     healthConnectManager.hasRequiredPermissions()
-                }.getOrDefault(false)
-                hasAnalyticsPermission = runCatching {
-                    healthConnectManager.hasAnalyticsPermissions()
                 }.getOrDefault(false)
                 hasHistoryPermission = runCatching {
                     healthConnectManager.hasHistoryPermission()
@@ -274,14 +249,12 @@ class MainActivity : ComponentActivity() {
                 OobeScreen(
                     sdkStatus = healthConnectManager.sdkStatus(),
                     themeMode = themeMode,
-                    displayName = "",
                     hasPermission = hasPermission,
                     exactAlarmAccess = exactAlarmAccessState.value,
                     onThemeModeChange = { newMode ->
                         themeMode = newMode
                         appSettings.themeMode = newMode
                     },
-                    onDisplayNameChange = { },
                     onConnect = {
                         healthPermissionLauncher.launch(
                             healthConnectManager.requestedPermissions()
@@ -307,62 +280,120 @@ class MainActivity : ComponentActivity() {
                 )
             } else {
                 WakeSyncScreen(
-                    sdkStatus = healthConnectManager.sdkStatus(),
-                    hasPermission = hasPermission,
-                    loading = loading,
-                    nights = nights,
-                    schedules = schedules,
-                    exactAlarmAccess = exactAlarmAccessState.value,
-                    hasAnalyticsPermission = hasAnalyticsPermission,
-                    hasHistoryPermission = hasHistoryPermission,
-                    historyReadAvailable = historyReadAvailable,
-                    themeMode = themeMode,
-                    sleepGoalMinutes = sleepGoalMinutes,
-                    goalsEnabled = goalsEnabled,
-                    dashboardWidgets = dashboardWidgets,
-                    displayName = "",
-                    maxSmartWindowMinutes = maxSmartWindowMinutes,
-                    retainGeneratedExports = retainGeneratedExports,
-                    errorMessage = errorMessage,
+                    sdkStatus =
+                        healthConnectManager.sdkStatus(),
+                    hasPermission =
+                        hasPermission,
+                    loading =
+                        loading,
+                    nights =
+                        nights,
+                    schedules =
+                        schedules,
+                    exactAlarmAccess =
+                        exactAlarmAccessState.value,
+                    hasHistoryPermission =
+                        hasHistoryPermission,
+                    historyReadAvailable =
+                        historyReadAvailable,
+                    themeMode =
+                        themeMode,
+                    sleepGoalMinutes =
+                        sleepGoalMinutes,
+                    goalsEnabled =
+                        goalsEnabled,
+                    maxSmartWindowMinutes =
+                        maxSmartWindowMinutes,
+                    errorMessage =
+                        errorMessage,
                     onConnect = {
                         healthPermissionLauncher.launch(
-                            healthConnectManager.requestedPermissions()
+                            healthConnectManager
+                                .requestedPermissions()
                         )
                     },
-                    onRefresh = ::refreshSleep,
+                    onRefresh =
+                        ::refreshSleep,
                     onSaveSchedule = { schedule ->
                         val cappedWindow =
                             schedule.smartWindowMinutes
-                                .coerceIn(10, maxSmartWindowMinutes)
+                                .coerceIn(
+                                    10,
+                                    maxSmartWindowMinutes
+                                )
 
-                        val capped = schedule.copy(
-                            smartWindowMinutes = cappedWindow,
-                            smartOffsetMinutes =
-                                schedule.smartOffsetMinutes
-                                    .coerceAtMost(cappedWindow),
-                            backupRingCount =
-                                schedule.backupRingCount
-                                    .coerceIn(
-                                        0,
-                                        AlarmScheduler.MAX_BACKUP_RINGS
-                                    )
-                        )
+                        val capped =
+                            schedule.copy(
+                                smartWindowMinutes =
+                                    cappedWindow,
+                                smartOffsetMinutes =
+                                    schedule.smartOffsetMinutes
+                                        .coerceAtMost(
+                                            cappedWindow
+                                        ),
+                                backupRingCount =
+                                    schedule.backupRingCount
+                                        .coerceIn(
+                                            0,
+                                            AlarmScheduler
+                                                .MAX_BACKUP_RINGS
+                                        )
+                            )
 
                         persist(
-                            schedules.filterNot { it.id == capped.id } + capped
+                            schedules.filterNot {
+                                it.id == capped.id
+                            } + capped
                         )
                     },
                     onDeleteSchedule = { schedule ->
-                        alarmScheduler.cancel(schedule.id)
+                        alarmScheduler.cancel(
+                            schedule.id
+                        )
                         persist(
-                            schedules.filterNot { it.id == schedule.id }
+                            schedules.filterNot {
+                                it.id == schedule.id
+                            }
                         )
                     },
-                    onToggleSchedule = { schedule, enabled ->
+                    onDuplicateSchedule = { schedule ->
+                        val copy =
+                            schedule.copy(
+                                id =
+                                    UUID.randomUUID()
+                                        .toString(),
+                                label =
+                                    if (
+                                        schedule.label
+                                            .isBlank()
+                                    ) {
+                                        "Alarm copy"
+                                    } else {
+                                        schedule.label +
+                                            " copy"
+                                    },
+                                enabled = true,
+                                skippedDates =
+                                    emptySet()
+                            )
+
+                        persist(
+                            schedules + copy
+                        )
+                    },
+                    onToggleSchedule = {
+                            schedule,
+                            enabled ->
                         persist(
                             schedules.map {
-                                if (it.id == schedule.id) {
-                                    it.copy(enabled = enabled)
+                                if (
+                                    it.id ==
+                                    schedule.id
+                                ) {
+                                    it.copy(
+                                        enabled =
+                                            enabled
+                                    )
                                 } else {
                                     it
                                 }
@@ -370,22 +401,42 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     onSkipNext = { schedule ->
-                        val nextBase = schedule.nextBaseDeadline()
+                        val nextBase =
+                            schedule
+                                .nextBaseDeadline()
+
                         if (nextBase != null) {
                             val dateKey =
-                                nextBase.toLocalDate().toString()
+                                nextBase
+                                    .toLocalDate()
+                                    .toString()
+
                             val updatedSkips =
-                                if (schedule.skippedDates.contains(dateKey)) {
-                                    schedule.skippedDates - dateKey
+                                if (
+                                    schedule
+                                        .skippedDates
+                                        .contains(
+                                            dateKey
+                                        )
+                                ) {
+                                    schedule
+                                        .skippedDates -
+                                        dateKey
                                 } else {
-                                    schedule.skippedDates + dateKey
+                                    schedule
+                                        .skippedDates +
+                                        dateKey
                                 }
 
                             persist(
                                 schedules.map {
-                                    if (it.id == schedule.id) {
+                                    if (
+                                        it.id ==
+                                        schedule.id
+                                    ) {
                                         schedule.copy(
-                                            skippedDates = updatedSkips
+                                            skippedDates =
+                                                updatedSkips
                                         )
                                     } else {
                                         it
@@ -397,9 +448,13 @@ class MainActivity : ComponentActivity() {
                     onClearSkips = { schedule ->
                         persist(
                             schedules.map {
-                                if (it.id == schedule.id) {
+                                if (
+                                    it.id ==
+                                    schedule.id
+                                ) {
                                     schedule.copy(
-                                        skippedDates = emptySet()
+                                        skippedDates =
+                                            emptySet()
                                     )
                                 } else {
                                     it
@@ -407,24 +462,27 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     },
-                    onRequestAnalyticsAccess = {
-                        analyticsPermissionLauncher.launch(
-                            HealthConnectManager.analyticsPermissions
-                        )
-                    },
                     onRequestHistoryAccess = {
-                        if (historyReadAvailable) {
-                            historyPermissionLauncher.launch(
-                                HealthConnectManager.historyPermissions
-                            )
+                        if (
+                            historyReadAvailable
+                        ) {
+                            historyPermissionLauncher
+                                .launch(
+                                    HealthConnectManager
+                                        .historyPermissions
+                                )
                         }
                     },
                     onRequestExactAlarmAccess = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (
+                            Build.VERSION.SDK_INT >=
+                            Build.VERSION_CODES.S
+                        ) {
                             runCatching {
                                 startActivity(
                                     Intent(
-                                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                                        Settings
+                                            .ACTION_REQUEST_SCHEDULE_EXACT_ALARM
                                     ).apply {
                                         data =
                                             Uri.parse(
@@ -435,53 +493,51 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     },
-                    onThemeModeChange = { newMode ->
+                    onThemeModeChange = {
+                            newMode ->
                         themeMode = newMode
-                        appSettings.themeMode = newMode
+                        appSettings.themeMode =
+                            newMode
                     },
-                    onSleepGoalChange = { minutes ->
-                        sleepGoalMinutes = minutes
-                        appSettings.sleepGoalMinutes = minutes
-                    },
-                    onGoalsEnabledChange = { enabled ->
-                        goalsEnabled = enabled
-                        appSettings.goalsEnabled = enabled
-                    },
-                    onDashboardWidgetsChange = { widgets ->
-                        dashboardWidgets = widgets
-                        appSettings.dashboardWidgets = widgets
-                    },
-                    onDisplayNameChange = { },
-                    onMaxSmartWindowChange = { minutes ->
-                        maxSmartWindowMinutes = minutes
-                        appSettings.maxSmartWindowMinutes = minutes
+                    onMaxSmartWindowChange = {
+                            minutes ->
+                        maxSmartWindowMinutes =
+                            minutes
+                        appSettings
+                            .maxSmartWindowMinutes =
+                            minutes
 
                         persist(
-                            schedules.map { schedule ->
+                            schedules.map {
+                                    schedule ->
                                 val capped =
-                                    schedule.smartWindowMinutes
-                                        .coerceAtMost(minutes)
-                                        .coerceAtLeast(10)
+                                    schedule
+                                        .smartWindowMinutes
+                                        .coerceAtMost(
+                                            minutes
+                                        )
+                                        .coerceAtLeast(
+                                            10
+                                        )
+
                                 schedule.copy(
-                                    smartWindowMinutes = capped,
+                                    smartWindowMinutes =
+                                        capped,
                                     smartOffsetMinutes =
-                                        if (schedule.mode == AlarmMode.STANDARD) {
+                                        if (
+                                            schedule.mode ==
+                                            AlarmMode.STANDARD
+                                        ) {
                                             0
                                         } else {
-                                            schedule.smartOffsetMinutes
-                                                .coerceAtMost(capped)
+                                            schedule
+                                                .smartOffsetMinutes
+                                                .coerceAtMost(
+                                                    capped
+                                                )
                                         }
                                 )
                             }
-                        )
-                    },
-                    onRetainGeneratedExportsChange = { retain ->
-                        retainGeneratedExports = retain
-                        appSettings.retainGeneratedExports = retain
-                    },
-                    onClearGeneratedExports = {
-                        SleepExporter.clearGeneratedExports(
-                            this@MainActivity
                         )
                     }
                 )

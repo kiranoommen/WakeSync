@@ -40,7 +40,7 @@ class AlarmScheduler(private val context: Context) {
         after: ZonedDateTime = ZonedDateTime.now(),
         clearExisting: Boolean = true
     ) {
-        if (!schedule.enabled || schedule.days.isEmpty()) return
+        if (!schedule.enabled || (schedule.days.isEmpty() && !schedule.isOneTime)) return
 
         val deadline = schedule.nextDeadline(after) ?: return
 
@@ -121,7 +121,7 @@ class AlarmScheduler(private val context: Context) {
             time = deadline,
             sequenceDeadline = deadline,
             kind = KIND_DEADLINE,
-            reason = "Hard wake deadline reached"
+            reason = "Must be awake by time reached"
         )
 
         scheduleBackupRings(schedule, deadline)
@@ -130,7 +130,6 @@ class AlarmScheduler(private val context: Context) {
     fun cancel(scheduleId: String) {
         cancelSmartOptimizers(scheduleId)
         cancelKind(scheduleId, KIND_DEADLINE)
-        cancelKind(scheduleId, KIND_SNOOZE)
 
         for (index in 1..MAX_BACKUP_RINGS) {
             cancelKind(
@@ -143,39 +142,6 @@ class AlarmScheduler(private val context: Context) {
     fun cancelSmartOptimizers(scheduleId: String) {
         cancelKind(scheduleId, KIND_MONITOR)
         cancelKind(scheduleId, KIND_HISTORICAL)
-    }
-
-    fun snooze(
-        scheduleId: String,
-        minutes: Int,
-        sequenceDeadlineMillis: Long
-    ) {
-        if (minutes <= 0) return
-
-        val schedule = AlarmStore(context)
-            .load()
-            .firstOrNull { it.id == scheduleId }
-            ?: return
-
-        val wakeAt =
-            ZonedDateTime.now().plusMinutes(minutes.toLong())
-        val sequenceDeadline =
-            if (sequenceDeadlineMillis > 0L) {
-                ZonedDateTime.ofInstant(
-                    Instant.ofEpochMilli(sequenceDeadlineMillis),
-                    ZoneId.systemDefault()
-                )
-            } else {
-                wakeAt
-            }
-
-        setAlarmClock(
-            schedule = schedule,
-            time = wakeAt,
-            sequenceDeadline = sequenceDeadline,
-            kind = KIND_SNOOZE,
-            reason = "Snoozed alarm"
-        )
     }
 
     private fun scheduleBackupRings(
@@ -196,7 +162,7 @@ class AlarmScheduler(private val context: Context) {
                 time = time,
                 sequenceDeadline = deadline,
                 kind = backupKind(index),
-                reason = "Backup ring $index of $count"
+                reason = "Backup alarm $index of $count"
             )
         }
     }
@@ -339,7 +305,6 @@ class AlarmScheduler(private val context: Context) {
         const val KIND_MONITOR = "monitor"
         const val KIND_HISTORICAL = "historical"
         const val KIND_DEADLINE = "deadline"
-        const val KIND_SNOOZE = "snooze"
 
         fun backupKind(index: Int): String =
             "backup_${index.coerceIn(1, MAX_BACKUP_RINGS)}"

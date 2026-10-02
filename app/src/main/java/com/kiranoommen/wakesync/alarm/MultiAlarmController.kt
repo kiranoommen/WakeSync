@@ -42,7 +42,8 @@ object MultiAlarmController {
                 val index =
                     AlarmScheduler.backupIndex(kind) ?: 0
                 if (index >= schedule.backupRingCount) {
-                    scheduleNextOccurrence(
+                    finishSequence(
+                        appContext = appContext,
                         scheduler = scheduler,
                         schedule = schedule,
                         deadlineMillis = deadlineMillis
@@ -52,7 +53,8 @@ object MultiAlarmController {
 
             kind == AlarmScheduler.KIND_DEADLINE -> {
                 if (schedule.backupRingCount <= 0) {
-                    scheduleNextOccurrence(
+                    finishSequence(
+                        appContext = appContext,
                         scheduler = scheduler,
                         schedule = schedule,
                         deadlineMillis = deadlineMillis
@@ -101,32 +103,52 @@ object MultiAlarmController {
         scheduler.cancel(scheduleId)
 
         if (schedule != null && schedule.enabled) {
+            if (schedule.isOneTime) {
+                val store = AlarmStore(appContext)
+                val updated = store.load().map {
+                    if (it.id == scheduleId) {
+                        it.copy(enabled = false)
+                    } else {
+                        it
+                    }
+                }
+                store.save(updated)
+            } else {
+                scheduleNextOccurrence(
+                    scheduler = scheduler,
+                    schedule = schedule,
+                    deadlineMillis = deadlineMillis
+                )
+            }
+        }
+
+        dismissCurrent(appContext)
+    }
+
+    private fun finishSequence(
+        appContext: Context,
+        scheduler: AlarmScheduler,
+        schedule: com.kiranoommen.wakesync.model.AlarmSchedule,
+        deadlineMillis: Long
+    ) {
+        if (schedule.isOneTime) {
+            val store = AlarmStore(appContext)
+            store.save(
+                store.load().map {
+                    if (it.id == schedule.id) {
+                        it.copy(enabled = false)
+                    } else {
+                        it
+                    }
+                }
+            )
+        } else {
             scheduleNextOccurrence(
                 scheduler = scheduler,
                 schedule = schedule,
                 deadlineMillis = deadlineMillis
             )
         }
-
-        dismissCurrent(appContext)
-    }
-
-    fun snooze(
-        context: Context,
-        scheduleId: String,
-        minutes: Int,
-        deadlineMillis: Long
-    ) {
-        if (minutes <= 0) return
-
-        AlarmScheduler(context.applicationContext)
-            .snooze(
-                scheduleId = scheduleId,
-                minutes = minutes,
-                sequenceDeadlineMillis = deadlineMillis
-            )
-
-        dismissCurrent(context)
     }
 
     private fun scheduleNextOccurrence(

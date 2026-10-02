@@ -14,7 +14,6 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -29,6 +28,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -61,6 +61,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -86,23 +89,23 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessAlarm
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Settings
 import androidx.health.connect.client.HealthConnectClient
 import com.kiranoommen.wakesync.data.AppSettingsStore
-import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.domain.SleepAnalytics
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
+import com.kiranoommen.wakesync.ui.alarms.AlarmEditorDialog
 import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Coral
 import com.kiranoommen.wakesync.ui.theme.Cyan
@@ -143,35 +146,25 @@ fun WakeSyncScreen(
     nights: List<SleepNight>,
     schedules: List<AlarmSchedule>,
     exactAlarmAccess: Boolean,
-    hasAnalyticsPermission: Boolean,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
     sleepGoalMinutes: Int,
     goalsEnabled: Boolean,
-    dashboardWidgets: List<String>,
-    displayName: String,
     maxSmartWindowMinutes: Int,
-    retainGeneratedExports: Boolean,
     errorMessage: String?,
     onConnect: () -> Unit,
     onRefresh: () -> Unit,
     onSaveSchedule: (AlarmSchedule) -> Unit,
     onDeleteSchedule: (AlarmSchedule) -> Unit,
+    onDuplicateSchedule: (AlarmSchedule) -> Unit,
     onToggleSchedule: (AlarmSchedule, Boolean) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit,
-    onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
-    onSleepGoalChange: (Int) -> Unit,
-    onGoalsEnabledChange: (Boolean) -> Unit,
-    onDashboardWidgetsChange: (List<String>) -> Unit,
-    onDisplayNameChange: (String) -> Unit,
-    onMaxSmartWindowChange: (Int) -> Unit,
-    onRetainGeneratedExportsChange: (Boolean) -> Unit,
-    onClearGeneratedExports: () -> Unit
+    onMaxSmartWindowChange: (Int) -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
     val darkTheme = when (themeMode) {
@@ -293,13 +286,7 @@ fun WakeSyncScreen(
                                 sleepGoalMinutes =
                                     sleepGoalMinutes,
                                 goalsEnabled =
-                                    goalsEnabled,
-                                dashboardWidgets =
-                                    dashboardWidgets,
-                                displayName =
-                                    displayName,
-                                onDashboardWidgetsChange =
-                                    onDashboardWidgetsChange
+                                    goalsEnabled
                             )
 
                         AppTab.ALARMS ->
@@ -316,6 +303,8 @@ fun WakeSyncScreen(
                                     editingSchedule =
                                         it
                                 },
+                                onDuplicate =
+                                    onDuplicateSchedule,
                                 onToggle =
                                     onToggleSchedule,
                                 onSkipNext =
@@ -326,40 +315,14 @@ fun WakeSyncScreen(
 
                         AppTab.SLEEP ->
                             SleepTab(
-                                nights =
-                                    nights,
-                                loading =
-                                    loading,
+                                nights = nights,
+                                loading = loading,
                                 sleepGoalMinutes =
                                     sleepGoalMinutes,
                                 goalsEnabled =
                                     goalsEnabled,
                                 onRefresh =
-                                    onRefresh,
-                                onShareCsv = {
-                                    SleepExporter
-                                        .shareCsv(
-                                            context,
-                                            it,
-                                            retainGeneratedExports
-                                        )
-                                },
-                                onSharePdf = {
-                                    SleepExporter
-                                        .sharePdf(
-                                            context,
-                                            it,
-                                            retainGeneratedExports
-                                        )
-                                },
-                                onShareStory = {
-                                    SleepExporter
-                                        .shareStoryCard(
-                                            context,
-                                            it,
-                                            retainGeneratedExports
-                                        )
-                                }
+                                    onRefresh
                             )
 
                         AppTab.SETTINGS ->
@@ -368,48 +331,24 @@ fun WakeSyncScreen(
                                     hasPermission,
                                 exactAlarmAccess =
                                     exactAlarmAccess,
-                                hasAnalyticsPermission =
-                                    hasAnalyticsPermission,
                                 hasHistoryPermission =
                                     hasHistoryPermission,
                                 historyReadAvailable =
                                     historyReadAvailable,
                                 themeMode =
                                     themeMode,
-                                sleepGoalMinutes =
-                                    sleepGoalMinutes,
-                                goalsEnabled =
-                                    goalsEnabled,
                                 maxSmartWindowMinutes =
                                     maxSmartWindowMinutes,
-                                retainGeneratedExports =
-                                    retainGeneratedExports,
-                                displayName =
-                                    displayName,
-                                nights =
-                                    nights,
                                 onConnect =
                                     onConnect,
-                                onRequestAnalyticsAccess =
-                                    onRequestAnalyticsAccess,
                                 onRequestHistoryAccess =
                                     onRequestHistoryAccess,
                                 onRequestExactAlarmAccess =
                                     onRequestExactAlarmAccess,
                                 onThemeModeChange =
                                     onThemeModeChange,
-                                onSleepGoalChange =
-                                    onSleepGoalChange,
-                                onGoalsEnabledChange =
-                                    onGoalsEnabledChange,
-                                onDisplayNameChange =
-                                    onDisplayNameChange,
                                 onMaxSmartWindowChange =
-                                    onMaxSmartWindowChange,
-                                onRetainGeneratedExportsChange =
-                                    onRetainGeneratedExportsChange,
-                                onClearGeneratedExports =
-                                    onClearGeneratedExports
+                                    onMaxSmartWindowChange
                             )
                     }
                 }
@@ -511,98 +450,75 @@ private fun HomeTab(
     onClearSkips: (AlarmSchedule) -> Unit,
     onGoAlarms: () -> Unit,
     sleepGoalMinutes: Int,
-    goalsEnabled: Boolean,
-    dashboardWidgets: List<String>,
-    displayName: String,
-    onDashboardWidgetsChange: (List<String>) -> Unit
+    goalsEnabled: Boolean
 ) {
-    val next = remember(schedules) { nextSchedule(schedules) }
-    val nearestSkipped = remember(schedules) { nearestUpcomingSkipped(schedules) }
-    var showCustomize by remember { mutableStateOf(false) }
-    var showScoreBreakdown by remember { mutableStateOf(false) }
-    var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
-    val dashboardNights = remember(nights) {
-        val cutoff =
-            LocalDate.now().minusDays(13)
-        nights
-            .filter {
-                !it.end
-                    .atZone(
-                        ZoneId.systemDefault()
-                    )
-                    .toLocalDate()
-                    .isBefore(cutoff)
-            }
-            .sortedByDescending { it.end }
+    val next =
+        remember(schedules) {
+            nextSchedule(schedules)
+        }
+    val nearestSkipped =
+        remember(schedules) {
+            nearestUpcomingSkipped(schedules)
+        }
+    var infoSheet by remember {
+        mutableStateOf<MetricInfo?>(null)
     }
-    val dashboardAnalytics = remember(
-        dashboardNights,
-        sleepGoalMinutes
-    ) {
-        SleepAnalytics.analyze(
+
+    val dashboardNights =
+        remember(nights) {
+            val cutoff =
+                LocalDate.now().minusDays(13)
+
+            nights
+                .filter {
+                    !it.end
+                        .atZone(
+                            ZoneId.systemDefault()
+                        )
+                        .toLocalDate()
+                        .isBefore(cutoff)
+                }
+                .sortedByDescending {
+                    it.end
+                }
+        }
+
+    val dashboardAnalytics =
+        remember(
             dashboardNights,
             sleepGoalMinutes
-        )
-    }
+        ) {
+            SleepAnalytics.analyze(
+                dashboardNights,
+                sleepGoalMinutes
+            )
+        }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement =
+            Arrangement.spacedBy(14.dp)
     ) {
-        if (hasPermission && dashboardAnalytics.nights.isNotEmpty()) {
-            item {
-                MorningBriefingCard(
-                    analytics = dashboardAnalytics,
-                    displayName = displayName,
-                    goalsEnabled = goalsEnabled,
-                    onScoreClick = {
-                        showScoreBreakdown = true
-                    },
-                    onStatusClick = {
-                        infoSheet =
-                            if (
-                                goalsEnabled &&
-                                dashboardAnalytics.sleepDebtMinutes > 0
-                            ) {
-                                sleepDebtInfo()
-                            } else {
-                                MetricInfo(
-                                    title = "Daily recovery status",
-                                    meaning = "A quick label based on the current WakeSync Sleep Score and, when targets are enabled, recent sleep debt.",
-                                    measurement = "The Daily Score is separate from cumulative Sleep Debt.",
-                                    importance = "Use the label as a summary, then open the score breakdown for the underlying components."
-                                )
-                            }
-                    },
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Morning briefing",
-                            meaning = "A quick status view of your latest sleep period and recent recovery trend.",
-                            measurement = if (goalsEnabled) {
-                                "WakeSync uses your recent Sleep Score, sleep-debt estimate and selected personal sleep target."
-                            } else {
-                                "WakeSync uses recent sleep duration, efficiency, stages and consistency without target/debt indicators."
-                            },
-                            importance = "The briefing gives a quick recovery snapshot without requiring you to dig through charts."
-                        )
-                    }
-                )
-            }
-        }
-
         item {
             if (next != null) {
                 NextWakeCard(
                     schedule = next.first,
                     deadline = next.second,
-                    onEdit = { onEditSchedule(next.first) },
-                    onSkip = { onSkipNext(next.first) },
+                    onEdit = {
+                        onEditSchedule(next.first)
+                    },
+                    onSkip = {
+                        onSkipNext(next.first)
+                    },
                     onInfo = {
                         infoSheet = MetricInfo(
-                            title = "Smart wake window",
-                            meaning = "The range WakeSync is allowed to wake you in, ending at your protected wake-by deadline.",
-                            measurement = "Your schedule sets the deadline and smart-window width. WakeSync may choose an earlier point only inside that range.",
-                            importance = "A narrow, user-controlled window avoids the frustrating early wake-ups common in overly aggressive smart alarms."
+                            title = "Smart Wake window",
+                            meaning =
+                                "WakeSync may wake you during this window, but never later than your “Must be awake by” time.",
+                            measurement =
+                                "Live sleep is checked inside the window. Recent sleep history can provide a fallback near the end.",
+                            importance =
+                                "The latest wake time remains protected even when live tracker data is delayed."
                         )
                     }
                 )
@@ -611,10 +527,13 @@ private fun HomeTab(
                     onGoAlarms = onGoAlarms,
                     onInfo = {
                         infoSheet = MetricInfo(
-                            title = "Smart alarm schedule",
-                            meaning = "Your wake-by schedule defines the latest acceptable wake time for each selected day.",
-                            measurement = "WakeSync combines the recurring schedule with your chosen smart-window width and preserves the deadline.",
-                            importance = "A protected deadline keeps the smart feature from making you late while still allowing a better wake point when appropriate."
+                            title = "Wake schedule",
+                            meaning =
+                                "Create a Smart Wake schedule for the morning you want WakeSync to protect.",
+                            measurement =
+                                "Choose when you must be awake, when it repeats, and how early Smart Wake may ring.",
+                            importance =
+                                "WakeSync is designed around the alarm first; sleep data helps choose the wake moment."
                         )
                     }
                 )
@@ -624,73 +543,111 @@ private fun HomeTab(
         if (nearestSkipped != null) {
             item {
                 SkippedBanner(
-                    schedule = nearestSkipped.first,
-                    skippedDate = nearestSkipped.second,
-                    onUndo = { onSkipNext(nearestSkipped.first) }
+                    schedule =
+                        nearestSkipped.first,
+                    skippedDate =
+                        nearestSkipped.second,
+                    onUndo = {
+                        onSkipNext(
+                            nearestSkipped.first
+                        )
+                    }
                 )
+            }
+        }
+
+        when {
+            sdkStatus ==
+                HealthConnectClient.SDK_UNAVAILABLE ||
+                sdkStatus ==
+                HealthConnectClient
+                    .SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> {
+                item {
+                    InfoCard(
+                        title =
+                            "Health Connect needs attention",
+                        body =
+                            "Smart Wake needs Health Connect sleep data. Standard alarms still work normally."
+                    )
+                }
+            }
+
+            !hasPermission -> {
+                item {
+                    ConnectCard(onConnect)
+                }
             }
         }
 
         if (
-            sdkStatus == HealthConnectClient.SDK_UNAVAILABLE ||
-            sdkStatus == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
+            hasPermission &&
+            dashboardAnalytics.nights.isNotEmpty()
         ) {
             item {
-                InfoCard(
-                    title = "Health Connect needs attention",
-                    body = "WakeSync can still manage alarms, but sleep insights need Health Connect available on this device."
-                )
-            }
-        } else if (!hasPermission) {
-            item { ConnectCard(onConnect) }
-        }
-
-        if (hasPermission) {
-            item {
                 SectionHeader(
-                    title = "Your Dashboard",
-                    action = "Customize",
-                    onAction = {
-                        showCustomize = true
-                    }
+                    title = "Recent sleep",
+                    action = "Refresh",
+                    onAction = onRefresh
                 )
             }
 
             item {
-                DashboardBentoGrid(
-                    widgets = dashboardWidgets,
-                    analytics = dashboardAnalytics,
-                    nights = nights,
-                    schedules = schedules,
-                    loading = loading,
-                    goalsEnabled = goalsEnabled,
-                    sleepGoalMinutes = sleepGoalMinutes,
-                    onEditSchedule = onEditSchedule,
-                    onSkipNext = onSkipNext,
-                    onGoAlarms = onGoAlarms,
-                    onInfo = {
-                        infoSheet = it
-                    }
-                )
-            }
-
-            item {
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.End
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(10.dp)
                 ) {
-                    TextButton(
-                        onClick = onRefresh
-                    ) {
-                        Text(
-                            text =
-                                "Refresh sleep data",
-                            color =
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    LastNightDashboardTile(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        night =
+                            nights.maxByOrNull {
+                                it.end
+                            },
+                        loading = loading,
+                        onInfo = {
+                            infoSheet = MetricInfo(
+                                title =
+                                    "Last night",
+                                meaning =
+                                    "A compact view of sleep duration, efficiency and stage mix from the latest Health Connect sleep session.",
+                                measurement =
+                                    "WakeSync reads the latest sleep session and stage intervals available through Health Connect.",
+                                importance =
+                                    "This context helps explain Smart Wake behavior without turning Home into a full sleep dashboard."
+                            )
+                        }
+                    )
+
+                    InsightDashboardTile(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        text =
+                            if (goalsEnabled) {
+                                SleepAnalytics.insightFor(
+                                    dashboardAnalytics,
+                                    sleepGoalMinutes
+                                )
+                            } else {
+                                "You averaged " +
+                                    formatMinutes(
+                                        dashboardAnalytics
+                                            .averageSleepMinutes
+                                    ) +
+                                    " of sleep recently."
+                            },
+                        onInfo = {
+                            infoSheet = MetricInfo(
+                                title =
+                                    "Recent sleep pattern",
+                                meaning =
+                                    "A short on-device summary of your recent sleep trend.",
+                                measurement =
+                                    "WakeSync compares recent sleep duration, efficiency, regularity and timing.",
+                                importance =
+                                    "The summary exists to support Smart Wake context, not to replace your fitness tracker’s sleep app."
+                            )
+                        }
+                    )
                 }
             }
         }
@@ -700,9 +657,12 @@ private fun HomeTab(
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "On-device privacy",
-                        meaning = "WakeSync reads permitted Health Connect data locally and does not operate a health-data cloud database.",
-                        measurement = "Sleep analytics and wake recommendations are calculated on the device. Export only happens after you choose a share action.",
-                        importance = "Keeping raw health data local reduces unnecessary exposure and keeps the app usable without a paid server API."
+                        meaning =
+                            "WakeSync reads permitted Health Connect data locally and does not operate a health-data cloud database.",
+                        measurement =
+                            "Smart Wake and sleep summaries are calculated on this device.",
+                        importance =
+                            "The app can remain useful without uploading your raw sleep history to a WakeSync server."
                     )
                 }
             )
@@ -711,362 +671,26 @@ private fun HomeTab(
         errorMessage?.let { message ->
             item {
                 InfoCard(
-                    title = "Something needs attention",
+                    title =
+                        "Something needs attention",
                     body = message
                 )
             }
         }
 
-        item { Spacer(Modifier.height(10.dp)) }
-    }
-
-    if (showCustomize) {
-        DashboardCustomizeDialog(
-            current = dashboardWidgets,
-            goalsEnabled = goalsEnabled,
-            onDismiss = { showCustomize = false },
-            onSave = {
-                onDashboardWidgetsChange(it)
-                showCustomize = false
-            }
-        )
+        item {
+            Spacer(
+                Modifier.height(10.dp)
+            )
+        }
     }
 
     MetricInfoBottomSheet(
         info = infoSheet,
-        onDismiss = { infoSheet = null }
+        onDismiss = {
+            infoSheet = null
+        }
     )
-
-    if (showScoreBreakdown) {
-        ScoreBreakdownSheet(
-            analytics = dashboardAnalytics,
-            dailyNight =
-                dashboardAnalytics.nights
-                    .firstOrNull(),
-            onDismiss = {
-                showScoreBreakdown = false
-            }
-        )
-    }
-}
-
-@Composable
-private fun DashboardBentoGrid(
-    widgets: List<String>,
-    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
-    nights: List<SleepNight>,
-    schedules: List<AlarmSchedule>,
-    loading: Boolean,
-    goalsEnabled: Boolean,
-    sleepGoalMinutes: Int,
-    onEditSchedule: (AlarmSchedule) -> Unit,
-    onSkipNext: (AlarmSchedule) -> Unit,
-    onGoAlarms: () -> Unit,
-    onInfo: (MetricInfo) -> Unit
-) {
-    val visible = widgets
-        .distinct()
-        .filterNot {
-            !goalsEnabled &&
-                (
-                    it == AppSettingsStore.WIDGET_GOAL ||
-                        it == AppSettingsStore.WIDGET_DEBT
-                    )
-        }
-
-    Column(
-        verticalArrangement =
-            Arrangement.spacedBy(10.dp)
-    ) {
-        var index = 0
-
-        while (index < visible.size) {
-            val id = visible[index]
-
-            if (dashboardSpan(id) == 2) {
-                DashboardWidgetTile(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    id = id,
-                    analytics = analytics,
-                    nights = nights,
-                    schedules = schedules,
-                    loading = loading,
-                    goalsEnabled = goalsEnabled,
-                    sleepGoalMinutes =
-                        sleepGoalMinutes,
-                    onEditSchedule =
-                        onEditSchedule,
-                    onSkipNext =
-                        onSkipNext,
-                    onGoAlarms = onGoAlarms,
-                    onInfo = onInfo
-                )
-                index++
-            } else {
-                val next =
-                    visible.getOrNull(
-                        index + 1
-                    )
-                val pair =
-                    next != null &&
-                        dashboardSpan(next) == 1
-
-                if (pair) {
-                    Row(
-                        modifier =
-                            Modifier.fillMaxWidth(),
-                        horizontalArrangement =
-                            Arrangement.spacedBy(10.dp)
-                    ) {
-                        DashboardWidgetTile(
-                            modifier =
-                                Modifier.weight(1f),
-                            id = id,
-                            analytics = analytics,
-                            nights = nights,
-                            schedules = schedules,
-                            loading = loading,
-                            goalsEnabled =
-                                goalsEnabled,
-                            sleepGoalMinutes =
-                                sleepGoalMinutes,
-                            onEditSchedule =
-                                onEditSchedule,
-                            onSkipNext =
-                                onSkipNext,
-                            onGoAlarms =
-                                onGoAlarms,
-                            onInfo = onInfo
-                        )
-
-                        DashboardWidgetTile(
-                            modifier =
-                                Modifier.weight(1f),
-                            id = next!!,
-                            analytics =
-                                analytics,
-                            nights = nights,
-                            schedules =
-                                schedules,
-                            loading = loading,
-                            goalsEnabled =
-                                goalsEnabled,
-                            sleepGoalMinutes =
-                                sleepGoalMinutes,
-                            onEditSchedule =
-                                onEditSchedule,
-                            onSkipNext =
-                                onSkipNext,
-                            onGoAlarms =
-                                onGoAlarms,
-                            onInfo = onInfo
-                        )
-                    }
-                } else {
-                    DashboardWidgetTile(
-                        modifier =
-                            Modifier.fillMaxWidth(),
-                        id = id,
-                        analytics = analytics,
-                        nights = nights,
-                        schedules = schedules,
-                        loading = loading,
-                        goalsEnabled =
-                            goalsEnabled,
-                        sleepGoalMinutes =
-                            sleepGoalMinutes,
-                        onEditSchedule =
-                            onEditSchedule,
-                        onSkipNext =
-                            onSkipNext,
-                        onGoAlarms =
-                            onGoAlarms,
-                        onInfo = onInfo
-                    )
-                }
-
-                index +=
-                    if (pair) {
-                        2
-                    } else {
-                        1
-                    }
-            }
-        }
-    }
-}
-
-private fun dashboardSpan(
-    id: String
-): Int =
-    when (id) {
-        AppSettingsStore.WIDGET_SLEEP,
-        AppSettingsStore.WIDGET_INSIGHT,
-        AppSettingsStore.WIDGET_HYPNOGRAM -> 2
-
-        else -> 1
-    }
-
-@Composable
-private fun DashboardWidgetTile(
-    modifier: Modifier,
-    id: String,
-    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
-    nights: List<SleepNight>,
-    schedules: List<AlarmSchedule>,
-    loading: Boolean,
-    goalsEnabled: Boolean,
-    sleepGoalMinutes: Int,
-    onEditSchedule: (AlarmSchedule) -> Unit,
-    onSkipNext: (AlarmSchedule) -> Unit,
-    onGoAlarms: () -> Unit,
-    onInfo: (MetricInfo) -> Unit
-) {
-    when (id) {
-        AppSettingsStore.WIDGET_GOAL ->
-            GoalDashboardTile(
-                modifier = modifier,
-                analytics = analytics,
-                targetMinutes =
-                    sleepGoalMinutes,
-                onInfo = {
-                    onInfo(
-                        MetricInfo(
-                            title =
-                                "Sleep Goal & Streak",
-                            meaning =
-                                "Progress toward your optional nightly sleep target and consecutive tracked nights that met it.",
-                            measurement =
-                                "Latest sleep-stage minutes are divided by your selected target. The streak counts recent nights at or above that target.",
-                            importance =
-                                "Targets are optional and can be disabled in Settings."
-                        )
-                    )
-                }
-            )
-
-        AppSettingsStore.WIDGET_SLEEP ->
-            LastNightDashboardTile(
-                modifier = modifier,
-                night =
-                    nights.maxByOrNull {
-                        it.end
-                    },
-                loading = loading,
-                onInfo = {
-                    onInfo(
-                        MetricInfo(
-                            title =
-                                "Last-Night Metrics",
-                            meaning =
-                                "A quick look at actual sleep duration, efficiency and stage mix from the latest Health Connect sleep session.",
-                            measurement =
-                                "Sleep Efficiency measures the percentage of time spent asleep while in bed: Time Asleep ÷ Total Time in Bed. It measures sleep continuity, not total hours.",
-                            importance =
-                                "A short night can still have high efficiency. For example, 5h 32m of nearly unbroken sleep can still produce about 97% efficiency even though total sleep was short."
-                        )
-                    )
-                }
-            )
-
-        AppSettingsStore.WIDGET_INSIGHT ->
-            InsightDashboardTile(
-                modifier = modifier,
-                text =
-                    if (goalsEnabled) {
-                        SleepAnalytics.insightFor(
-                            analytics,
-                            sleepGoalMinutes
-                        )
-                    } else {
-                        "You averaged " +
-                            formatMinutes(
-                                analytics.averageSleepMinutes
-                            ) +
-                            " of sleep with " +
-                            (
-                                analytics.averageEfficiencyPercent
-                                    ?.let {
-                                        it.toString() +
-                                            "%"
-                                    }
-                                    ?: "unavailable"
-                                ) +
-                            " estimated efficiency recently."
-                    },
-                onInfo = {
-                    onInfo(
-                        MetricInfo(
-                            title =
-                                "Personal Insights",
-                            meaning =
-                                "A plain-language observation generated from your recent local sleep trend.",
-                            measurement =
-                                "WakeSync compares recent duration, efficiency, regularity and timing on-device.",
-                            importance =
-                                "The goal is to highlight repeatable patterns without turning one night into a diagnosis."
-                        )
-                    )
-                }
-            )
-
-        AppSettingsStore.WIDGET_DEBT ->
-            SleepDebtDashboardTile(
-                modifier = modifier,
-                analytics = analytics,
-                targetMinutes =
-                    sleepGoalMinutes,
-                onInfo = {
-                    onInfo(
-                        sleepDebtInfo()
-                    )
-                }
-            )
-
-        AppSettingsStore.WIDGET_HYPNOGRAM ->
-            WeeklyHypnogramDashboardTile(
-                modifier = modifier,
-                nights = nights,
-                onInfo = {
-                    onInfo(
-                        MetricInfo(
-                            title =
-                                "Weekly Hypnogram Trend",
-                            meaning =
-                                "A compact seven-night view of how Deep, Light, REM and Awake time were distributed.",
-                            measurement =
-                                "Each bar is built from Health Connect sleep-stage intervals for that night.",
-                            importance =
-                                "This is useful for spotting broad changes in fragmentation and stage mix. Wearable stage labels remain estimates."
-                        )
-                    )
-                }
-            )
-
-        AppSettingsStore.WIDGET_ALARM ->
-            SmartAlarmDashboardTile(
-                modifier = modifier,
-                schedules = schedules,
-                onEdit = onEditSchedule,
-                onSkip = onSkipNext,
-                onGoAlarms = onGoAlarms,
-                onInfo = {
-                    onInfo(
-                        MetricInfo(
-                            title =
-                                "Smart Alarm Status",
-                            meaning =
-                                "Guardrail Wake Time (Hard Deadline) is the latest time the alarm will sound. Smart Wake Window (Early Window) is the optional earlier interval WakeSync can use.",
-                            measurement =
-                                "WakeSync schedules the hard deadline with Android and may choose an earlier wake point only inside the configured window.",
-                            importance =
-                                "The guardrail prevents the smart feature from making you late."
-                        )
-                    )
-                }
-            )
-    }
 }
 
 @Composable
@@ -1145,75 +769,6 @@ private fun DashboardGlassCard(
                 content()
             }
         }
-    }
-}
-
-@Composable
-private fun GoalDashboardTile(
-    modifier: Modifier,
-    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
-    targetMinutes: Int,
-    onInfo: () -> Unit
-) {
-    val latest =
-        analytics.nights.firstOrNull()
-    val streak =
-        analytics.nights
-            .sortedByDescending {
-                it.date
-            }
-            .takeWhile {
-                it.asleepMinutes >=
-                    targetMinutes
-            }
-            .size
-
-    DashboardGlassCard(
-        modifier = modifier
-            .height(178.dp),
-        title = "Goal",
-        onInfo = onInfo
-    ) {
-        Text(
-            modifier =
-                Modifier.padding(top = 16.dp),
-            text =
-                latest?.let {
-                    formatMinutes(
-                        it.asleepMinutes
-                    )
-                } ?: "—",
-            style =
-                MaterialTheme.typography.headlineMedium,
-            fontWeight =
-                FontWeight.ExtraBold,
-            color =
-                MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text =
-                formatMinutes(
-                    targetMinutes.toLong()
-                ) +
-                    " target",
-            style =
-                MaterialTheme.typography.bodySmall,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            modifier =
-                Modifier.padding(top = 14.dp),
-            text =
-                "🔥 " +
-                    streak +
-                    " night streak",
-            style =
-                MaterialTheme.typography.labelMedium,
-            fontWeight =
-                FontWeight.Bold,
-            color = Mint
-        )
     }
 }
 
@@ -1395,293 +950,6 @@ private fun InsightDashboardTile(
     }
 }
 
-@Composable
-private fun SleepDebtDashboardTile(
-    modifier: Modifier,
-    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
-    targetMinutes: Int,
-    onInfo: () -> Unit
-) {
-    val debt =
-        analytics.sleepDebtMinutes
-    val avgGap =
-        if (
-            analytics.nights.isNotEmpty()
-        ) {
-            debt /
-                analytics.nights.size
-        } else {
-            0L
-        }
-
-    DashboardGlassCard(
-        modifier = modifier
-            .height(178.dp),
-        title = "Sleep Debt",
-        onInfo = onInfo
-    ) {
-        Text(
-            modifier =
-                Modifier.padding(top = 16.dp),
-            text =
-                if (debt > 0) {
-                    formatMinutes(debt)
-                } else {
-                    "0m"
-                },
-            style =
-                MaterialTheme.typography.headlineMedium,
-            fontWeight =
-                FontWeight.ExtraBold,
-            color =
-                if (debt > 0) {
-                    Sunrise
-                } else {
-                    Mint
-                }
-        )
-        Text(
-            text =
-                if (debt > 0) {
-                    "below target"
-                } else {
-                    "on target"
-                },
-            style =
-                MaterialTheme.typography.bodySmall,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            modifier =
-                Modifier.padding(top = 12.dp),
-            text =
-                "Avg gap " +
-                    formatMinutes(
-                        avgGap
-                    ),
-            style =
-                MaterialTheme.typography.labelMedium,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun SmartAlarmDashboardTile(
-    modifier: Modifier,
-    schedules: List<AlarmSchedule>,
-    onEdit: (AlarmSchedule) -> Unit,
-    onSkip: (AlarmSchedule) -> Unit,
-    onGoAlarms: () -> Unit,
-    onInfo: () -> Unit
-) {
-    val next =
-        remember(schedules) {
-            nextSchedule(schedules)
-        }
-
-    DashboardGlassCard(
-        modifier = modifier
-            .height(178.dp),
-        title = "Smart Alarm",
-        onInfo = onInfo
-    ) {
-        if (next == null) {
-            Text(
-                modifier =
-                    Modifier.padding(top = 16.dp),
-                text =
-                    "No schedule",
-                fontWeight =
-                    FontWeight.ExtraBold
-            )
-            TextButton(
-                onClick = onGoAlarms
-            ) {
-                Text("Set one")
-            }
-        } else {
-            val schedule = next.first
-            val deadline = next.second
-
-            Text(
-                modifier =
-                    Modifier.padding(top = 13.dp),
-                text =
-                    deadline.format(
-                        DateTimeFormatter.ofPattern(
-                            "h:mm a"
-                        )
-                    ),
-                style =
-                    MaterialTheme.typography.headlineMedium,
-                fontWeight =
-                    FontWeight.ExtraBold
-            )
-            Text(
-                text = "Guardrail Wake Time",
-                style =
-                    MaterialTheme.typography.bodySmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Row(
-                modifier =
-                    Modifier.padding(top = 6.dp),
-                horizontalArrangement =
-                    Arrangement.spacedBy(2.dp)
-            ) {
-                TextButton(
-                    onClick = {
-                        onEdit(schedule)
-                    }
-                ) {
-                    Text("Edit")
-                }
-                TextButton(
-                    onClick = {
-                        onSkip(schedule)
-                    }
-                ) {
-                    Text(
-                        if (
-                            schedule.isNextOccurrenceSkipped()
-                        ) {
-                            "Undo"
-                        } else {
-                            "Skip"
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WeeklyHypnogramDashboardTile(
-    modifier: Modifier,
-    nights: List<SleepNight>,
-    onInfo: () -> Unit
-) {
-    val recent =
-        nights
-            .sortedBy { it.end }
-            .takeLast(7)
-
-    DashboardGlassCard(
-        modifier = modifier,
-        title = "Weekly Hypnogram Trend",
-        onInfo = onInfo
-    ) {
-        if (recent.isEmpty()) {
-            Text(
-                modifier =
-                    Modifier.padding(top = 14.dp),
-                text =
-                    "No tracked nights yet.",
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(105.dp)
-                    .padding(top = 14.dp)
-            ) {
-                val widthPer =
-                    size.width /
-                        recent.size
-                val barWidth =
-                    widthPer * 0.48f
-
-                recent.forEachIndexed {
-                        index,
-                        night ->
-                    val stages = listOf(
-                        SleepStageType.DEEP to Lavender,
-                        SleepStageType.LIGHT to Cyan,
-                        SleepStageType.REM to Indigo,
-                        SleepStageType.AWAKE to Sunrise
-                    )
-                    val values =
-                        stages.map {
-                            stageMinutes(
-                                night,
-                                it.first
-                            )
-                        }
-                    val total =
-                        values.sum()
-                            .coerceAtLeast(1L)
-
-                    var bottom =
-                        size.height
-
-                    stages.zip(values)
-                        .forEach {
-                                pair ->
-                            val value =
-                                pair.second
-                            val height =
-                                size.height *
-                                    value.toFloat() /
-                                    total.toFloat()
-
-                            drawRoundRect(
-                                color =
-                                    pair.first.second
-                                        .copy(
-                                            alpha = 0.88f
-                                        ),
-                                topLeft =
-                                    Offset(
-                                        widthPer *
-                                            index +
-                                            (
-                                                widthPer -
-                                                    barWidth
-                                                ) /
-                                                2f,
-                                        bottom -
-                                            height
-                                    ),
-                                size =
-                                    Size(
-                                        barWidth,
-                                        height
-                                    ),
-                                cornerRadius =
-                                    CornerRadius(
-                                        4.dp.toPx(),
-                                        4.dp.toPx()
-                                    )
-                            )
-                            bottom -=
-                                height
-                        }
-                }
-            }
-
-            Text(
-                modifier =
-                    Modifier.padding(top = 7.dp),
-                text =
-                    "Deep · Light · REM · Awake",
-                style =
-                    MaterialTheme.typography.bodySmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
 private fun wakeGlassBorderBrush(): Brush =
     if (
         MaterialTheme.colorScheme.background
@@ -1716,765 +984,6 @@ private fun wakeGlassBorderBrush(): Brush =
             )
         )
     }
-
-private fun sleepDebtInfo(): MetricInfo =
-    MetricInfo(
-        title = "Sleep Debt vs Daily Score",
-        meaning =
-            "Sleep Debt tracks your cumulative sleep deficit over 7–14 days against your goal, whereas your Daily Score evaluates last night's individual sleep quality.",
-        measurement =
-            "WakeSync sums each tracked night's shortfall versus your selected sleep goal across the recent analysis period. The Daily Score is calculated separately from sleep-quality pillars.",
-        importance =
-            "You can have a decent individual night and still carry sleep debt from several shorter nights before it."
-    )
-
-@Composable
-private fun MorningBriefingCard(
-    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
-    displayName: String,
-    goalsEnabled: Boolean,
-    onScoreClick: () -> Unit,
-    onStatusClick: () -> Unit,
-    onInfo: () -> Unit
-) {
-    val hour = LocalTime.now().hour
-    val greetingBase = when (hour) {
-        in 5..11 -> "Good morning"
-        in 12..16 -> "Good afternoon"
-        in 17..21 -> "Good evening"
-        else -> "Welcome back"
-    }
-    val greeting =
-        if (displayName.isBlank()) {
-            greetingBase
-        } else {
-            greetingBase + ", " + displayName
-        }
-    val score =
-        analytics.nights.firstOrNull()?.score
-            ?: analytics.averageScore
-            ?: 0
-    val status = when {
-        goalsEnabled && analytics.sleepDebtMinutes >= 120 ->
-            "⚡ Sleep Debt Detected"
-        score >= 90 -> "✨ Optimal Recovery"
-        score >= 75 -> "✨ Strong Recovery"
-        else -> "◌ Recovery Building"
-    }
-    val statusColor = when {
-        goalsEnabled && analytics.sleepDebtMinutes >= 120 -> Sunrise
-        score >= 90 -> Mint
-        score >= 75 -> Cyan
-        else -> Lavender
-    }
-    val scoreColor = when {
-        score >= 90 -> Mint
-        score >= 75 -> Cyan
-        score >= 60 -> Color(0xFFF59E0B)
-        else -> Color(0xFFEF4444)
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(
-            1.dp,
-            wakeGlassBorderBrush()
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp
-        )
-    ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            WakeGlassBackdrop(
-                modifier = Modifier.matchParentSize()
-            )
-
-            Canvas(modifier = Modifier.matchParentSize()) {
-                drawCircle(
-                    color = statusColor.copy(alpha = 0.10f),
-                    radius = size.minDimension * 0.65f,
-                    center = Offset(size.width * 0.93f, size.height * 0.08f)
-                )
-            }
-
-            Column(
-                modifier =
-                    Modifier.padding(15.dp)
-            ) {
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    verticalAlignment =
-                        Alignment.Top
-                ) {
-                    InfoTrigger(
-                        onClick = onInfo
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(
-                                start = 10.dp,
-                                top = 1.dp
-                            )
-                    ) {
-                        Text(
-                            text = greeting,
-                            style =
-                                MaterialTheme.typography.headlineMedium,
-                            fontWeight =
-                                FontWeight.ExtraBold,
-                            color =
-                                MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            modifier =
-                                Modifier.padding(
-                                    top = 2.dp
-                                ),
-                            text =
-                                "Here’s your sleep briefing",
-                            color =
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Card(
-                            onClick =
-                                onStatusClick,
-                            modifier =
-                                Modifier.padding(
-                                    top = 13.dp
-                                ),
-                            shape =
-                                RoundedCornerShape(
-                                    999.dp
-                                ),
-                            border =
-                                BorderStroke(
-                                    1.dp,
-                                    statusColor.copy(
-                                        alpha = 0.32f
-                                    )
-                                ),
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor =
-                                        statusColor.copy(
-                                            alpha = 0.12f
-                                        ),
-                                    contentColor =
-                                        statusColor
-                                )
-                        ) {
-                            Text(
-                                modifier =
-                                    Modifier.padding(
-                                        horizontal = 11.dp,
-                                        vertical = 7.dp
-                                    ),
-                                text = status,
-                                style =
-                                    MaterialTheme.typography.labelMedium,
-                                fontWeight =
-                                    FontWeight.ExtraBold
-                            )
-                        }
-                    }
-
-                    HomeScoreGauge(
-                        modifier = Modifier
-                            .padding(
-                                start = 10.dp
-                            )
-                            .size(92.dp),
-                        score = score,
-                        color = scoreColor,
-                        onClick = onScoreClick
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HomeScoreGauge(
-    modifier: Modifier,
-    score: Int,
-    color: Color,
-    onClick: () -> Unit
-) {
-    val progress by animateFloatAsState(
-        targetValue = score.coerceIn(0, 100) / 100f,
-        animationSpec = spring(
-            stiffness = 300f,
-            dampingRatio = 0.78f
-        ),
-        label = "homeScoreGauge"
-    )
-    val track =
-        MaterialTheme.colorScheme.onSurface
-            .copy(alpha = 0.08f)
-
-    Card(
-        onClick = onClick,
-        modifier = modifier,
-        shape = CircleShape,
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        )
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            val stroke = 8.dp.toPx()
-            val diameter =
-                size.minDimension - stroke
-
-            drawArc(
-                color = track,
-                startAngle = -90f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = Offset(
-                    stroke / 2f,
-                    stroke / 2f
-                ),
-                size = Size(
-                    diameter,
-                    diameter
-                ),
-                style = Stroke(
-                    width = stroke,
-                    cap = StrokeCap.Round
-                )
-            )
-
-            drawArc(
-                color = color,
-                startAngle = -90f,
-                sweepAngle = 360f * progress,
-                useCenter = false,
-                topLeft = Offset(
-                    stroke / 2f,
-                    stroke / 2f
-                ),
-                size = Size(
-                    diameter,
-                    diameter
-                ),
-                style = Stroke(
-                    width = stroke,
-                    cap = StrokeCap.Round
-                )
-            )
-        }
-
-        Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = score.toString(),
-                style =
-                    MaterialTheme.typography.titleLarge,
-                fontWeight =
-                    FontWeight.ExtraBold
-            )
-            Text(
-                text = "score",
-                style =
-                    MaterialTheme.typography.labelSmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        }
-    }
-}
-
-@Composable
-private fun GoalStreakCard(
-    analytics: com.kiranoommen.wakesync.domain.PeriodAnalytics,
-    sleepGoalMinutes: Int,
-    onInfo: () -> Unit
-) {
-    val recent = analytics.nights.sortedByDescending { it.date }
-    val streak = recent.takeWhile { it.asleepMinutes >= sleepGoalMinutes }.size
-    val latest = recent.firstOrNull()
-    val progress = latest?.let {
-        (it.asleepMinutes.toFloat() / sleepGoalMinutes.toFloat())
-            .coerceIn(0f, 1f)
-    } ?: 0f
-    val progressPercent = (progress * 100f).roundToInt()
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        label = "sleepGoalProgress"
-    )
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-            contentColor = MaterialTheme.colorScheme.onSurface
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier.size(112.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)
-
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    val stroke = 10.dp.toPx()
-                    val diameter = size.minDimension - stroke
-
-                    drawArc(
-                        color = track,
-                        startAngle = -90f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = Offset(stroke / 2f, stroke / 2f),
-                        size = Size(diameter, diameter),
-                        style = Stroke(width = stroke, cap = StrokeCap.Round)
-                    )
-                    drawArc(
-                        brush = Brush.sweepGradient(
-                            listOf(Mint, Cyan, Mint)
-                        ),
-                        startAngle = -90f,
-                        sweepAngle = 360f * animatedProgress,
-                        useCenter = false,
-                        topLeft = Offset(stroke / 2f, stroke / 2f),
-                        size = Size(diameter, diameter),
-                        style = Stroke(width = stroke, cap = StrokeCap.Round)
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = progressPercent.toString() + "%",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "goal",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 18.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Sleep goal",
-                        color = Mint,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    InfoTrigger(onClick = onInfo)
-                }
-                Text(
-                    modifier = Modifier.padding(top = 5.dp),
-                    text = latest?.let { formatMinutes(it.asleepMinutes) } ?: "—",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = formatMinutes(sleepGoalMinutes.toLong()) + " target",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Card(
-                    modifier = Modifier.padding(top = 12.dp),
-                    shape = RoundedCornerShape(999.dp),
-                    border = BorderStroke(1.dp, Mint.copy(alpha = 0.28f)),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Mint.copy(alpha = 0.12f),
-                        contentColor = Mint
-                    )
-                ) {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
-                        text = "🔥 " + streak + " Night Streak",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HomeInsightCard(
-    text: String,
-    onInfo: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, Lavender.copy(alpha = 0.30f)),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-            contentColor = MaterialTheme.colorScheme.onSurface
-        )
-    ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Canvas(modifier = Modifier.matchParentSize()) {
-                drawCircle(
-                    color = Lavender.copy(alpha = 0.13f),
-                    radius = size.minDimension * 0.62f,
-                    center = Offset(size.width * 0.92f, size.height * 0.05f)
-                )
-            }
-
-            Column(modifier = Modifier.padding(18.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "✨  WakeSync Insight",
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Lavender
-                    )
-                    InfoTrigger(onClick = onInfo)
-                }
-                Text(
-                    modifier = Modifier.padding(top = 9.dp),
-                    text = text,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    modifier = Modifier.padding(top = 9.dp),
-                    text = "Personalized from your on-device sleep trends",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DashboardCustomizeDialog(
-    current: List<String>,
-    goalsEnabled: Boolean,
-    onDismiss: () -> Unit,
-    onSave: (List<String>) -> Unit
-) {
-    var working by remember(current) {
-        mutableStateOf(current)
-    }
-
-    val all = buildList {
-        if (goalsEnabled) {
-            add(
-                AppSettingsStore.WIDGET_GOAL to
-                    "Sleep Goal & Streak"
-            )
-        }
-
-        add(
-            AppSettingsStore.WIDGET_SLEEP to
-                "Last-Night Metrics"
-        )
-        add(
-            AppSettingsStore.WIDGET_INSIGHT to
-                "Personal Insights"
-        )
-
-        if (goalsEnabled) {
-            add(
-                AppSettingsStore.WIDGET_DEBT to
-                    "Sleep Debt & Deficit"
-            )
-        }
-
-        add(
-            AppSettingsStore.WIDGET_HYPNOGRAM to
-                "Weekly Hypnogram Trend"
-        )
-        add(
-            AppSettingsStore.WIDGET_ALARM to
-                "Smart Alarm Status & Quick Controls"
-        )
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Customize Your Dashboard")
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .heightIn(max = 500.dp)
-                    .verticalScroll(
-                        rememberScrollState()
-                    ),
-                verticalArrangement =
-                    Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text =
-                        "Toggle cards on or off. Long-press and drag the reorder handle to change the dashboard order.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                val labels =
-                    all.toMap()
-                val availableIds =
-                    all.map { it.first }
-                val visibleIds =
-                    working.filter {
-                        availableIds.contains(it)
-                    }
-                val hiddenIds =
-                    availableIds.filterNot {
-                        visibleIds.contains(it)
-                    }
-                val displayIds =
-                    visibleIds + hiddenIds
-
-                displayIds.forEach { id ->
-                    val label =
-                        labels[id] ?: id
-                    val visible =
-                        working.contains(id)
-                    val index =
-                        working.indexOf(id)
-
-                    DashboardCustomizeRow(
-                        label = label,
-                        visible = visible,
-                        orderIndex = index,
-                        canDrag = visible,
-                        onVisibleChange = {
-                                checked ->
-                            working =
-                                if (checked) {
-                                    working + id
-                                } else {
-                                    working.filterNot {
-                                        it == id
-                                    }
-                                }
-                        },
-                        onMove = { direction ->
-                            if (
-                                index >= 0 &&
-                                working.isNotEmpty()
-                            ) {
-                                val target =
-                                    (index + direction)
-                                        .coerceIn(
-                                            0,
-                                            working.lastIndex
-                                        )
-
-                                if (target != index) {
-                                    val list =
-                                        working.toMutableList()
-                                    val item =
-                                        list.removeAt(index)
-                                    list.add(
-                                        target,
-                                        item
-                                    )
-                                    working = list
-                                }
-                            }
-                        }
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    onSave(working)
-                }
-            ) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss
-            ) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-@Composable
-private fun DashboardCustomizeRow(
-    label: String,
-    visible: Boolean,
-    orderIndex: Int,
-    canDrag: Boolean,
-    onVisibleChange: (Boolean) -> Unit,
-    onMove: (Int) -> Unit
-) {
-    val density = LocalDensity.current
-    val threshold = with(density) {
-        42.dp.toPx()
-    }
-    var dragOffset by remember {
-        mutableStateOf(0f)
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                translationY = dragOffset
-            }
-            .animateContentSize(),
-        shape = RoundedCornerShape(16.dp),
-        border =
-            if (
-                MaterialTheme.colorScheme.background
-                    .luminance() < 0.5f
-            ) {
-                BorderStroke(
-                    1.dp,
-                    Color.White.copy(
-                        alpha = 0.08f
-                    )
-                )
-            } else {
-                null
-            },
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    MaterialTheme.colorScheme.surfaceVariant
-                        .copy(alpha = 0.42f),
-                contentColor =
-                    MaterialTheme.colorScheme.onSurface
-            )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 10.dp,
-                    vertical = 8.dp
-                ),
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-            if (canDrag) {
-                Icon(
-                    imageVector =
-                        Icons.Default.Reorder,
-                    contentDescription =
-                        "Reorder $label",
-                    modifier = Modifier
-                        .size(28.dp)
-                        .pointerInput(
-                            label,
-                            visible,
-                            orderIndex
-                        ) {
-                            detectDragGesturesAfterLongPress(
-                                onDragEnd = {
-                                    dragOffset = 0f
-                                },
-                                onDragCancel = {
-                                    dragOffset = 0f
-                                },
-                                onDrag = {
-                                        _,
-                                        dragAmount ->
-                                    dragOffset +=
-                                        dragAmount.y
-
-                                    if (
-                                        dragOffset >=
-                                        threshold
-                                    ) {
-                                        onMove(1)
-                                        dragOffset = 0f
-                                    } else if (
-                                        dragOffset <=
-                                        -threshold
-                                    ) {
-                                        onMove(-1)
-                                        dragOffset = 0f
-                                    }
-                                }
-                            )
-                        },
-                    tint =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Spacer(
-                    modifier =
-                        Modifier.width(28.dp)
-                )
-            }
-
-            Text(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 10.dp),
-                text = label,
-                fontWeight =
-                    FontWeight.Medium,
-                color =
-                    MaterialTheme.colorScheme.onSurface
-            )
-
-            GlassSwitch(
-                checked = visible,
-                enabled = true,
-                onCheckedChange =
-                    onVisibleChange
-            )
-        }
-    }
-}
 
 @Composable
 private fun NextWakeCard(
@@ -2770,7 +1279,7 @@ private fun EmptyAlarmCard(
                 )
                 Text(
                     modifier = Modifier.padding(top = 7.dp),
-                    text = "Set your Guardrail Wake Time — the latest time the alarm will sound. WakeSync can wake you gently inside the Smart Wake Window before it.",
+                    text = "Set your Must be awake by — the latest time the alarm will sound. WakeSync can wake you gently inside the Smart Wake Window before it.",
                     color = Color.White.copy(alpha = 0.78f)
                 )
 
@@ -2802,6 +1311,7 @@ private fun AlarmsTab(
     schedules: List<AlarmSchedule>,
     onAdd: () -> Unit,
     onEdit: (AlarmSchedule) -> Unit,
+    onDuplicate: (AlarmSchedule) -> Unit,
     onToggle: (AlarmSchedule, Boolean) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit
@@ -2826,7 +1336,7 @@ private fun AlarmsTab(
             ) {
                 Text(
                     modifier = Modifier.padding(vertical = 5.dp),
-                    text = "+ Add wake schedule",
+                    text = "+ Add alarm",
                     fontWeight = FontWeight.ExtraBold
                 )
             }
@@ -2839,7 +1349,7 @@ private fun AlarmsTab(
                     infoSheet = MetricInfo(
                         title = "Weekly alarm overview",
                         meaning = "A rolling seven-day view beginning today, rather than a fixed Monday-to-Sunday calendar block.",
-                        measurement = "WakeSync maps each of the next seven dates to enabled recurring schedules and shows the earliest Guardrail Wake Time if schedules overlap.",
+                        measurement = "WakeSync maps each of the next seven dates to enabled alarms and shows the earliest “Must be awake by” time if schedules overlap.",
                         importance = "The rolling view makes the next actual alarms, days off and changing weekday times obvious at a glance."
                     )
                 }
@@ -2856,21 +1366,45 @@ private fun AlarmsTab(
         }
 
         items(schedules, key = { it.id }) { schedule ->
-            AlarmScheduleCard(
+            SwipeAlarmCard(
                 schedule = schedule,
-                onEdit = { onEdit(schedule) },
-                onToggle = { onToggle(schedule, it) },
-                onSkip = { onSkipNext(schedule) },
-                onClearSkips = { onClearSkips(schedule) },
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Wake schedule",
-                        meaning = "A recurring wake-by deadline with optional smart-window flexibility.",
-                        measurement = "WakeSync stores the selected weekdays, wake-by time and allowed early-wake window locally, then schedules the protected deadline with Android.",
-                        importance = "The schedule is the guardrail: WakeSync can optimize inside the window but cannot intentionally wake you later than the deadline."
+                onDuplicate = {
+                    onDuplicate(schedule)
+                },
+                onToggle = {
+                    onToggle(
+                        schedule,
+                        !schedule.enabled
                     )
                 }
-            )
+            ) {
+                AlarmScheduleCard(
+                    schedule = schedule,
+                    onEdit = {
+                        onEdit(schedule)
+                    },
+                    onDuplicate = {
+                        onDuplicate(schedule)
+                    },
+                    onToggle = {
+                        onToggle(schedule, it)
+                    },
+                    onSkip = {
+                        onSkipNext(schedule)
+                    },
+                    onClearSkips = {
+                        onClearSkips(schedule)
+                    },
+                    onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Wake schedule",
+                        meaning = "A reusable wake schedule that can be Smart Wake or a standard exact alarm.",
+                        measurement = "WakeSync stores the schedule locally and protects the selected “Must be awake by” time with Android alarm scheduling.",
+                        importance = "Smart Wake may ring earlier inside its window, but never intentionally later than the protected time."
+                    )
+                    }
+                )
+            }
         }
 
         item { Spacer(Modifier.height(10.dp)) }
@@ -2975,9 +1509,7 @@ private fun WeeklyAlarmOverview(
                             .asSequence()
                             .filter {
                                 it.enabled &&
-                                    it.days.contains(
-                                        date.dayOfWeek.value
-                                    )
+                                    it.isScheduledOn(date)
                             }
                             .minByOrNull {
                                 it.hour * 60 +
@@ -3113,9 +1645,88 @@ private fun WeeklyAlarmOverview(
 
 }
 @Composable
+private fun SwipeAlarmCard(
+    schedule: AlarmSchedule,
+    onDuplicate: () -> Unit,
+    onToggle: () -> Unit,
+    content: @Composable RowScope.() -> Unit
+) {
+    val haptics =
+        LocalHapticFeedback.current
+
+    val state =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                when (value) {
+                    SwipeToDismissBoxValue.StartToEnd -> {
+                        haptics.performHapticFeedback(
+                            HapticFeedbackType.LongPress
+                        )
+                        onToggle()
+                    }
+
+                    SwipeToDismissBoxValue.EndToStart -> {
+                        haptics.performHapticFeedback(
+                            HapticFeedbackType.LongPress
+                        )
+                        onDuplicate()
+                    }
+
+                    SwipeToDismissBoxValue.Settled ->
+                        Unit
+                }
+
+                // Perform the quick action, then return the card to rest.
+                false
+            }
+        )
+
+    SwipeToDismissBox(
+        state = state,
+        backgroundContent = {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Text(
+                    text =
+                        if (schedule.enabled) {
+                            "Turn off"
+                        } else {
+                            "Turn on"
+                        },
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    color =
+                        if (schedule.enabled) {
+                            Sunrise
+                        } else {
+                            Mint
+                        }
+                )
+
+                Text(
+                    text = "Duplicate",
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    color = Lavender
+                )
+            }
+        },
+        content = content
+    )
+}
+
+@Composable
 private fun AlarmScheduleCard(
     schedule: AlarmSchedule,
     onEdit: () -> Unit,
+    onDuplicate: () -> Unit,
     onToggle: (Boolean) -> Unit,
     onSkip: () -> Unit,
     onClearSkips: () -> Unit,
@@ -3229,11 +1840,14 @@ private fun AlarmScheduleCard(
                     ) {
                         Text(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            text = if (schedule.smartWindowMinutes == 0) {
-                                "Exact time"
-                            } else {
-                                schedule.smartWindowMinutes.toString() + "m smart window"
-                            },
+                            text =
+                                if (schedule.mode == AlarmMode.STANDARD) {
+                                    "Standard alarm"
+                                } else {
+                                    "Smart Wake · " +
+                                        schedule.smartWindowMinutes +
+                                        " min"
+                                },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -3248,7 +1862,7 @@ private fun AlarmScheduleCard(
                     ) {
                         Text(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            text = daysLabel(schedule.days),
+                            text = scheduleLabel(schedule),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium
                         )
@@ -3332,18 +1946,47 @@ private fun AlarmScheduleCard(
                     }
 
                     Row(
-                        modifier = Modifier.padding(top = 7.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier
+                            .horizontalScroll(
+                                rememberScrollState()
+                            )
+                            .padding(top = 7.dp),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(4.dp)
                     ) {
-                        TextButton(onClick = onSkip) {
+                        TextButton(
+                            onClick = onDuplicate
+                        ) {
                             Text(
-                                if (nextSkipped) "Undo skip" else "Skip next",
+                                "Duplicate",
                                 color = Lavender
                             )
                         }
+
+                        if (!schedule.isOneTime) {
+                            TextButton(
+                                onClick = onSkip
+                            ) {
+                                Text(
+                                    if (nextSkipped) {
+                                        "Undo skip"
+                                    } else {
+                                        "Skip next"
+                                    },
+                                    color = Lavender
+                                )
+                            }
+                        }
+
                         if (futureSkips.size > 1) {
-                            TextButton(onClick = onClearSkips) {
-                                Text("Clear skips", color = colors.onSurfaceVariant)
+                            TextButton(
+                                onClick = onClearSkips
+                            ) {
+                                Text(
+                                    "Clear skips",
+                                    color =
+                                        colors.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -3361,21 +2004,30 @@ private fun AlarmScheduleCard(
             textContentColor = colors.onSurfaceVariant,
             title = {
                 Text(
-                    if (nextSkipped) "Turn this schedule off?"
-                    else "Skip once or turn schedule off?"
+                    when {
+                        schedule.isOneTime ->
+                            "Turn this alarm off?"
+                        nextSkipped ->
+                            "Turn this schedule off?"
+                        else ->
+                            "Skip once or turn schedule off?"
+                    }
                 )
             },
             text = {
                 Text(
-                    if (nextSkipped) {
-                        "The next occurrence is already skipped. Turning this off disables the recurring schedule until you switch it back on."
-                    } else {
-                        "Skip once keeps this recurring schedule active and automatically resumes it on the next matching day."
+                    when {
+                        schedule.isOneTime ->
+                            "This is a one-time alarm. You can turn it back on after choosing a future date."
+                        nextSkipped ->
+                            "The next occurrence is already skipped. Turning this off disables the recurring schedule until you switch it back on."
+                        else ->
+                            "Skip once keeps this recurring schedule active and automatically resumes it on the next matching day."
                     }
                 )
             },
             confirmButton = {
-                if (!nextSkipped) {
+                if (!nextSkipped && !schedule.isOneTime) {
                     Button(
                         onClick = {
                             onSkip()
@@ -3412,29 +2064,29 @@ private fun SleepTab(
     loading: Boolean,
     sleepGoalMinutes: Int,
     goalsEnabled: Boolean,
-    onRefresh: () -> Unit,
-    onShareCsv: (List<com.kiranoommen.wakesync.domain.NightAnalytics>) -> Unit,
-    onSharePdf: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit,
-    onShareStory: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit
+    onRefresh: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement =
+            Arrangement.spacedBy(14.dp)
     ) {
         item {
             SleepAnalyticsScreen(
                 nights = nights,
                 loading = loading,
-                targetSleepMinutes = sleepGoalMinutes,
+                targetSleepMinutes =
+                    sleepGoalMinutes,
                 goalsEnabled = goalsEnabled,
-                onRefresh = onRefresh,
-                onShareCsv = onShareCsv,
-                onSharePdf = onSharePdf,
-                onShareStory = onShareStory
+                onRefresh = onRefresh
             )
         }
 
-        item { Spacer(Modifier.height(8.dp)) }
+        item {
+            Spacer(
+                Modifier.height(8.dp)
+            )
+        }
     }
 }
 
@@ -3442,40 +2094,18 @@ private fun SleepTab(
 private fun SettingsTab(
     hasPermission: Boolean,
     exactAlarmAccess: Boolean,
-    hasAnalyticsPermission: Boolean,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
-    sleepGoalMinutes: Int,
-    goalsEnabled: Boolean,
     maxSmartWindowMinutes: Int,
-    retainGeneratedExports: Boolean,
-    displayName: String,
-    nights: List<SleepNight>,
     onConnect: () -> Unit,
-    onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
-    onSleepGoalChange: (Int) -> Unit,
-    onGoalsEnabledChange: (Boolean) -> Unit,
-    onDisplayNameChange: (String) -> Unit,
-    onMaxSmartWindowChange: (Int) -> Unit,
-    onRetainGeneratedExportsChange: (Boolean) -> Unit,
-    onClearGeneratedExports: () -> Unit
+    onMaxSmartWindowChange: (Int) -> Unit
 ) {
     var infoSheet by remember {
         mutableStateOf<MetricInfo?>(null)
-    }
-    var showSleepTargetPicker by remember {
-        mutableStateOf(false)
-    }
-    var sleepTargetDraft by remember(
-        sleepGoalMinutes
-    ) {
-        mutableStateOf(
-            sleepGoalMinutes
-        )
     }
     val settingsContext =
         LocalContext.current
@@ -3487,168 +2117,22 @@ private fun SettingsTab(
     ) {
         item {
             SettingsBentoCard(
-                title = "Targets & Goals",
+                title = "Smart Wake",
                 onInfo = {
                     infoSheet = MetricInfo(
-                        title = "Sleep targets & goals",
-                        meaning = "Optional personal targets for nightly sleep duration, goal progress and sleep-debt estimates.",
-                        measurement = "When enabled, WakeSync stores your 4–12 hour target as total minutes in 15-minute increments and uses that exact value for goal progress and sleep-debt calculations. When disabled, target and debt indicators are hidden.",
-                        importance = "Some people find targets motivating; others prefer neutral duration and efficiency trends. WakeSync supports both."
-                    )
-                }
-            ) {
-                SettingsToggleRow(
-                    title = "Enable Sleep Targets & Goals",
-                    subtitle =
-                        if (goalsEnabled) {
-                            "Target progress and sleep-debt indicators are shown"
-                        } else {
-                            "WakeSync shows duration and efficiency without target/debt labels"
-                        },
-                    checked = goalsEnabled,
-                    enabled = true,
-                    onCheckedChange = onGoalsEnabledChange
-                )
-
-                if (goalsEnabled) {
-                    Text(
-                        text = "Sleep target",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Card(
-                        onClick = {
-                            sleepTargetDraft =
-                                sleepGoalMinutes
-                            showSleepTargetPicker =
-                                true
-                        },
-                        modifier =
-                            Modifier.fillMaxWidth(),
-                        shape =
-                            RoundedCornerShape(18.dp),
-                        border =
-                            if (
-                                MaterialTheme.colorScheme.background
-                                    .luminance() <
-                                    0.5f
-                            ) {
-                                BorderStroke(
-                                    1.dp,
-                                    Color.White.copy(
-                                        alpha = 0.10f
-                                    )
-                                )
-                            } else {
-                                null
-                            },
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                        .copy(
-                                            alpha =
-                                                if (
-                                                    MaterialTheme.colorScheme.background
-                                                        .luminance() <
-                                                        0.5f
-                                                ) {
-                                                    0.34f
-                                                } else {
-                                                    0.24f
-                                                }
-                                        ),
-                                contentColor =
-                                    MaterialTheme.colorScheme.onSurface
-                            )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = 16.dp,
-                                    vertical = 14.dp
-                                ),
-                            horizontalArrangement =
-                                Arrangement.SpaceBetween,
-                            verticalAlignment =
-                                Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text =
-                                        "Nightly target",
-                                    style =
-                                        MaterialTheme.typography.labelMedium,
-                                    color =
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    modifier =
-                                        Modifier.padding(
-                                            top = 2.dp
-                                        ),
-                                    text =
-                                        formatSleepTarget(
-                                            sleepGoalMinutes
-                                        ),
-                                    style =
-                                        MaterialTheme.typography.titleLarge,
-                                    fontWeight =
-                                        FontWeight.ExtraBold
-                                )
-                            }
-
-                            Text(
-                                text = "Tap to adjust",
-                                style =
-                                    MaterialTheme.typography.labelSmall,
-                                color = Lavender,
-                                fontWeight =
-                                    FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Text(
-                        text =
-                            "Tap the target field to choose any duration from 4h 00m to 12h 00m in 15-minute steps. Changes apply only after you confirm.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    Text(
-                        text =
-                            "Targets are off. Sleep views now emphasize actual sleep duration, efficiency, stages and consistency.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-        item {
-            SettingsBentoCard(
-                title = "Smart Alarm Guardrails",
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Smart alarm guardrail",
-                        meaning = "The maximum amount of time any WakeSync alarm is allowed to move earlier than its protected wake-by deadline.",
-                        measurement = "Each alarm can choose a smaller smart window, but no schedule may exceed this global maximum.",
-                        importance = "This prevents a smart alarm from waking you dramatically earlier than you are comfortable with."
+                        title = "Smart Wake window",
+                        meaning =
+                            "The maximum amount of time WakeSync may wake you before your “Must be awake by” time.",
+                        measurement =
+                            "Each Smart Wake alarm can use a smaller window, but never one wider than this setting.",
+                        importance =
+                            "This keeps Smart Wake useful without allowing unexpectedly early alarms."
                     )
                 }
             ) {
                 Text(
                     text =
-                        "Maximum smart-window flexibility",
+                        "Maximum early-wake window",
                     style =
                         MaterialTheme.typography.bodySmall,
                     color =
@@ -3693,7 +2177,7 @@ private fun SettingsTab(
                     modifier =
                         Modifier.padding(top = 8.dp),
                     text =
-                        "The wake-by deadline always wins. Existing wider schedules are capped when you lower this guardrail.",
+                        "Your “Must be awake by” time always wins.",
                     style =
                         MaterialTheme.typography.bodySmall,
                     color =
@@ -3704,13 +2188,16 @@ private fun SettingsTab(
 
         item {
             SettingsBentoCard(
-                title = "Data Source Integration",
+                title = "Health Connect",
                 onInfo = {
                     infoSheet = MetricInfo(
-                        title = "Health Connect data source",
-                        meaning = "WakeSync reads sleep records through Android Health Connect rather than talking directly to every wearable vendor.",
-                        measurement = "The source package attached to the latest sleep session identifies which connected app wrote the record.",
-                        importance = "One Health Connect integration keeps WakeSync wearable-agnostic across supported Android health ecosystems."
+                        title = "Smart Wake data",
+                        meaning =
+                            "WakeSync reads sleep through Health Connect. A fitness tracker is strongly recommended because a phone alone usually cannot provide live sleep stages overnight.",
+                        measurement =
+                            "WakeSync checks Health Connect during the wake window and only treats fresh sleep stages as live.",
+                        importance =
+                            "If fresh tracker data is unavailable, WakeSync falls back safely rather than pretending it knows your current sleep stage."
                     )
                 }
             ) {
@@ -3729,27 +2216,21 @@ private fun SettingsTab(
                         Text(
                             text =
                                 if (hasPermission) {
-                                    "Health Connect Integration"
+                                    "Sleep data connected"
                                 } else {
-                                    "Health Connect Integration"
+                                    "Sleep data not connected"
                                 },
-                            style =
-                                MaterialTheme.typography.titleMedium,
                             fontWeight =
-                                FontWeight.ExtraBold,
-                            color =
-                                MaterialTheme.colorScheme.onSurface
+                                FontWeight.ExtraBold
                         )
                         Text(
                             modifier =
-                                Modifier.padding(
-                                    top = 3.dp
-                                ),
+                                Modifier.padding(top = 3.dp),
                             text =
                                 if (hasPermission) {
-                                    "Read-only sleep connection"
+                                    "Read-only Health Connect access"
                                 } else {
-                                    "Sleep permission not granted"
+                                    "Connect Health Connect to use Smart Wake"
                                 },
                             style =
                                 MaterialTheme.typography.bodySmall,
@@ -3758,11 +2239,9 @@ private fun SettingsTab(
                         )
                         Text(
                             modifier =
-                                Modifier.padding(
-                                    top = 7.dp
-                                ),
+                                Modifier.padding(top = 7.dp),
                             text =
-                                "Compatible with Pixel Watch, Galaxy Watch, Garmin, Oura, Fitbit, and all Health Connect wearables.",
+                                "For live overnight stages, use a compatible fitness tracker. Phone-only sleep estimates generally are not enough for live Smart Wake.",
                             style =
                                 MaterialTheme.typography.bodySmall,
                             color =
@@ -3772,45 +2251,39 @@ private fun SettingsTab(
 
                     ConnectionBadge(
                         connected =
-                            hasPermission
+                            hasPermission,
+                        connectedLabel =
+                            "Connected",
+                        disconnectedLabel =
+                            "Not connected"
                     )
                 }
 
                 if (!hasPermission) {
                     Button(
                         modifier =
-                            Modifier.padding(top = 12.dp),
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
                         onClick = onConnect,
                         shape =
                             RoundedCornerShape(999.dp)
                     ) {
-                        Text("Connect")
+                        Text(
+                            "Connect Health Connect"
+                        )
                     }
                 }
 
-                SettingsToggleRow(
-                    title = "Recovery metrics",
-                    subtitle =
-                        "Optional HRV + resting heart rate",
-                    checked =
-                        hasAnalyticsPermission,
-                    enabled =
-                        !hasAnalyticsPermission,
-                    onCheckedChange = {
-                        if (
-                            it &&
-                            !hasAnalyticsPermission
-                        ) {
-                            onRequestAnalyticsAccess()
-                        }
-                    }
-                )
-
-                if (historyReadAvailable) {
+                if (
+                    hasPermission &&
+                    historyReadAvailable
+                ) {
                     SettingsToggleRow(
-                        title = "Extended history",
+                        title =
+                            "Longer sleep history",
                         subtitle =
-                            "Allows longer historical ranges",
+                            "Improves WakeSync's local history when Android allows it",
                         checked =
                             hasHistoryPermission,
                         enabled =
@@ -3830,7 +2303,7 @@ private fun SettingsTab(
 
         item {
             SettingsBentoCard(
-                title = "Permissions & Reliability",
+                title = "Alarm Reliability",
                 borderColor =
                     if (exactAlarmAccess) {
                         Mint.copy(alpha = 0.28f)
@@ -3839,10 +2312,13 @@ private fun SettingsTab(
                     },
                 onInfo = {
                     infoSheet = MetricInfo(
-                        title = "Exact alarm reliability",
-                        meaning = "Android exact-alarm access lets WakeSync protect the Guardrail Wake Time with precise OS scheduling.",
-                        measurement = "WakeSync checks Android's exact-alarm capability. If access was skipped during onboarding, you can grant it here at any time.",
-                        importance = "Without exact-alarm access, Android power management can delay time-critical alarms."
+                        title = "Exact alarm access",
+                        meaning =
+                            "Android exact-alarm access lets WakeSync protect time-critical alarms.",
+                        measurement =
+                            "WakeSync checks Android's exact-alarm capability. If you skipped it during setup, you can grant it here.",
+                        importance =
+                            "Without exact-alarm access, Android power management can delay an alarm."
                     )
                 }
             ) {
@@ -3866,23 +2342,17 @@ private fun SettingsTab(
                         )
                         Text(
                             modifier =
-                                Modifier.padding(
-                                    top = 3.dp
-                                ),
+                                Modifier.padding(top = 3.dp),
                             text =
-                                if (
-                                    exactAlarmAccess
-                                ) {
-                                    "Reliable wake-by scheduling enabled"
+                                if (exactAlarmAccess) {
+                                    "Ready for precise alarm scheduling"
                                 } else {
-                                    "Action Required · exact-alarm access was not granted during setup"
+                                    "Required for reliable wake times"
                                 },
                             style =
                                 MaterialTheme.typography.bodySmall,
                             color =
-                                if (
-                                    exactAlarmAccess
-                                ) {
+                                if (exactAlarmAccess) {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 } else {
                                     Sunrise
@@ -3893,8 +2363,8 @@ private fun SettingsTab(
                     ConnectionBadge(
                         connected =
                             exactAlarmAccess,
-                        connectedLabel = "Granted",
-                        disconnectedLabel = "Action Required"
+                        connectedLabel = "Ready",
+                        disconnectedLabel = "Fix"
                     )
                 }
 
@@ -3903,75 +2373,26 @@ private fun SettingsTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 12.dp),
-                        onClick = onRequestExactAlarmAccess,
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Amber,
-                            contentColor = Color(0xFF15192A)
-                        )
+                        onClick =
+                            onRequestExactAlarmAccess,
+                        shape =
+                            RoundedCornerShape(999.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    Amber,
+                                contentColor =
+                                    Color(0xFF15192A)
+                            )
                     ) {
                         Text(
-                            text = "Grant exact alarm access",
-                            fontWeight = FontWeight.ExtraBold
+                            text =
+                                "Grant exact alarm access",
+                            fontWeight =
+                                FontWeight.ExtraBold
                         )
                     }
                 }
-
-            }
-        }
-
-        item {
-            SettingsBentoCard(
-                title = "Privacy & Local Storage",
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Local storage",
-                        meaning = "Raw Health Connect sleep records are read on-device. WakeSync only retains generated export files if you explicitly enable it.",
-                        measurement = "When retention is off, share files are generated in Android cache. When enabled, generated exports are stored in WakeSync's private app files until you clear them.",
-                        importance = "You control whether shareable reports remain on the device after they are generated."
-                    )
-                }
-            ) {
-                SettingsToggleRow(
-                    title =
-                        "Keep generated exports",
-                    subtitle =
-                        if (
-                            retainGeneratedExports
-                        ) {
-                            "PDF, CSV and story cards remain in WakeSync private storage"
-                        } else {
-                            "Exports use temporary app cache"
-                        },
-                    checked =
-                        retainGeneratedExports,
-                    enabled = true,
-                    onCheckedChange =
-                        onRetainGeneratedExportsChange
-                )
-
-                TextButton(
-                    modifier =
-                        Modifier.padding(top = 4.dp),
-                    onClick =
-                        onClearGeneratedExports
-                ) {
-                    Text(
-                        text =
-                            "Clear generated exports",
-                        color =
-                            MaterialTheme.colorScheme.error
-                    )
-                }
-
-                Text(
-                    text =
-                        "Raw Health Connect data is not copied into a WakeSync cloud database.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
 
@@ -3981,9 +2402,12 @@ private fun SettingsTab(
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Appearance",
-                        meaning = "Choose whether WakeSync follows Android's appearance or forces its dark/light theme.",
-                        measurement = "The selected mode changes Compose color roles only; it does not affect sleep calculations.",
-                        importance = "High-contrast color roles preserve readability in both themes."
+                        meaning =
+                            "Choose whether WakeSync follows Android or uses a fixed light/dark appearance.",
+                        measurement =
+                            "Appearance changes only the interface, not alarm or sleep calculations.",
+                        importance =
+                            "System mode usually gives the most natural Android experience."
                     )
                 }
             ) {
@@ -4022,34 +2446,23 @@ private fun SettingsTab(
         }
 
         item {
-            Text(
-                text = "About & Support",
-                style =
-                    MaterialTheme.typography.titleLarge,
-                fontWeight =
-                    FontWeight.ExtraBold,
-                color =
-                    MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        item {
             SettingsBentoCard(
                 title = "Support WakeSync",
-                borderColor =
-                    Lavender.copy(alpha = 0.30f),
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Support WakeSync",
-                        meaning = "WakeSync is built privacy-first with no ads. Donations are optional and do not unlock features.",
-                        measurement = "The PayPal button opens the official WakeSync donation page in your browser.",
-                        importance = "Optional support can help fund future development while keeping the app free of advertising."
+                        meaning =
+                            "WakeSync has no ads or paid unlocks. Support is optional.",
+                        measurement =
+                            "The button opens the WakeSync PayPal donation page in your browser.",
+                        importance =
+                            "Optional support helps keep development independent without adding ads or a subscription."
                     )
                 }
             ) {
                 Text(
                     text =
-                        "WakeSync is built privacy-first with no ads. If you find it helpful, consider supporting future development!",
+                        "WakeSync is built privacy-first with no ads. If it helps your mornings, you can support future development.",
                     color =
                         MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -4058,15 +2471,13 @@ private fun SettingsTab(
                     modifier =
                         Modifier.fillMaxWidth(),
                     onClick = {
-                        val intent =
+                        settingsContext.startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
                                 Uri.parse(
                                     PAYPAL_DONATION_URL
                                 )
                             )
-                        settingsContext.startActivity(
-                            intent
                         )
                     },
                     shape =
@@ -4078,7 +2489,6 @@ private fun SettingsTab(
                             FontWeight.ExtraBold
                     )
                 }
-
             }
         }
 
@@ -4090,309 +2500,12 @@ private fun SettingsTab(
         }
     }
 
-    if (showSleepTargetPicker) {
-        AlertDialog(
-            onDismissRequest = {
-                showSleepTargetPicker =
-                    false
-                sleepTargetDraft =
-                    sleepGoalMinutes
-            },
-            title = {
-                Text(
-                    text =
-                        "Choose sleep target",
-                    fontWeight =
-                        FontWeight.ExtraBold
-                )
-            },
-            text = {
-                Column(
-                    verticalArrangement =
-                        Arrangement.spacedBy(
-                            10.dp
-                        )
-                ) {
-                    Text(
-                        text =
-                            "Scroll to your preferred nightly sleep target.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    SleepTargetWheel(
-                        selectedMinutes =
-                            sleepTargetDraft,
-                        onSelected = {
-                            sleepTargetDraft =
-                                it
-                        }
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onSleepGoalChange(
-                            sleepTargetDraft
-                        )
-                        showSleepTargetPicker =
-                            false
-                    },
-                    shape =
-                        RoundedCornerShape(
-                            999.dp
-                        )
-                ) {
-                    Text(
-                        text = "✓ Confirm",
-                        fontWeight =
-                            FontWeight.ExtraBold
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        sleepTargetDraft =
-                            sleepGoalMinutes
-                        showSleepTargetPicker =
-                            false
-                    }
-                ) {
-                    Text(
-                        text = "✕ Cancel",
-                        fontWeight =
-                            FontWeight.Bold
-                    )
-                }
-            }
-        )
-    }
-
     MetricInfoBottomSheet(
         info = infoSheet,
         onDismiss = {
             infoSheet = null
         }
     )
-}
-
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Composable
-private fun SleepTargetWheel(
-    selectedMinutes: Int,
-    onSelected: (Int) -> Unit
-) {
-    val options =
-        remember {
-            (240..720 step 15).toList()
-        }
-    val selectedIndex =
-        options.indexOf(
-            selectedMinutes
-                .coerceIn(240, 720)
-        )
-            .coerceAtLeast(0)
-    val listState =
-        rememberLazyListState(
-            initialFirstVisibleItemIndex =
-                selectedIndex
-        )
-    val fling =
-        rememberSnapFlingBehavior(
-            lazyListState =
-                listState
-        )
-
-    LaunchedEffect(
-        listState.isScrollInProgress,
-        options
-    ) {
-        if (!listState.isScrollInProgress) {
-            val layout =
-                listState.layoutInfo
-            val center =
-                (
-                    layout.viewportStartOffset +
-                        layout.viewportEndOffset
-                    ) / 2
-            val item =
-                layout.visibleItemsInfo
-                    .minByOrNull {
-                        abs(
-                            (
-                                it.offset +
-                                    it.size / 2
-                                ) -
-                                center
-                        )
-                    }
-            item?.index
-                ?.takeIf {
-                    it in
-                        options.indices
-                }
-                ?.let { index ->
-                    val minutes =
-                        options[index]
-                    if (
-                        minutes !=
-                        selectedMinutes
-                    ) {
-                        onSelected(
-                            minutes
-                        )
-                    }
-                }
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(168.dp),
-        contentAlignment =
-            Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape =
-                RoundedCornerShape(18.dp),
-            border = BorderStroke(
-                1.dp,
-                Lavender.copy(
-                    alpha = 0.38f
-                )
-            ),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        Lavender.copy(
-                            alpha = 0.12f
-                        )
-                )
-        ) {
-            Box(
-                modifier =
-                    Modifier.fillMaxSize()
-            )
-        }
-
-        LazyColumn(
-            modifier =
-                Modifier.fillMaxSize(),
-            state = listState,
-            flingBehavior = fling,
-            contentPadding =
-                PaddingValues(
-                    vertical = 58.dp
-                ),
-            horizontalAlignment =
-                Alignment.CenterHorizontally
-        ) {
-            itemsIndexed(
-                options,
-                key = {
-                        _,
-                        minutes ->
-                    minutes
-                }
-            ) {
-                    _,
-                    minutes ->
-                val distance =
-                    abs(
-                        minutes -
-                            selectedMinutes
-                    ) / 15
-                val alpha =
-                    when (distance) {
-                        0 -> 1f
-                        1 -> 0.62f
-                        else -> 0.34f
-                    }
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .padding(top = 13.dp),
-                    text =
-                        formatSleepTarget(
-                            minutes
-                        ),
-                    style =
-                        MaterialTheme.typography.titleLarge,
-                    fontWeight =
-                        if (
-                            minutes ==
-                            selectedMinutes
-                        ) {
-                            FontWeight.ExtraBold
-                        } else {
-                            FontWeight.Medium
-                        },
-                    color =
-                        MaterialTheme.colorScheme.onSurface
-                            .copy(alpha = alpha),
-                    textAlign =
-                        androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .height(42.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.surface
-                                .copy(alpha = 0.88f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(42.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.surface
-                                .copy(alpha = 0.88f)
-                        )
-                    )
-                )
-        )
-    }
-}
-
-private fun formatSleepTarget(
-    minutes: Int
-): String {
-    val hours =
-        minutes / 60
-    val remainder =
-        minutes % 60
-    return hours.toString() +
-        "h " +
-        remainder.toString()
-            .padStart(
-                2,
-                '0'
-            ) +
-        "m"
 }
 
 @Composable
@@ -4705,487 +2818,6 @@ private fun ConnectionBadge(
             )
         }
     }
-}
-
-@Composable
-private fun AlarmEditorDialog(
-    schedule: AlarmSchedule,
-    isNew: Boolean,
-    maxSmartWindowMinutes: Int,
-    onDismiss: () -> Unit,
-    onSave: (AlarmSchedule) -> Unit,
-    onDelete: (AlarmSchedule) -> Unit
-) {
-    val context = LocalContext.current
-    var draft by remember(
-        schedule.id,
-        maxSmartWindowMinutes
-    ) {
-        val cappedWindow =
-            schedule.smartWindowMinutes
-                .coerceAtMost(maxSmartWindowMinutes)
-        mutableStateOf(
-            schedule.copy(
-                smartWindowMinutes = cappedWindow,
-                smartOffsetMinutes =
-                    schedule.smartOffsetMinutes
-                        .coerceAtMost(cappedWindow)
-            )
-        )
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(if (isNew) "New wake schedule" else "Edit wake schedule")
-        },
-        text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                item {
-                    OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = draft.label,
-                    onValueChange = { draft = draft.copy(label = it.take(28)) },
-                    label = { Text("Alarm name") },
-                    singleLine = true
-                    )
-                }
-
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            TimePickerDialog(
-                                context,
-                                { _, hour, minute ->
-                                    draft = draft.copy(
-                                        hour = hour,
-                                        minute = minute
-                                    )
-                                },
-                                draft.hour,
-                                draft.minute,
-                                false
-                            ).show()
-                        },
-                        shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            Amber.copy(alpha = 0.48f)
-                        ),
-                        colors = CardDefaults.cardColors(
-                            containerColor =
-                                Amber.copy(alpha = 0.10f),
-                            contentColor =
-                                MaterialTheme.colorScheme.onSurface
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = 16.dp,
-                                    vertical = 15.dp
-                                ),
-                            verticalAlignment =
-                                Alignment.CenterVertically
-                        ) {
-                            Card(
-                                shape = CircleShape,
-                                colors = CardDefaults.cardColors(
-                                    containerColor =
-                                        Amber.copy(alpha = 0.18f)
-                                )
-                            ) {
-                                Icon(
-                                    modifier = Modifier
-                                        .padding(10.dp)
-                                        .size(24.dp),
-                                    imageVector =
-                                        Icons.Default.AccessAlarm,
-                                    contentDescription = null,
-                                    tint = Amber
-                                )
-                            }
-
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 13.dp)
-                            ) {
-                                Text(
-                                    text = "GUARDRAIL WAKE TIME",
-                                    style =
-                                        MaterialTheme.typography.labelSmall,
-                                    fontWeight =
-                                        FontWeight.ExtraBold,
-                                    color = Amber
-                                )
-                                Text(
-                                    modifier =
-                                        Modifier.padding(top = 2.dp),
-                                    text =
-                                        formatClock(
-                                            draft.hour,
-                                            draft.minute
-                                        ),
-                                    style =
-                                        MaterialTheme.typography.headlineMedium,
-                                    fontWeight =
-                                        FontWeight.ExtraBold
-                                )
-                                Text(
-                                    modifier =
-                                        Modifier.padding(top = 2.dp),
-                                    text =
-                                        if (
-                                            draft.mode ==
-                                            AlarmMode.SMART_WAKE
-                                        ) {
-                                            "Hard deadline · Tap to change"
-                                        } else {
-                                            "Exact alarm time · Tap to change"
-                                        },
-                                    style =
-                                        MaterialTheme.typography.bodySmall,
-                                    color =
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            Text(
-                                text = "CHANGE",
-                                style =
-                                    MaterialTheme.typography.labelSmall,
-                                fontWeight =
-                                    FontWeight.ExtraBold,
-                                color = Amber
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    Text(
-                        text = "Alarm type",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            modifier = Modifier.weight(1f),
-                            selected = draft.mode == AlarmMode.SMART_WAKE,
-                            onClick = {
-                                draft = draft.copy(
-                                    mode = AlarmMode.SMART_WAKE,
-                                    smartWindowMinutes =
-                                        draft.smartWindowMinutes.coerceAtLeast(10)
-                                )
-                            },
-                            label = { Text("Smart Wake") }
-                        )
-                        FilterChip(
-                            modifier = Modifier.weight(1f),
-                            selected = draft.mode == AlarmMode.STANDARD,
-                            onClick = {
-                                draft = draft.copy(
-                                    mode = AlarmMode.STANDARD,
-                                    smartOffsetMinutes = 0
-                                )
-                            },
-                            label = { Text("Standard Alarm") }
-                        )
-                    }
-                }
-
-                item {
-                    Text(
-                        text = if (draft.mode == AlarmMode.SMART_WAKE) {
-                            "Live sleep stays primary inside the early window. History is only a fallback near the deadline."
-                        } else {
-                            "Rings at the exact selected time with no Health Connect sleep monitoring."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                item {
-                    Text(
-                        text = "Repeat",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    dayItems().chunked(4).forEach { rowDays ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            rowDays.forEach { (value, label) ->
-                                FilterChip(
-                                    selected = draft.days.contains(value),
-                                    onClick = {
-                                        val newDays = draft.days.toMutableSet()
-                                        if (newDays.contains(value)) newDays.remove(value) else newDays.add(value)
-                                        draft = draft.copy(days = newDays)
-                                    },
-                                    label = { Text(label) }
-                                )
-                            }
-                        }
-                    }
-                    }
-                }
-
-                item {
-                    Column {
-                        Text(
-                            text = "Smart Wake Window",
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            modifier = Modifier.padding(top = 3.dp),
-                            text = if (draft.mode == AlarmMode.SMART_WAKE) {
-                                "How early WakeSync is allowed to wake you before the hard deadline."
-                            } else {
-                                "Not used for Standard Alarm."
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                    listOf(10, 15, 20, 30)
-                        .filter { it <= maxSmartWindowMinutes }
-                        .forEach { minutes ->
-                        FilterChip(
-                            selected =
-                                draft.mode == AlarmMode.SMART_WAKE &&
-                                    draft.smartWindowMinutes == minutes,
-                            enabled = draft.mode == AlarmMode.SMART_WAKE,
-                            onClick = {
-                                draft = draft.copy(
-                                    smartWindowMinutes = minutes,
-                                    smartOffsetMinutes = draft.smartOffsetMinutes.coerceAtMost(minutes)
-                                )
-                            },
-                            label = {
-                                Text(minutes.toString() + "m")
-                            }
-                        )
-                    }
-                    }
-                }
-
-                if (draft.backupRingCount > 0) {
-                    item {
-                        Text(
-                            text =
-                                "Snooze is paused while Backup rings are enabled so two alarm sequences cannot collide.",
-                            style =
-                                MaterialTheme.typography.bodySmall,
-                            color =
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                item {
-                    Text(
-                        text =
-                            if (draft.mode == AlarmMode.STANDARD) {
-                                "Standard Alarm rings exactly at " +
-                                    formatClock(draft.hour, draft.minute) + "."
-                            } else {
-                                when (draft.smartWindowMinutes) {
-                                    10 -> "Tight: up to 10 minutes before the hard deadline."
-                                    15 -> "Gentle: up to 15 minutes early."
-                                    20 -> "Balanced: up to 20 minutes early."
-                                    30 -> "Flexible: up to 30 minutes early."
-                                    else -> "WakeSync stays inside your selected Smart Wake window."
-                                }
-                            },
-                    style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                item {
-                    HorizontalDivider()
-                }
-
-                item {
-                    ToggleSettingRow(
-                    title = "Sound",
-                    checked = draft.soundEnabled,
-                        onCheckedChange = { draft = draft.copy(soundEnabled = it) }
-                    )
-                }
-
-                item {
-                    ToggleSettingRow(
-                    title = "Vibration",
-                    checked = draft.vibrationEnabled,
-                        onCheckedChange = { draft = draft.copy(vibrationEnabled = it) }
-                    )
-                }
-
-                item {
-                    HorizontalDivider()
-                }
-
-                item {
-                    Column {
-                        Text(
-                            text = "Backup rings",
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            modifier = Modifier.padding(top = 3.dp),
-                            text =
-                                if (draft.mode == AlarmMode.SMART_WAKE) {
-                                    "After the Smart Wake attempt, the hard deadline stays armed. Add extra rings after the deadline for more wake-up protection."
-                                } else {
-                                    "Add extra rings after the exact alarm time so dismissing one half-asleep does not end the whole sequence."
-                                },
-                            style = MaterialTheme.typography.bodySmall,
-                            color =
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement =
-                            Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf(0, 1, 2, 3).forEach { count ->
-                            FilterChip(
-                                selected =
-                                    draft.backupRingCount == count,
-                                onClick = {
-                                    draft = draft.copy(
-                                        backupRingCount = count
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        if (count == 0) {
-                                            "Off"
-                                        } else {
-                                            count.toString()
-                                        }
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    Text(
-                        text =
-                            if (draft.backupRingCount == 0) {
-                                "Off. One normal dismiss ends the active ring."
-                            } else {
-                                draft.backupRingCount.toString() +
-                                    " extra ring" +
-                                    if (draft.backupRingCount == 1) {
-                                        ""
-                                    } else {
-                                        "s"
-                                    } +
-                                    " · every 5 minutes. “Dismiss this ring” keeps the rest armed; “I’m awake” stops them."
-                            },
-                        style = MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                item {
-                    Text(
-                        text = "Snooze",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                    listOf(0, 5, 10).forEach { minutes ->
-                        FilterChip(
-                            selected = draft.snoozeMinutes == minutes,
-                            enabled = draft.backupRingCount == 0,
-                            onClick = {
-                                draft = draft.copy(
-                                    snoozeMinutes = minutes
-                                )
-                            },
-                            label = {
-                                Text(if (minutes == 0) "Off" else minutes.toString() + "m")
-                            }
-                        )
-                    }
-                    }
-                }
-
-                item {
-                    Text(
-                        text =
-                            if (draft.mode == AlarmMode.STANDARD) {
-                                "Standard Alarm: " +
-                                    formatClock(draft.hour, draft.minute) +
-                                    " is the exact alarm time."
-                            } else {
-                                "Smart Wake: live sleep can wake you inside the selected window; historical fallback is limited to the final 10 minutes. " +
-                                    formatClock(draft.hour, draft.minute) +
-                                    " remains the hard deadline."
-                            },
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSave(draft) },
-                enabled = draft.days.isNotEmpty()
-            ) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            Row {
-                if (!isNew) {
-                    TextButton(onClick = { onDelete(draft) }) {
-                        Text("Delete", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-            }
-        }
-    )
 }
 
 @Composable
@@ -6055,6 +3687,35 @@ private fun dayItems(): List<Pair<Int, String>> = listOf(
     DayOfWeek.FRIDAY.value to "F",
     DayOfWeek.SATURDAY.value to "S"
 )
+
+private fun scheduleLabel(
+    schedule: AlarmSchedule
+): String {
+    if (schedule.isOneTime) {
+        val date =
+            schedule.oneTimeDate?.let {
+                runCatching {
+                    LocalDate.parse(it)
+                }.getOrNull()
+            }
+
+        return if (date != null) {
+            if (date == LocalDate.now().plusDays(1)) {
+                "Tomorrow only"
+            } else {
+                date.format(
+                    DateTimeFormatter.ofPattern(
+                        "EEE, MMM d"
+                    )
+                )
+            }
+        } else {
+            "One time"
+        }
+    }
+
+    return daysLabel(schedule.days)
+}
 
 private fun daysLabel(days: Set<Int>): String {
     if (days == AlarmSchedule.WEEKDAYS) return "Mon, Tue, Wed, Thu, Fri"
