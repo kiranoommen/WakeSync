@@ -81,45 +81,16 @@ fun OobeScreen(
         val colors = MaterialTheme.colorScheme
 
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            colors.background,
-                            if (darkTheme) {
-                                Color(0xFF0A0E1D)
-                            } else {
-                                Color(0xFFF4F6FB)
-                            },
-                            colors.background
-                        )
-                    )
-                )
+            modifier =
+                Modifier.fillMaxSize()
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .size(300.dp)
-                    .blur(80.dp)
-                    .background(
-                        IndigoGlow.copy(
-                            alpha = if (darkTheme) 0.15f else 0.08f
-                        ),
-                        CircleShape
-                    )
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(320.dp)
-                    .blur(80.dp)
-                    .background(
-                        Cyan.copy(
-                            alpha = if (darkTheme) 0.12f else 0.06f
-                        ),
-                        CircleShape
-                    )
+            AmbientGradientBackground(
+                pagePosition =
+                    step.toFloat(),
+                darkTheme =
+                    darkTheme,
+                modifier =
+                    Modifier.fillMaxSize()
             )
 
             Column(
