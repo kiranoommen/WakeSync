@@ -128,6 +128,7 @@ fun SleepAnalyticsScreen(
     var range by remember { mutableStateOf(SleepRange.TWO_WEEKS) }
     var compare by remember { mutableStateOf(false) }
     var sort by remember { mutableStateOf(SleepSort.DATE) }
+    var sortDescending by remember { mutableStateOf(true) }
     var customStart by remember { mutableStateOf<LocalDate?>(null) }
     var customEnd by remember { mutableStateOf<LocalDate?>(null) }
     var showCustomRange by remember { mutableStateOf(false) }
@@ -355,7 +356,15 @@ fun SleepAnalyticsScreen(
             SleepLogCard(
                 analytics = allAnalytics,
                 sort = sort,
-                onSort = { sort = it },
+                sortDescending = sortDescending,
+                onSort = { selected ->
+                    if (selected == sort) {
+                        sortDescending = !sortDescending
+                    } else {
+                        sort = selected
+                        sortDescending = true
+                    }
+                },
                 onNightSelected = { selectedNight = it },
                 onInfo = {
                     infoSheet = MetricInfo(
@@ -423,7 +432,8 @@ fun SleepAnalyticsScreen(
                 onShareCsv(
                     sortedNights(
                         analytics.nights,
-                        sort
+                        sort,
+                        sortDescending
                     )
                 )
             },
@@ -2120,6 +2130,7 @@ private fun RecoveryCard(
 private fun SleepLogCard(
     analytics: PeriodAnalytics,
     sort: SleepSort,
+    sortDescending: Boolean,
     onSort: (SleepSort) -> Unit,
     onNightSelected: (NightAnalytics) -> Unit,
     onInfo: () -> Unit
@@ -2178,7 +2189,8 @@ private fun SleepLogCard(
     val rows =
         sortedNights(
             filteredNights,
-            sort
+            sort,
+            sortDescending
         )
 
     BentoCard {
@@ -2280,7 +2292,7 @@ private fun SleepLogCard(
                                 onSort(item)
                             },
                             label = {
-                                Text(
+                                val base =
                                     when (item) {
                                         SleepSort.DATE ->
                                             "Date"
@@ -2288,6 +2300,17 @@ private fun SleepLogCard(
                                             "Score"
                                         SleepSort.DURATION ->
                                             "Duration"
+                                    }
+                                Text(
+                                    if (sort == item) {
+                                        base +
+                                            if (sortDescending) {
+                                                " ▼"
+                                            } else {
+                                                " ▲"
+                                            }
+                                    } else {
+                                        base
                                     }
                                 )
                             }
@@ -3412,29 +3435,58 @@ private fun CustomRangeSheet(
 
 private fun sortedNights(
     nights: List<NightAnalytics>,
-    sort: SleepSort
+    sort: SleepSort,
+    descending: Boolean
 ): List<NightAnalytics> =
     when (sort) {
         SleepSort.DATE ->
-            nights.sortedByDescending {
-                it.date
+            if (descending) {
+                nights.sortedByDescending {
+                    it.date
+                }
+            } else {
+                nights.sortedBy {
+                    it.date
+                }
             }
+
         SleepSort.SCORE ->
-            nights.sortedWith(
-                compareByDescending<NightAnalytics> {
-                    it.score
-                }.thenByDescending {
-                    it.date
-                }
-            )
+            if (descending) {
+                nights.sortedWith(
+                    compareByDescending<NightAnalytics> {
+                        it.score
+                    }.thenByDescending {
+                        it.date
+                    }
+                )
+            } else {
+                nights.sortedWith(
+                    compareBy<NightAnalytics> {
+                        it.score
+                    }.thenBy {
+                        it.date
+                    }
+                )
+            }
+
         SleepSort.DURATION ->
-            nights.sortedWith(
-                compareByDescending<NightAnalytics> {
-                    it.asleepMinutes
-                }.thenByDescending {
-                    it.date
-                }
-            )
+            if (descending) {
+                nights.sortedWith(
+                    compareByDescending<NightAnalytics> {
+                        it.asleepMinutes
+                    }.thenByDescending {
+                        it.date
+                    }
+                )
+            } else {
+                nights.sortedWith(
+                    compareBy<NightAnalytics> {
+                        it.asleepMinutes
+                    }.thenBy {
+                        it.date
+                    }
+                )
+            }
     }
 
 private fun pureSleepInsight(
