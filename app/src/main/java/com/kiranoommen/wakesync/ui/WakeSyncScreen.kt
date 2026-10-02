@@ -466,9 +466,8 @@ private fun AppHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         WakeSyncBrandMark(
-            modifier = Modifier
-                .width(46.dp)
-                .height(36.dp)
+            modifier =
+                Modifier.size(42.dp)
         )
 
         Column(
