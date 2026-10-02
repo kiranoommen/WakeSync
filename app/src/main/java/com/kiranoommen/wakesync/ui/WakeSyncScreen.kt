@@ -45,6 +45,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -67,6 +69,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
@@ -121,6 +124,7 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 private enum class AppTab {
     HOME,
@@ -177,67 +181,52 @@ fun WakeSyncScreen(
     }
 
     WakeSyncTheme(darkTheme = darkTheme) {
-        var tab by remember { mutableStateOf(AppTab.HOME) }
-        var editingSchedule by remember { mutableStateOf<AlarmSchedule?>(null) }
-        var creatingNew by remember { mutableStateOf(false) }
+        var editingSchedule by remember {
+            mutableStateOf<AlarmSchedule?>(null)
+        }
+        var creatingNew by remember {
+            mutableStateOf(false)
+        }
 
-        val colors = MaterialTheme.colorScheme
-        val context = LocalContext.current
+        val context =
+            LocalContext.current
+        val tabs =
+            remember {
+                AppTab.values().toList()
+            }
+        val pagerState =
+            rememberPagerState(
+                initialPage =
+                    AppTab.HOME.ordinal,
+                pageCount = {
+                    tabs.size
+                }
+            )
+        val pagerScope =
+            rememberCoroutineScope()
+        val pagerPosition =
+            pagerState.currentPage.toFloat() +
+                pagerState.currentPageOffsetFraction
+        val activeTab =
+            tabs[
+                pagerState.currentPage
+                    .coerceIn(
+                        0,
+                        tabs.lastIndex
+                    )
+            ]
 
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            colors.background,
-                            if (darkTheme) Color(0xFF0A0E1D) else Color(0xFFF2F0FF),
-                            colors.background
-                        )
-                    )
-                )
+            modifier =
+                Modifier.fillMaxSize()
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .offset(
-                        x = (-90).dp,
-                        y = (-70).dp
-                    )
-                    .size(310.dp)
-                    .blur(80.dp)
-                    .background(
-                        IndigoGlow.copy(
-                            alpha =
-                                if (darkTheme) {
-                                    0.15f
-                                } else {
-                                    0.07f
-                                }
-                        ),
-                        CircleShape
-                    )
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(
-                        x = 90.dp,
-                        y = 70.dp
-                    )
-                    .size(340.dp)
-                    .blur(80.dp)
-                    .background(
-                        Cyan.copy(
-                            alpha =
-                                if (darkTheme) {
-                                    0.12f
-                                } else {
-                                    0.055f
-                                }
-                        ),
-                        CircleShape
-                    )
+            AmbientGradientBackground(
+                pagePosition =
+                    pagerPosition,
+                darkTheme =
+                    darkTheme,
+                modifier =
+                    Modifier.fillMaxSize()
             )
 
             Column(
@@ -245,112 +234,196 @@ fun WakeSyncScreen(
                     .fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .padding(horizontal = 18.dp)
+                    .padding(
+                        horizontal = 18.dp
+                    )
             ) {
-                AppHeader(tab)
+                AppHeader(
+                    activeTab
+                )
 
-                Box(modifier = Modifier.weight(1f)) {
-                    Crossfade(
-                        targetState = tab,
-                        animationSpec = spring(
-                            stiffness = 300f,
-                            dampingRatio = 0.78f
-                        ),
-                        label = "WakeSyncTab"
-                    ) { activeTab ->
-                        when (activeTab) {
-                            AppTab.HOME -> HomeTab(
-                                sdkStatus = sdkStatus,
-                                hasPermission = hasPermission,
-                                loading = loading,
-                                nights = nights,
-                                schedules = schedules,
-                                errorMessage = errorMessage,
-                                onConnect = onConnect,
-                                onRefresh = onRefresh,
-                                onEditSchedule = { editingSchedule = it },
-                                onSkipNext = onSkipNext,
-                                onClearSkips = onClearSkips,
-                                onGoAlarms = { tab = AppTab.ALARMS },
-                                sleepGoalMinutes = sleepGoalMinutes,
-                                goalsEnabled = goalsEnabled,
-                                dashboardWidgets = dashboardWidgets,
-                                displayName = displayName,
-                                onDashboardWidgetsChange = onDashboardWidgetsChange
+                HorizontalPager(
+                    state = pagerState,
+                    modifier =
+                        Modifier.weight(1f),
+                    beyondViewportPageCount = 1
+                ) { page ->
+                    when (
+                        tabs[
+                            page.coerceIn(
+                                0,
+                                tabs.lastIndex
                             )
-
-                            AppTab.ALARMS -> AlarmsTab(
-                                schedules = schedules,
-                                onAdd = {
-                                    creatingNew = true
-                                    editingSchedule = defaultSchedule()
+                        ]
+                    ) {
+                        AppTab.HOME ->
+                            HomeTab(
+                                sdkStatus =
+                                    sdkStatus,
+                                hasPermission =
+                                    hasPermission,
+                                loading =
+                                    loading,
+                                nights =
+                                    nights,
+                                schedules =
+                                    schedules,
+                                errorMessage =
+                                    errorMessage,
+                                onConnect =
+                                    onConnect,
+                                onRefresh =
+                                    onRefresh,
+                                onEditSchedule = {
+                                    editingSchedule =
+                                        it
                                 },
-                                onEdit = { editingSchedule = it },
-                                onToggle = onToggleSchedule,
-                                onSkipNext = onSkipNext,
-                                onClearSkips = onClearSkips
+                                onSkipNext =
+                                    onSkipNext,
+                                onClearSkips =
+                                    onClearSkips,
+                                onGoAlarms = {
+                                    pagerScope.launch {
+                                        pagerState
+                                            .animateScrollToPage(
+                                                AppTab.ALARMS.ordinal
+                                            )
+                                    }
+                                },
+                                sleepGoalMinutes =
+                                    sleepGoalMinutes,
+                                goalsEnabled =
+                                    goalsEnabled,
+                                dashboardWidgets =
+                                    dashboardWidgets,
+                                displayName =
+                                    displayName,
+                                onDashboardWidgetsChange =
+                                    onDashboardWidgetsChange
                             )
 
-                            AppTab.SLEEP -> SleepTab(
-                                nights = nights,
-                                loading = loading,
-                                sleepGoalMinutes = sleepGoalMinutes,
-                                goalsEnabled = goalsEnabled,
-                                onRefresh = onRefresh,
+                        AppTab.ALARMS ->
+                            AlarmsTab(
+                                schedules =
+                                    schedules,
+                                onAdd = {
+                                    creatingNew =
+                                        true
+                                    editingSchedule =
+                                        defaultSchedule()
+                                },
+                                onEdit = {
+                                    editingSchedule =
+                                        it
+                                },
+                                onToggle =
+                                    onToggleSchedule,
+                                onSkipNext =
+                                    onSkipNext,
+                                onClearSkips =
+                                    onClearSkips
+                            )
+
+                        AppTab.SLEEP ->
+                            SleepTab(
+                                nights =
+                                    nights,
+                                loading =
+                                    loading,
+                                sleepGoalMinutes =
+                                    sleepGoalMinutes,
+                                goalsEnabled =
+                                    goalsEnabled,
+                                onRefresh =
+                                    onRefresh,
                                 onShareCsv = {
-                                    SleepExporter.shareCsv(
-                                        context,
-                                        it,
-                                        retainGeneratedExports
-                                    )
+                                    SleepExporter
+                                        .shareCsv(
+                                            context,
+                                            it,
+                                            retainGeneratedExports
+                                        )
                                 },
                                 onSharePdf = {
-                                    SleepExporter.sharePdf(
-                                        context,
-                                        it,
-                                        retainGeneratedExports
-                                    )
+                                    SleepExporter
+                                        .sharePdf(
+                                            context,
+                                            it,
+                                            retainGeneratedExports
+                                        )
                                 },
                                 onShareStory = {
-                                    SleepExporter.shareStoryCard(
-                                        context,
-                                        it,
-                                        retainGeneratedExports
-                                    )
+                                    SleepExporter
+                                        .shareStoryCard(
+                                            context,
+                                            it,
+                                            retainGeneratedExports
+                                        )
                                 }
                             )
 
-                            AppTab.SETTINGS -> SettingsTab(
-                                hasPermission = hasPermission,
-                                exactAlarmAccess = exactAlarmAccess,
-                                hasAnalyticsPermission = hasAnalyticsPermission,
-                                hasHistoryPermission = hasHistoryPermission,
-                                historyReadAvailable = historyReadAvailable,
-                                themeMode = themeMode,
-                                sleepGoalMinutes = sleepGoalMinutes,
-                                goalsEnabled = goalsEnabled,
-                                maxSmartWindowMinutes = maxSmartWindowMinutes,
-                                retainGeneratedExports = retainGeneratedExports,
-                                displayName = displayName,
-                                nights = nights,
-                                onConnect = onConnect,
-                                onRequestAnalyticsAccess = onRequestAnalyticsAccess,
-                                onRequestHistoryAccess = onRequestHistoryAccess,
-                                onThemeModeChange = onThemeModeChange,
-                                onSleepGoalChange = onSleepGoalChange,
-                                onGoalsEnabledChange = onGoalsEnabledChange,
-                                onDisplayNameChange = onDisplayNameChange,
-                                onMaxSmartWindowChange = onMaxSmartWindowChange,
-                                onRetainGeneratedExportsChange = onRetainGeneratedExportsChange,
-                                onClearGeneratedExports = onClearGeneratedExports
+                        AppTab.SETTINGS ->
+                            SettingsTab(
+                                hasPermission =
+                                    hasPermission,
+                                exactAlarmAccess =
+                                    exactAlarmAccess,
+                                hasAnalyticsPermission =
+                                    hasAnalyticsPermission,
+                                hasHistoryPermission =
+                                    hasHistoryPermission,
+                                historyReadAvailable =
+                                    historyReadAvailable,
+                                themeMode =
+                                    themeMode,
+                                sleepGoalMinutes =
+                                    sleepGoalMinutes,
+                                goalsEnabled =
+                                    goalsEnabled,
+                                maxSmartWindowMinutes =
+                                    maxSmartWindowMinutes,
+                                retainGeneratedExports =
+                                    retainGeneratedExports,
+                                displayName =
+                                    displayName,
+                                nights =
+                                    nights,
+                                onConnect =
+                                    onConnect,
+                                onRequestAnalyticsAccess =
+                                    onRequestAnalyticsAccess,
+                                onRequestHistoryAccess =
+                                    onRequestHistoryAccess,
+                                onThemeModeChange =
+                                    onThemeModeChange,
+                                onSleepGoalChange =
+                                    onSleepGoalChange,
+                                onGoalsEnabledChange =
+                                    onGoalsEnabledChange,
+                                onDisplayNameChange =
+                                    onDisplayNameChange,
+                                onMaxSmartWindowChange =
+                                    onMaxSmartWindowChange,
+                                onRetainGeneratedExportsChange =
+                                    onRetainGeneratedExportsChange,
+                                onClearGeneratedExports =
+                                    onClearGeneratedExports
                             )
-                        }
                     }
                 }
 
                 BottomNav(
-                    selected = tab,
-                    onSelected = { tab = it }
+                    pagerPosition =
+                        pagerPosition,
+                    onSelected = {
+                            tab ->
+                        pagerScope.launch {
+                            pagerState
+                                .animateScrollToPage(
+                                    tab.ordinal
+                                )
+                        }
+                    }
                 )
             }
         }
