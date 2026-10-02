@@ -108,7 +108,7 @@ fun OobeScreen(
                         .padding(top = 18.dp),
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
-                    repeat(5) { index ->
+                    repeat(4) { index ->
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -155,17 +155,14 @@ fun OobeScreen(
                             onSelected = onThemeModeChange
                         )
 
-                        3 -> OobeHealthConnect(
+                        else -> OobePermissions(
                             modifier = Modifier.fillMaxSize(),
                             sdkStatus = sdkStatus,
-                            connected = hasPermission,
-                            onConnect = onConnect
-                        )
-
-                        else -> OobeExactAlarm(
-                            modifier = Modifier.fillMaxSize(),
-                            granted = exactAlarmAccess,
-                            onGrant = onRequestExactAlarmAccess
+                            healthConnected = hasPermission,
+                            exactAlarmGranted = exactAlarmAccess,
+                            onConnectHealth = onConnect,
+                            onGrantExactAlarm =
+                                onRequestExactAlarmAccess
                         )
                     }
                 }
@@ -201,7 +198,7 @@ fun OobeScreen(
                                     step++
                                 }
 
-                                4 -> {
+                                3 -> {
                                     onDisplayNameChange(
                                         nameDraft.trim()
                                     )
@@ -218,7 +215,7 @@ fun OobeScreen(
                         )
                     ) {
                         Text(
-                            text = if (step == 4) {
+                            text = if (step == 3) {
                                 "Finish setup"
                             } else {
                                 "Continue"
