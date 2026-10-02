@@ -4789,12 +4789,37 @@ private fun ToggleSettingRow(
 
 @Composable
 private fun BottomNav(
-    selected: AppTab,
+    pagerPosition: Float,
     onSelected: (AppTab) -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
+    val colors =
+        MaterialTheme.colorScheme
     val isDark =
-        colors.background.luminance() < 0.5f
+        colors.background
+            .luminance() < 0.5f
+    val tabs =
+        listOf(
+            Triple(
+                AppTab.HOME,
+                "Home",
+                Icons.Default.Home
+            ),
+            Triple(
+                AppTab.ALARMS,
+                "Alarms",
+                Icons.Default.AccessAlarm
+            ),
+            Triple(
+                AppTab.SLEEP,
+                "Sleep",
+                Icons.Default.Bedtime
+            ),
+            Triple(
+                AppTab.SETTINGS,
+                "Settings",
+                Icons.Default.Settings
+            )
+        )
 
     Card(
         modifier = Modifier
@@ -4805,92 +4830,93 @@ private fun BottomNav(
                 top = 8.dp,
                 bottom = 20.dp
             ),
-        shape = RoundedCornerShape(999.dp),
+        shape =
+            RoundedCornerShape(999.dp),
         border = BorderStroke(
             1.dp,
-            if (isDark) {
-                Color.White.copy(alpha = 0.10f)
-            } else {
-                colors.outlineVariant
-            }
+            Brush.linearGradient(
+                listOf(
+                    Color.White.copy(
+                        alpha =
+                            if (isDark) {
+                                0.22f
+                            } else {
+                                0.75f
+                            }
+                    ),
+                    Color.White.copy(
+                        alpha =
+                            if (isDark) {
+                                0.035f
+                            } else {
+                                0.18f
+                            }
+                    )
+                )
+            )
         ),
-        colors = CardDefaults.cardColors(
-            containerColor =
-                if (isDark) {
-                    Color(0xD9141926)
-                } else {
-                    Color(0xF2F8FAFC)
-                },
-            contentColor = colors.onSurface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 10.dp
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isDark) {
+                        Color(0xA6141926)
+                    } else {
+                        Color.White.copy(
+                            alpha = 0.72f
+                        )
+                    },
+                contentColor =
+                    colors.onSurface
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    if (isDark) {
+                        8.dp
+                    } else {
+                        3.dp
+                    }
+            )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 7.dp, vertical = 7.dp),
+                .padding(
+                    horizontal = 7.dp,
+                    vertical = 7.dp
+                ),
             horizontalArrangement =
                 Arrangement.SpaceEvenly,
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
-            val tabs = listOf(
-                Triple(
-                    AppTab.HOME,
-                    "Home",
-                    Icons.Default.Home
-                ),
-                Triple(
-                    AppTab.ALARMS,
-                    "Alarms",
-                    Icons.Default.AccessAlarm
-                ),
-                Triple(
-                    AppTab.SLEEP,
-                    "Sleep",
-                    Icons.Default.Bedtime
-                ),
-                Triple(
-                    AppTab.SETTINGS,
-                    "Settings",
-                    Icons.Default.Settings
-                )
-            )
-
-            tabs.forEach {
+            tabs.forEachIndexed {
+                    index,
                     (tab, label, icon) ->
-                val active =
-                    selected == tab
-                val scale by
-                    animateFloatAsState(
-                        targetValue =
-                            if (active) {
-                                1.03f
-                            } else {
-                                1f
-                            },
-                        animationSpec = spring(
-                            stiffness = 300f,
-                            dampingRatio = 0.78f
-                        ),
-                        label =
-                            "navScale" +
-                                tab.name
-                    )
-                val contentColor by
-                    animateColorAsState(
-                        targetValue =
-                            if (active) {
-                                colors.onSurface
-                            } else {
-                                colors.onSurfaceVariant
-                            },
-                        label =
-                            "navColor" +
-                                tab.name
-                    )
+                val activation =
+                    (
+                        1f -
+                            abs(
+                                pagerPosition -
+                                    index.toFloat()
+                            )
+                        )
+                        .coerceIn(
+                            0f,
+                            1f
+                        )
+                val selected =
+                    activation >= 0.5f
+                val scale =
+                    1f +
+                        activation *
+                        0.035f
+                val contentColor =
+                    if (selected) {
+                        colors.onSurface
+                    } else {
+                        colors.onSurfaceVariant
+                    }
 
                 Card(
                     onClick = {
@@ -4904,11 +4930,17 @@ private fun BottomNav(
                             999.dp
                         ),
                     border =
-                        if (active) {
+                        if (
+                            activation >
+                            0.04f
+                        ) {
                             BorderStroke(
                                 1.dp,
                                 Lavender.copy(
-                                    alpha = 0.24f
+                                    alpha =
+                                        0.08f +
+                                            activation *
+                                            0.24f
                                 )
                             )
                         } else {
@@ -4917,13 +4949,15 @@ private fun BottomNav(
                     colors =
                         CardDefaults.cardColors(
                             containerColor =
-                                if (active) {
-                                    Lavender.copy(
-                                        alpha = 0.16f
-                                    )
-                                } else {
-                                    Color.Transparent
-                                },
+                                Lavender.copy(
+                                    alpha =
+                                        activation *
+                                            if (isDark) {
+                                                0.18f
+                                            } else {
+                                                0.11f
+                                            }
+                                ),
                             contentColor =
                                 contentColor
                         )
@@ -4940,12 +4974,16 @@ private fun BottomNav(
                             Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = icon,
+                            imageVector =
+                                icon,
                             contentDescription =
                                 label,
                             modifier =
-                                Modifier.size(24.dp),
-                            tint = contentColor
+                                Modifier.size(
+                                    24.dp
+                                ),
+                            tint =
+                                contentColor
                         )
                         Text(
                             modifier =
@@ -4956,7 +4994,7 @@ private fun BottomNav(
                             style =
                                 MaterialTheme.typography.labelSmall,
                             fontWeight =
-                                if (active) {
+                                if (selected) {
                                     FontWeight.Bold
                                 } else {
                                     FontWeight.Medium
