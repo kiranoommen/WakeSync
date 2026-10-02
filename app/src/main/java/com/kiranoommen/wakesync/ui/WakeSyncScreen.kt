@@ -1111,7 +1111,7 @@ private fun DashboardGlassCard(
         ) {
             WakeGlassBackdrop(
                 modifier =
-                    Modifier.fillMaxSize()
+                    Modifier.matchParentSize()
             )
 
             Column(
@@ -1791,10 +1791,10 @@ private fun MorningBriefingCard(
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             WakeGlassBackdrop(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.matchParentSize()
             )
 
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
                 drawCircle(
                     color = statusColor.copy(alpha = 0.10f),
                     radius = size.minDimension * 0.65f,
@@ -1899,7 +1899,7 @@ private fun HomeScoreGauge(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.matchParentSize()) {
             val stroke = 8.dp.toPx()
             val diameter =
                 size.minDimension - stroke
@@ -2007,7 +2007,7 @@ private fun GoalStreakCard(
             ) {
                 val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)
 
-                Canvas(modifier = Modifier.fillMaxSize()) {
+                Canvas(modifier = Modifier.matchParentSize()) {
                     val stroke = 10.dp.toPx()
                     val diameter = size.minDimension - stroke
 
@@ -2115,7 +2115,7 @@ private fun HomeInsightCard(
         )
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
                 drawCircle(
                     color = Lavender.copy(alpha = 0.13f),
                     radius = size.minDimension * 0.62f,
@@ -2485,7 +2485,7 @@ private fun NextWakeCard(
                     )
                 )
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
                 drawCircle(
                     color = Color.White.copy(alpha = 0.10f),
                     radius = size.minDimension * 0.55f,
@@ -2676,7 +2676,7 @@ private fun EmptyAlarmCard(
                     )
                 )
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier.matchParentSize()) {
                 drawCircle(
                     color = Color.White.copy(alpha = 0.10f),
                     radius = size.minDimension * 0.56f,
@@ -2868,7 +2868,7 @@ private fun WeeklyAlarmOverview(
             modifier = Modifier.fillMaxWidth()
         ) {
             WakeGlassBackdrop(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.matchParentSize()
             )
 
             Column(
@@ -3115,11 +3115,11 @@ private fun AlarmScheduleCard(
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             WakeGlassBackdrop(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.matchParentSize()
             )
 
             if (schedule.enabled) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
+                Canvas(modifier = Modifier.matchParentSize()) {
                     drawCircle(
                         color = Lavender.copy(alpha = 0.08f),
                         radius = size.minDimension * 0.70f,
@@ -4333,7 +4333,7 @@ private fun SettingsBentoCard(
         ) {
             WakeGlassBackdrop(
                 modifier =
-                    Modifier.fillMaxSize()
+                    Modifier.matchParentSize()
             )
 
             Column(
@@ -4912,7 +4912,7 @@ private fun BottomNav(
         ) {
             WakeGlassBackdrop(
                 modifier =
-                    Modifier.fillMaxSize()
+                    Modifier.matchParentSize()
             )
 
             Row(
