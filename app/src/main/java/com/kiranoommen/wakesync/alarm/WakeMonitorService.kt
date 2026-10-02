@@ -11,7 +11,6 @@ import android.os.Build
 import android.os.IBinder
 import com.kiranoommen.wakesync.MainActivity
 import com.kiranoommen.wakesync.data.HealthConnectManager
-import com.kiranoommen.wakesync.data.WakeHistoryStore
 import com.kiranoommen.wakesync.data.WakePreferencesStore
 import com.kiranoommen.wakesync.model.SleepStageType
 import kotlinx.coroutines.CoroutineScope
@@ -56,7 +55,6 @@ class WakeMonitorService : Service() {
 
     private suspend fun monitorUntilWake() {
         val preferencesStore = WakePreferencesStore(applicationContext)
-        val historyStore = WakeHistoryStore(applicationContext)
         val healthConnect = HealthConnectManager(applicationContext)
 
         val initialPreferences = preferencesStore.load()
@@ -68,6 +66,8 @@ class WakeMonitorService : Service() {
         if (!healthConnect.backgroundReadAvailable() ||
             !healthConnect.hasBackgroundReadPermission()
         ) {
+            // The historical fallback and hard-stop alarms were scheduled
+            // independently, so they remain intact even if live reads cannot run.
             stopSelf()
             return
         }
@@ -92,14 +92,6 @@ class WakeMonitorService : Service() {
             val monitorStart = earliestWake.minusMinutes(
                 WakeAlarmScheduler.MONITOR_LEAD_MINUTES
             )
-            val requestedPredictiveCutoff = hardDeadline.minusMinutes(
-                WakeAlarmScheduler.PREDICTIVE_CUTOFF_MINUTES
-            )
-            val predictiveCutoff = if (requestedPredictiveCutoff.isAfter(earliestWake)) {
-                requestedPredictiveCutoff
-            } else {
-                earliestWake
-            }
 
             if (now.isBefore(monitorStart.minusMinutes(2))) {
                 stopSelf()
@@ -111,45 +103,6 @@ class WakeMonitorService : Service() {
                     context = applicationContext,
                     reason = "Hard wake deadline reached"
                 )
-                stopSelf()
-                return
-            }
-
-            if (!now.isBefore(predictiveCutoff)) {
-                val profile = historyStore.load()
-                val prediction = profile?.let {
-                    PredictiveWakeEngine.chooseWakeTime(
-                        profile = it,
-                        now = now,
-                        deadline = hardDeadline,
-                        fallbackWindowMinutes =
-                            WakeAlarmScheduler.PREDICTIVE_CUTOFF_MINUTES.toInt()
-                    )
-                }
-
-                if (prediction == null) {
-                    // No trustworthy historical pattern. Keep the independent
-                    // hard-deadline alarm and stop spending battery on live reads.
-                    stopSelf()
-                    return
-                }
-
-                if (!prediction.wakeAt.isAfter(now.plusSeconds(30))) {
-                    WakeAlarmController.ring(
-                        context = applicationContext,
-                        reason = "Predictive wake from your recent sleep history"
-                    )
-                    stopSelf()
-                    return
-                }
-
-                WakeAlarmScheduler.schedulePredictiveWake(
-                    context = applicationContext,
-                    wakeAt = prediction.wakeAt,
-                    reason = "Predictive wake from your recent sleep history"
-                )
-
-                // The hard-deadline alarm remains in place as the final fallback.
                 stopSelf()
                 return
             }
@@ -172,6 +125,10 @@ class WakeMonitorService : Service() {
                 }
             }
 
+            // Live monitoring intentionally continues through the final part
+            // of the wake window. The separately scheduled historical fallback
+            // will interrupt this service only if its chosen wake time arrives
+            // before a favorable fresh live stage is observed.
             delay(POLL_INTERVAL_MILLIS)
         }
     }
@@ -217,7 +174,7 @@ class WakeMonitorService : Service() {
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("WakeSync is watching your sleep")
             .setContentText(
-                "Live sleep monitoring is active. Historical fallback begins 15 minutes before your deadline."
+                "Live sleep stays active through your wake window. Historical fallback and hard stop remain armed."
             )
             .setContentIntent(openAppIntent)
             .setOngoing(true)
