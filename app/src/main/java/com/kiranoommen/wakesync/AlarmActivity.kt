@@ -24,6 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,31 +62,67 @@ class AlarmActivity : ComponentActivity() {
         setTurnScreenOn(true)
 
         val scheduleId =
-            intent.getStringExtra(MultiAlarmController.EXTRA_SCHEDULE_ID)
+            intent.getStringExtra(
+                MultiAlarmController.EXTRA_SCHEDULE_ID
+            )
         val reason =
-            intent.getStringExtra(MultiAlarmController.EXTRA_REASON)
-                ?: "WakeSync alarm"
+            intent.getStringExtra(
+                MultiAlarmController.EXTRA_REASON
+            ) ?: "WakeSync alarm"
+        val kind =
+            intent.getStringExtra(
+                MultiAlarmController.EXTRA_KIND
+            ) ?: AlarmScheduler.KIND_DEADLINE
+        val deadlineMillis =
+            intent.getLongExtra(
+                MultiAlarmController.EXTRA_DEADLINE_MILLIS,
+                0L
+            )
+
         val schedule = scheduleId?.let { id ->
-            AlarmStore(this).load().firstOrNull { it.id == id }
+            AlarmStore(this)
+                .load()
+                .firstOrNull { it.id == id }
         }
 
         setContent {
             WakeSyncTheme(darkTheme = true) {
                 AlarmRingingScreen(
                     reason = reason,
+                    kind = kind,
                     schedule = schedule,
-                    onDismiss = {
-                        MultiAlarmController.dismiss(this@AlarmActivity)
+                    onDismissCurrent = {
+                        MultiAlarmController.dismissCurrent(
+                            this@AlarmActivity
+                        )
+                        finish()
+                    },
+                    onStopSequence = {
+                        val id = schedule?.id
+                        if (id != null) {
+                            MultiAlarmController.stopSequence(
+                                context = this@AlarmActivity,
+                                scheduleId = id,
+                                deadlineMillis = deadlineMillis
+                            )
+                        } else {
+                            MultiAlarmController.dismissCurrent(
+                                this@AlarmActivity
+                            )
+                        }
                         finish()
                     },
                     onSnooze = {
                         val id = schedule?.id
-                        val minutes = schedule?.snoozeMinutes ?: 0
+                        val minutes =
+                            schedule?.snoozeMinutes ?: 0
+
                         if (id != null && minutes > 0) {
                             MultiAlarmController.snooze(
-                                this@AlarmActivity,
-                                id,
-                                minutes
+                                context = this@AlarmActivity,
+                                scheduleId = id,
+                                minutes = minutes,
+                                deadlineMillis = deadlineMillis
                             )
                         }
                         finish()
@@ -99,11 +136,15 @@ class AlarmActivity : ComponentActivity() {
 @Composable
 private fun AlarmRingingScreen(
     reason: String,
+    kind: String,
     schedule: AlarmSchedule?,
-    onDismiss: () -> Unit,
+    onDismissCurrent: () -> Unit,
+    onStopSequence: () -> Unit,
     onSnooze: () -> Unit
 ) {
-    var now by remember { mutableStateOf(LocalDateTime.now()) }
+    var now by remember {
+        mutableStateOf(LocalDateTime.now())
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -112,9 +153,45 @@ private fun AlarmRingingScreen(
         }
     }
 
-    val smart = schedule?.mode == AlarmMode.SMART_WAKE
-    val modeLabel = if (smart) "SMART WAKE" else "STANDARD ALARM"
-    val label = schedule?.label?.takeIf { it.isNotBlank() }
+    val smart =
+        schedule?.mode == AlarmMode.SMART_WAKE
+    val backupIndex =
+        AlarmScheduler.backupIndex(kind)
+    val backupCount =
+        schedule?.backupRingCount
+            ?.coerceIn(
+                0,
+                AlarmScheduler.MAX_BACKUP_RINGS
+            ) ?: 0
+
+    val earlySmartRing =
+        smart &&
+            (
+                kind == "live" ||
+                    kind == AlarmScheduler.KIND_HISTORICAL
+                )
+
+    val remainingSequence =
+        earlySmartRing ||
+            (
+                kind == AlarmScheduler.KIND_DEADLINE &&
+                    backupCount > 0
+                ) ||
+            (
+                backupIndex != null &&
+                    backupIndex < backupCount
+                )
+
+    val modeLabel =
+        if (smart) {
+            "SMART WAKE"
+        } else {
+            "STANDARD ALARM"
+        }
+
+    val label =
+        schedule?.label
+            ?.takeIf { it.isNotBlank() }
 
     Box(
         modifier = Modifier
@@ -131,21 +208,30 @@ private fun AlarmRingingScreen(
             )
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = 26.dp, vertical = 24.dp)
+            .padding(
+                horizontal = 26.dp,
+                vertical = 24.dp
+            )
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
-                WakeSyncBrandMark(modifier = Modifier.size(44.dp))
+                WakeSyncBrandMark(
+                    modifier = Modifier.size(44.dp)
+                )
                 Text(
-                    modifier = Modifier.padding(start = 11.dp),
+                    modifier =
+                        Modifier.padding(start = 11.dp),
                     text = "WakeSync",
-                    style = MaterialTheme.typography.titleLarge,
+                    style =
+                        MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White
                 )
@@ -154,15 +240,17 @@ private fun AlarmRingingScreen(
             Spacer(Modifier.weight(1f))
 
             Card(
-                shape = RoundedCornerShape(999.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor =
-                        if (smart) {
-                            Lavender.copy(alpha = 0.18f)
-                        } else {
-                            Amber.copy(alpha = 0.18f)
-                        }
-                )
+                shape =
+                    RoundedCornerShape(999.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            if (smart) {
+                                Lavender.copy(alpha = 0.18f)
+                            } else {
+                                Amber.copy(alpha = 0.18f)
+                            }
+                    )
             ) {
                 Text(
                     modifier = Modifier.padding(
@@ -170,15 +258,21 @@ private fun AlarmRingingScreen(
                         vertical = 9.dp
                     ),
                     text = modeLabel,
-                    style = MaterialTheme.typography.labelLarge,
+                    style =
+                        MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (smart) Lavender else Amber
+                    color =
+                        if (smart) Lavender else Amber
                 )
             }
 
             Text(
-                modifier = Modifier.padding(top = 24.dp),
-                text = now.format(DateTimeFormatter.ofPattern("h:mm")),
+                modifier =
+                    Modifier.padding(top = 24.dp),
+                text =
+                    now.format(
+                        DateTimeFormatter.ofPattern("h:mm")
+                    ),
                 fontSize = 78.sp,
                 lineHeight = 82.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -186,59 +280,99 @@ private fun AlarmRingingScreen(
             )
 
             Text(
-                text = now.format(DateTimeFormatter.ofPattern("a")),
-                style = MaterialTheme.typography.titleMedium,
+                text =
+                    now.format(
+                        DateTimeFormatter.ofPattern("a")
+                    ),
+                style =
+                    MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White.copy(alpha = 0.66f)
+                color =
+                    Color.White.copy(alpha = 0.66f)
             )
 
             Text(
-                modifier = Modifier.padding(top = 24.dp),
+                modifier =
+                    Modifier.padding(top = 24.dp),
                 text = label ?: "Good morning",
-                style = MaterialTheme.typography.headlineLarge,
+                style =
+                    MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White
             )
 
             Text(
-                modifier = Modifier.padding(top = 8.dp),
+                modifier =
+                    Modifier.padding(top = 8.dp),
                 text = alarmReasonCopy(reason),
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.78f)
+                style =
+                    MaterialTheme.typography.bodyLarge,
+                color =
+                    Color.White.copy(alpha = 0.78f)
             )
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 26.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.09f)
-                )
+                shape =
+                    RoundedCornerShape(24.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            Color.White.copy(alpha = 0.09f)
+                    )
             ) {
                 Column(
                     modifier = Modifier.padding(
                         horizontal = 18.dp,
                         vertical = 16.dp
                     ),
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                    verticalArrangement =
+                        Arrangement.spacedBy(5.dp)
                 ) {
                     Text(
-                        text = if (smart) "Wake plan" else "Scheduled alarm",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.58f)
+                        text =
+                            if (smart) {
+                                "Wake plan"
+                            } else {
+                                "Scheduled alarm"
+                            },
+                        style =
+                            MaterialTheme.typography.labelMedium,
+                        color =
+                            Color.White.copy(alpha = 0.58f)
                     )
+
                     Text(
-                        text = alarmScheduleCopy(schedule),
-                        style = MaterialTheme.typography.titleLarge,
+                        text =
+                            alarmScheduleCopy(schedule),
+                        style =
+                            MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    if (smart) {
+
+                    if (remainingSequence) {
+                        Text(
+                            text =
+                                remainingSequenceCopy(
+                                    kind = kind,
+                                    backupIndex = backupIndex,
+                                    backupCount = backupCount
+                                ),
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                            color =
+                                Amber.copy(alpha = 0.92f)
+                        )
+                    } else if (smart) {
                         Text(
                             text = reason,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.62f)
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                            color =
+                                Color.White.copy(alpha = 0.62f)
                         )
                     }
                 }
@@ -246,16 +380,21 @@ private fun AlarmRingingScreen(
 
             Spacer(Modifier.weight(1f))
 
-            if ((schedule?.snoozeMinutes ?: 0) > 0) {
+            if (
+                !remainingSequence &&
+                (schedule?.snoozeMinutes ?: 0) > 0
+            ) {
                 OutlinedButton(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(58.dp),
                     onClick = onSnooze,
-                    shape = RoundedCornerShape(22.dp)
+                    shape =
+                        RoundedCornerShape(22.dp)
                 ) {
                     Text(
-                        text = "SNOOZE ${schedule?.snoozeMinutes} MIN",
+                        text =
+                            "SNOOZE ${schedule?.snoozeMinutes} MIN",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
@@ -267,26 +406,67 @@ private fun AlarmRingingScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(76.dp),
-                shape = RoundedCornerShape(26.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Amber,
-                    contentColor = Color(0xFF15192A)
-                ),
-                onClick = onDismiss
+                shape =
+                    RoundedCornerShape(26.dp),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = Amber,
+                        contentColor =
+                            Color(0xFF15192A)
+                    ),
+                onClick =
+                    if (remainingSequence) {
+                        onDismissCurrent
+                    } else {
+                        onStopSequence
+                    }
             ) {
                 Text(
-                    text = "I’M AWAKE",
+                    text =
+                        if (remainingSequence) {
+                            "DISMISS THIS RING"
+                        } else {
+                            "I’M AWAKE"
+                        },
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
 
-            Text(
-                modifier = Modifier.padding(top = 12.dp),
-                text = "Stops this alarm. Your recurring schedule stays enabled.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.52f)
-            )
+            if (remainingSequence) {
+                TextButton(
+                    modifier =
+                        Modifier.padding(top = 6.dp),
+                    onClick = onStopSequence
+                ) {
+                    Text(
+                        text =
+                            "I’M AWAKE — STOP REMAINING ALARMS",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                Text(
+                    text =
+                        "Dismiss keeps your safety alarms armed.",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        Color.White.copy(alpha = 0.52f)
+                )
+            } else {
+                Text(
+                    modifier =
+                        Modifier.padding(top = 12.dp),
+                    text =
+                        "Stops this alarm. Your recurring schedule stays enabled.",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        Color.White.copy(alpha = 0.52f)
+                )
+            }
         }
     }
 }
@@ -295,30 +475,84 @@ private fun alarmReasonCopy(reason: String): String =
     when {
         reason == "Standard alarm" ->
             "Your standard alarm is ringing."
+
         reason.startsWith("Live sleep stage:") -> {
-            val stage = reason.substringAfter(":").trim()
-            "WakeSync found ${stage} sleep inside your wake window."
+            val stage =
+                reason.substringAfter(":").trim()
+            "WakeSync found $stage sleep inside your wake window."
         }
+
         reason.startsWith("Historical fallback") ->
             "Your saved sleep pattern reached its fallback wake point."
+
         reason.startsWith("Hard wake deadline") ->
-            "You reached the latest time you asked WakeSync to let you sleep."
+            "You reached your hard wake deadline."
+
+        reason.startsWith("Backup ring") ->
+            "This is one of your backup rings."
+
         reason.startsWith("Snoozed") ->
             "Your snooze is over."
+
         else ->
             "It’s time to wake up."
     }
 
-private fun alarmScheduleCopy(schedule: AlarmSchedule?): String {
-    if (schedule == null) return "WakeSync alarm"
-    val formatter = DateTimeFormatter.ofPattern("h:mm a")
-    val deadline = LocalTime.of(schedule.hour, schedule.minute)
+private fun remainingSequenceCopy(
+    kind: String,
+    backupIndex: Int?,
+    backupCount: Int
+): String =
+    when {
+        kind == "live" ||
+            kind == AlarmScheduler.KIND_HISTORICAL ->
+            "Your hard deadline is still armed."
 
-    return if (schedule.mode == AlarmMode.STANDARD) {
+        kind == AlarmScheduler.KIND_DEADLINE &&
+            backupCount > 0 ->
+            "$backupCount backup ring" +
+                if (backupCount == 1) {
+                    " remains."
+                } else {
+                    "s remain."
+                }
+
+        backupIndex != null ->
+            "${backupCount - backupIndex} backup ring" +
+                if (backupCount - backupIndex == 1) {
+                    " remains."
+                } else {
+                    "s remain."
+                }
+
+        else -> ""
+    }
+
+private fun alarmScheduleCopy(
+    schedule: AlarmSchedule?
+): String {
+    if (schedule == null) {
+        return "WakeSync alarm"
+    }
+
+    val formatter =
+        DateTimeFormatter.ofPattern("h:mm a")
+    val deadline =
+        LocalTime.of(
+            schedule.hour,
+            schedule.minute
+        )
+
+    return if (
+        schedule.mode == AlarmMode.STANDARD
+    ) {
         deadline.format(formatter)
     } else {
         val start =
-            deadline.minusMinutes(schedule.smartWindowMinutes.toLong())
-        "${start.format(formatter)} – ${deadline.format(formatter)}"
+            deadline.minusMinutes(
+                schedule.smartWindowMinutes.toLong()
+            )
+        "${start.format(formatter)} – " +
+            deadline.format(formatter)
     }
 }

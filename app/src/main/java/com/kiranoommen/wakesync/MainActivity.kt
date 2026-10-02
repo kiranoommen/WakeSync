@@ -339,7 +339,13 @@ class MainActivity : ComponentActivity() {
                             smartWindowMinutes = cappedWindow,
                             smartOffsetMinutes =
                                 schedule.smartOffsetMinutes
-                                    .coerceAtMost(cappedWindow)
+                                    .coerceAtMost(cappedWindow),
+                            backupRingCount =
+                                schedule.backupRingCount
+                                    .coerceIn(
+                                        0,
+                                        AlarmScheduler.MAX_BACKUP_RINGS
+                                    )
                         )
 
                         persist(
@@ -411,6 +417,22 @@ class MainActivity : ComponentActivity() {
                             historyPermissionLauncher.launch(
                                 HealthConnectManager.historyPermissions
                             )
+                        }
+                    },
+                    onRequestExactAlarmAccess = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            runCatching {
+                                startActivity(
+                                    Intent(
+                                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                                    ).apply {
+                                        data =
+                                            Uri.parse(
+                                                "package:$packageName"
+                                            )
+                                    }
+                                )
+                            }
                         }
                     },
                     onThemeModeChange = { newMode ->

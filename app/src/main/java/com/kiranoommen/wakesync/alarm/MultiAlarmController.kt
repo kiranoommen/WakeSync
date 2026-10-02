@@ -13,6 +13,8 @@ object MultiAlarmController {
     const val EXTRA_SCHEDULE_ID = "ring_schedule_id"
     const val EXTRA_REASON = "ring_reason"
     const val EXTRA_KIND = "ring_kind"
+    const val EXTRA_DEADLINE_MILLIS =
+        "ring_deadline_millis"
 
     fun ring(
         context: Context,
@@ -23,28 +25,51 @@ object MultiAlarmController {
     ) {
         val appContext = context.applicationContext
         val store = AlarmStore(appContext)
-        val schedule = store.load().firstOrNull { it.id == scheduleId } ?: return
+        val schedule =
+            store.load().firstOrNull { it.id == scheduleId }
+                ?: return
         val scheduler = AlarmScheduler(appContext)
 
-        if (kind != AlarmScheduler.KIND_SNOOZE) {
-            scheduler.cancel(scheduleId)
-
-            val after = if (deadlineMillis > 0L) {
-                ZonedDateTime.ofInstant(
-                    Instant.ofEpochMilli(deadlineMillis),
-                    ZoneId.systemDefault()
-                ).plusMinutes(1)
-            } else {
-                ZonedDateTime.now().plusMinutes(1)
+        when {
+            kind == KIND_LIVE ||
+                kind == AlarmScheduler.KIND_HISTORICAL -> {
+                // The early Smart Wake ring should stop competing smart
+                // triggers, but the hard deadline and backup rings stay armed.
+                scheduler.cancelSmartOptimizers(scheduleId)
             }
 
-            scheduler.scheduleNext(schedule, after)
+            AlarmScheduler.backupIndex(kind) != null -> {
+                val index =
+                    AlarmScheduler.backupIndex(kind) ?: 0
+                if (index >= schedule.backupRingCount) {
+                    scheduleNextOccurrence(
+                        scheduler = scheduler,
+                        schedule = schedule,
+                        deadlineMillis = deadlineMillis
+                    )
+                }
+            }
+
+            kind == AlarmScheduler.KIND_DEADLINE -> {
+                if (schedule.backupRingCount <= 0) {
+                    scheduleNextOccurrence(
+                        scheduler = scheduler,
+                        schedule = schedule,
+                        deadlineMillis = deadlineMillis
+                    )
+                }
+            }
         }
 
-        val serviceIntent = Intent(appContext, AlarmRingingService::class.java)
-            .putExtra(EXTRA_SCHEDULE_ID, scheduleId)
-            .putExtra(EXTRA_REASON, reason)
-            .putExtra(EXTRA_KIND, kind)
+        val serviceIntent =
+            Intent(appContext, AlarmRingingService::class.java)
+                .putExtra(EXTRA_SCHEDULE_ID, scheduleId)
+                .putExtra(EXTRA_REASON, reason)
+                .putExtra(EXTRA_KIND, kind)
+                .putExtra(
+                    EXTRA_DEADLINE_MILLIS,
+                    deadlineMillis
+                )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             appContext.startForegroundService(serviceIntent)
@@ -53,15 +78,82 @@ object MultiAlarmController {
         }
     }
 
-    fun dismiss(context: Context) {
+    fun dismissCurrent(context: Context) {
         context.applicationContext.stopService(
-            Intent(context.applicationContext, AlarmRingingService::class.java)
+            Intent(
+                context.applicationContext,
+                AlarmRingingService::class.java
+            )
         )
     }
 
-    fun snooze(context: Context, scheduleId: String, minutes: Int) {
-        if (minutes <= 0) return
-        AlarmScheduler(context.applicationContext).snooze(scheduleId, minutes)
-        dismiss(context)
+    fun stopSequence(
+        context: Context,
+        scheduleId: String,
+        deadlineMillis: Long
+    ) {
+        val appContext = context.applicationContext
+        val schedule = AlarmStore(appContext)
+            .load()
+            .firstOrNull { it.id == scheduleId }
+
+        val scheduler = AlarmScheduler(appContext)
+        scheduler.cancel(scheduleId)
+
+        if (schedule != null && schedule.enabled) {
+            scheduleNextOccurrence(
+                scheduler = scheduler,
+                schedule = schedule,
+                deadlineMillis = deadlineMillis
+            )
+        }
+
+        dismissCurrent(appContext)
     }
+
+    fun snooze(
+        context: Context,
+        scheduleId: String,
+        minutes: Int,
+        deadlineMillis: Long
+    ) {
+        if (minutes <= 0) return
+
+        AlarmScheduler(context.applicationContext)
+            .snooze(
+                scheduleId = scheduleId,
+                minutes = minutes,
+                sequenceDeadlineMillis = deadlineMillis
+            )
+
+        dismissCurrent(context)
+    }
+
+    private fun scheduleNextOccurrence(
+        scheduler: AlarmScheduler,
+        schedule: com.kiranoommen.wakesync.model.AlarmSchedule,
+        deadlineMillis: Long
+    ) {
+        val after =
+            if (deadlineMillis > 0L) {
+                ZonedDateTime.ofInstant(
+                    Instant.ofEpochMilli(deadlineMillis),
+                    ZoneId.systemDefault()
+                ).plusMinutes(
+                    AlarmScheduler.BACKUP_INTERVAL_MINUTES *
+                        schedule.backupRingCount.coerceAtLeast(0) +
+                        1L
+                )
+            } else {
+                ZonedDateTime.now().plusMinutes(1)
+            }
+
+        scheduler.scheduleNext(
+            schedule = schedule,
+            after = after,
+            clearExisting = true
+        )
+    }
+
+    private const val KIND_LIVE = "live"
 }

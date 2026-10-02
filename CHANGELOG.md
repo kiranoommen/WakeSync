@@ -8,6 +8,21 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+## 0.6.0 — 2026-10-02
+
+### Added
+- optional **Backup Rings** per alarm: 1–3 extra rings at fixed five-minute intervals after the hard deadline;
+- a two-action ringing flow when safety alarms remain: **Dismiss this ring** keeps the remaining sequence armed, while **I’m awake — stop remaining alarms** explicitly cancels it;
+- an in-Settings action to grant exact-alarm access when that permission was skipped during onboarding.
+
+### Changed
+- early Smart Wake and historical-fallback rings no longer cancel the independently scheduled hard deadline;
+- snooze is paused while Backup Rings are enabled to avoid overlapping wake sequences;
+- the Guardrail Wake Time editor is now a clearly interactive, high-emphasis time card instead of a notice-like outlined row.
+
+### Fixed
+- users who bypassed exact-alarm setup in OOBE can now recover the permission path from Settings.
+
 ## 0.5.0 — 2026-10-02
 
 ### Restored

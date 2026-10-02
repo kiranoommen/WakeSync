@@ -39,6 +39,11 @@ class AlarmRingingService : Service() {
         val kind =
             intent?.getStringExtra(MultiAlarmController.EXTRA_KIND)
                 ?: AlarmScheduler.KIND_DEADLINE
+        val deadlineMillis =
+            intent?.getLongExtra(
+                MultiAlarmController.EXTRA_DEADLINE_MILLIS,
+                0L
+            ) ?: 0L
 
         val schedule = scheduleId?.let { id ->
             AlarmStore(this).load().firstOrNull { it.id == id }
@@ -48,6 +53,7 @@ class AlarmRingingService : Service() {
             scheduleId = scheduleId,
             reason = reason,
             kind = kind,
+            deadlineMillis = deadlineMillis,
             smart = schedule?.mode == AlarmMode.SMART_WAKE
         )
 
@@ -80,6 +86,7 @@ class AlarmRingingService : Service() {
         scheduleId: String?,
         reason: String,
         kind: String,
+        deadlineMillis: Long,
         smart: Boolean
     ) {
         val fullScreenIntent = PendingIntent.getActivity(
@@ -92,6 +99,10 @@ class AlarmRingingService : Service() {
                 putExtra(MultiAlarmController.EXTRA_SCHEDULE_ID, scheduleId)
                 putExtra(MultiAlarmController.EXTRA_REASON, reason)
                 putExtra(MultiAlarmController.EXTRA_KIND, kind)
+                putExtra(
+                    MultiAlarmController.EXTRA_DEADLINE_MILLIS,
+                    deadlineMillis
+                )
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

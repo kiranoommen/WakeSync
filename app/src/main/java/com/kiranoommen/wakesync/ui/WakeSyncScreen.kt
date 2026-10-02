@@ -163,6 +163,7 @@ fun WakeSyncScreen(
     onClearSkips: (AlarmSchedule) -> Unit,
     onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
+    onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
     onGoalsEnabledChange: (Boolean) -> Unit,
@@ -393,6 +394,8 @@ fun WakeSyncScreen(
                                     onRequestAnalyticsAccess,
                                 onRequestHistoryAccess =
                                     onRequestHistoryAccess,
+                                onRequestExactAlarmAccess =
+                                    onRequestExactAlarmAccess,
                                 onThemeModeChange =
                                     onThemeModeChange,
                                 onSleepGoalChange =
@@ -3452,6 +3455,7 @@ private fun SettingsTab(
     onConnect: () -> Unit,
     onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
+    onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
     onGoalsEnabledChange: (Boolean) -> Unit,
@@ -3837,7 +3841,7 @@ private fun SettingsTab(
                     infoSheet = MetricInfo(
                         title = "Exact alarm reliability",
                         meaning = "Android exact-alarm access lets WakeSync protect the Guardrail Wake Time with precise OS scheduling.",
-                        measurement = "WakeSync checks Android's exact-alarm capability. New users configure this during onboarding; this Settings row is status-only.",
+                        measurement = "WakeSync checks Android's exact-alarm capability. If access was skipped during onboarding, you can grant it here at any time.",
                         importance = "Without exact-alarm access, Android power management can delay time-critical alarms."
                     )
                 }
@@ -3892,6 +3896,25 @@ private fun SettingsTab(
                         connectedLabel = "Granted",
                         disconnectedLabel = "Action Required"
                     )
+                }
+
+                if (!exactAlarmAccess) {
+                    Button(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        onClick = onRequestExactAlarmAccess,
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Amber,
+                            contentColor = Color(0xFF15192A)
+                        )
+                    ) {
+                        Text(
+                            text = "Grant exact alarm access",
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
                 }
 
             }
@@ -4729,24 +4752,116 @@ private fun AlarmEditorDialog(
                 }
 
                 item {
-                    OutlinedButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        TimePickerDialog(
-                            context,
-                            { _, hour, minute ->
-                                draft = draft.copy(hour = hour, minute = minute)
-                            },
-                            draft.hour,
-                            draft.minute,
-                            false
-                        ).show()
-                    }
-                ) {
-                        Text(
-                            text = "Guardrail Wake Time (Hard Deadline)  " + formatClock(draft.hour, draft.minute),
-                            style = MaterialTheme.typography.titleMedium
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    draft = draft.copy(
+                                        hour = hour,
+                                        minute = minute
+                                    )
+                                },
+                                draft.hour,
+                                draft.minute,
+                                false
+                            ).show()
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            Amber.copy(alpha = 0.48f)
+                        ),
+                        colors = CardDefaults.cardColors(
+                            containerColor =
+                                Amber.copy(alpha = 0.10f),
+                            contentColor =
+                                MaterialTheme.colorScheme.onSurface
                         )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 16.dp,
+                                    vertical = 15.dp
+                                ),
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
+                            Card(
+                                shape = CircleShape,
+                                colors = CardDefaults.cardColors(
+                                    containerColor =
+                                        Amber.copy(alpha = 0.18f)
+                                )
+                            ) {
+                                Icon(
+                                    modifier = Modifier
+                                        .padding(10.dp)
+                                        .size(24.dp),
+                                    imageVector =
+                                        Icons.Default.AccessAlarm,
+                                    contentDescription = null,
+                                    tint = Amber
+                                )
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 13.dp)
+                            ) {
+                                Text(
+                                    text = "GUARDRAIL WAKE TIME",
+                                    style =
+                                        MaterialTheme.typography.labelSmall,
+                                    fontWeight =
+                                        FontWeight.ExtraBold,
+                                    color = Amber
+                                )
+                                Text(
+                                    modifier =
+                                        Modifier.padding(top = 2.dp),
+                                    text =
+                                        formatClock(
+                                            draft.hour,
+                                            draft.minute
+                                        ),
+                                    style =
+                                        MaterialTheme.typography.headlineMedium,
+                                    fontWeight =
+                                        FontWeight.ExtraBold
+                                )
+                                Text(
+                                    modifier =
+                                        Modifier.padding(top = 2.dp),
+                                    text =
+                                        if (
+                                            draft.mode ==
+                                            AlarmMode.SMART_WAKE
+                                        ) {
+                                            "Hard deadline · Tap to change"
+                                        } else {
+                                            "Exact alarm time · Tap to change"
+                                        },
+                                    style =
+                                        MaterialTheme.typography.bodySmall,
+                                    color =
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Text(
+                                text = "CHANGE",
+                                style =
+                                    MaterialTheme.typography.labelSmall,
+                                fontWeight =
+                                    FontWeight.ExtraBold,
+                                color = Amber
+                            )
+                        }
                     }
                 }
 
@@ -4876,6 +4991,19 @@ private fun AlarmEditorDialog(
                     }
                 }
 
+                if (draft.backupRingCount > 0) {
+                    item {
+                        Text(
+                            text =
+                                "Snooze is paused while Backup rings are enabled so two alarm sequences cannot collide.",
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 item {
                     Text(
                         text =
@@ -4917,6 +5045,81 @@ private fun AlarmEditorDialog(
                 }
 
                 item {
+                    HorizontalDivider()
+                }
+
+                item {
+                    Column {
+                        Text(
+                            text = "Backup rings",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 3.dp),
+                            text =
+                                if (draft.mode == AlarmMode.SMART_WAKE) {
+                                    "After the Smart Wake attempt, the hard deadline stays armed. Add extra rings after the deadline for more wake-up protection."
+                                } else {
+                                    "Add extra rings after the exact alarm time so dismissing one half-asleep does not end the whole sequence."
+                                },
+                            style = MaterialTheme.typography.bodySmall,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(0, 1, 2, 3).forEach { count ->
+                            FilterChip(
+                                selected =
+                                    draft.backupRingCount == count,
+                                onClick = {
+                                    draft = draft.copy(
+                                        backupRingCount = count
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        if (count == 0) {
+                                            "Off"
+                                        } else {
+                                            count.toString()
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Text(
+                        text =
+                            if (draft.backupRingCount == 0) {
+                                "Off. One normal dismiss ends the active ring."
+                            } else {
+                                draft.backupRingCount.toString() +
+                                    " extra ring" +
+                                    if (draft.backupRingCount == 1) {
+                                        ""
+                                    } else {
+                                        "s"
+                                    } +
+                                    " · every 5 minutes. “Dismiss this ring” keeps the rest armed; “I’m awake” stops them."
+                            },
+                        style = MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                item {
                     Text(
                         text = "Snooze",
                         fontWeight = FontWeight.SemiBold
@@ -4931,7 +5134,12 @@ private fun AlarmEditorDialog(
                     listOf(0, 5, 10).forEach { minutes ->
                         FilterChip(
                             selected = draft.snoozeMinutes == minutes,
-                            onClick = { draft = draft.copy(snoozeMinutes = minutes) },
+                            enabled = draft.backupRingCount == 0,
+                            onClick = {
+                                draft = draft.copy(
+                                    snoozeMinutes = minutes
+                                )
+                            },
                             label = {
                                 Text(if (minutes == 0) "Off" else minutes.toString() + "m")
                             }

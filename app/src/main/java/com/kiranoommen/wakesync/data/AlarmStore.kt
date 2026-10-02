@@ -38,7 +38,8 @@ class AlarmStore(context: Context) {
             schedule.soundEnabled.toString(),
             schedule.vibrationEnabled.toString(),
             schedule.snoozeMinutes.toString(),
-            schedule.mode.name
+            schedule.mode.name,
+            schedule.backupRingCount.coerceIn(0, 3).toString()
         ).joinToString("|")
     }
 
@@ -68,12 +69,21 @@ class AlarmStore(context: Context) {
                 vibrationEnabled = parts.getOrNull(10)?.toBooleanStrictOrNull() ?: true,
                 snoozeMinutes = parts.getOrNull(11)?.toIntOrNull() ?: 5,
                 mode = parts.getOrNull(12)
-                    ?.let { runCatching { com.kiranoommen.wakesync.model.AlarmMode.valueOf(it) }.getOrNull() }
+                    ?.let {
+                        runCatching {
+                            com.kiranoommen.wakesync.model.AlarmMode.valueOf(it)
+                        }.getOrNull()
+                    }
                     ?: if (parts[5].toIntOrNull() == 0) {
                         com.kiranoommen.wakesync.model.AlarmMode.STANDARD
                     } else {
                         com.kiranoommen.wakesync.model.AlarmMode.SMART_WAKE
-                    }
+                    },
+                backupRingCount =
+                    parts.getOrNull(13)
+                        ?.toIntOrNull()
+                        ?.coerceIn(0, 3)
+                        ?: 0
             )
         }.getOrNull()
     }
