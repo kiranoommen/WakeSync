@@ -14,7 +14,6 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -87,7 +86,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -98,10 +96,10 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Settings
 import androidx.health.connect.client.HealthConnectClient
-import com.kiranoommen.wakesync.R
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.domain.SleepAnalytics
+import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
@@ -2485,7 +2483,12 @@ private fun NextWakeCard(
 ) {
     val timeFormat = DateTimeFormatter.ofPattern("h:mm a")
     val dateFormat = DateTimeFormatter.ofPattern("EEE, MMM d")
-    val windowStart = deadline.minusMinutes(schedule.smartWindowMinutes.toLong())
+    val windowStart =
+        if (schedule.mode == AlarmMode.SMART_WAKE) {
+            deadline.minusMinutes(schedule.smartWindowMinutes.toLong())
+        } else {
+            deadline
+        }
     val predicted = deadline.minusMinutes(schedule.smartOffsetMinutes.toLong())
     val editInteraction = remember { MutableInteractionSource() }
     val pressed by editInteraction.collectIsPressedAsState()
@@ -2593,21 +2596,28 @@ private fun NextWakeCard(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (schedule.smartOffsetMinutes > 0) {
-                                    "Predicted wake"
-                                } else {
-                                    "Guardrail Wake Time"
+                                text = when {
+                                    schedule.mode == AlarmMode.STANDARD ->
+                                        "Standard alarm"
+                                    schedule.smartOffsetMinutes > 0 ->
+                                        "Historical fallback forecast"
+                                    else ->
+                                        "Hard deadline"
                                 },
                                 color = Color.White.copy(alpha = 0.72f),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
                                 modifier = Modifier.padding(top = 2.dp),
-                                text = if (schedule.smartOffsetMinutes > 0) {
-                                    predicted.format(timeFormat)
-                                } else {
-                                    deadline.format(timeFormat)
-                                },
+                                text =
+                                    if (
+                                        schedule.mode == AlarmMode.SMART_WAKE &&
+                                        schedule.smartOffsetMinutes > 0
+                                    ) {
+                                        predicted.format(timeFormat)
+                                    } else {
+                                        deadline.format(timeFormat)
+                                    },
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -3453,9 +3463,6 @@ private fun SettingsTab(
     var infoSheet by remember {
         mutableStateOf<MetricInfo?>(null)
     }
-    var showDonationQr by remember {
-        mutableStateOf(false)
-    }
     var showSleepTargetPicker by remember {
         mutableStateOf(false)
     }
@@ -3474,37 +3481,6 @@ private fun SettingsTab(
         verticalArrangement =
             Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            SettingsBentoCard(
-                title = "Personalization",
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Greeting name",
-                        meaning = "An optional first name used only for WakeSync's contextual greeting.",
-                        measurement = "The text is stored in WakeSync's private local preferences on this device.",
-                        importance = "This is cosmetic personalization only and is never required for sleep analytics."
-                    )
-                }
-            ) {
-                OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = displayName,
-                    onValueChange = {
-                        onDisplayNameChange(
-                            it.take(24)
-                        )
-                    },
-                    singleLine = true,
-                    label = {
-                        Text("Name for greeting")
-                    },
-                    placeholder = {
-                        Text("Optional")
-                    }
-                )
-            }
-        }
-
         item {
             SettingsBentoCard(
                 title = "Targets & Goals",
@@ -4080,21 +4056,6 @@ private fun SettingsTab(
                     )
                 }
 
-                OutlinedButton(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    onClick = {
-                        showDonationQr = true
-                    },
-                    shape =
-                        RoundedCornerShape(999.dp)
-                ) {
-                    Text(
-                        text = "Show QR Code",
-                        fontWeight =
-                            FontWeight.Bold
-                    )
-                }
             }
         }
 
@@ -4183,72 +4144,6 @@ private fun SettingsTab(
                         fontWeight =
                             FontWeight.Bold
                     )
-                }
-            }
-        )
-    }
-
-    if (showDonationQr) {
-        AlertDialog(
-            onDismissRequest = {
-                showDonationQr = false
-            },
-            title = {
-                Text(
-                    text = "PayPal Donation QR",
-                    fontWeight =
-                        FontWeight.ExtraBold
-                )
-            },
-            text = {
-                Column(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally,
-                    verticalArrangement =
-                        Arrangement.spacedBy(12.dp)
-                ) {
-                    Card(
-                        shape =
-                            RoundedCornerShape(20.dp),
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    Color.White
-                            )
-                    ) {
-                        Image(
-                            modifier = Modifier
-                                .size(260.dp)
-                                .padding(12.dp),
-                            painter =
-                                painterResource(
-                                    id =
-                                        R.drawable.paypal_qr_code
-                                ),
-                            contentDescription =
-                                "PayPal donation QR code"
-                        )
-                    }
-
-                    Text(
-                        text =
-                            "Scan this code from another device to open the WakeSync PayPal donation page.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDonationQr = false
-                    }
-                ) {
-                    Text("Done")
                 }
             }
         )
@@ -4857,6 +4752,56 @@ private fun AlarmEditorDialog(
 
                 item {
                     Text(
+                        text = "Alarm type",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            modifier = Modifier.weight(1f),
+                            selected = draft.mode == AlarmMode.SMART_WAKE,
+                            onClick = {
+                                draft = draft.copy(
+                                    mode = AlarmMode.SMART_WAKE,
+                                    smartWindowMinutes =
+                                        draft.smartWindowMinutes.coerceAtLeast(10)
+                                )
+                            },
+                            label = { Text("Smart Wake") }
+                        )
+                        FilterChip(
+                            modifier = Modifier.weight(1f),
+                            selected = draft.mode == AlarmMode.STANDARD,
+                            onClick = {
+                                draft = draft.copy(
+                                    mode = AlarmMode.STANDARD,
+                                    smartOffsetMinutes = 0
+                                )
+                            },
+                            label = { Text("Standard Alarm") }
+                        )
+                    }
+                }
+
+                item {
+                    Text(
+                        text = if (draft.mode == AlarmMode.SMART_WAKE) {
+                            "Live sleep stays primary inside the early window. History is only a fallback near the deadline."
+                        } else {
+                            "Rings at the exact selected time with no Health Connect sleep monitoring."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                item {
+                    Text(
                         text = "Repeat",
                         fontWeight = FontWeight.SemiBold
                     )
@@ -4888,12 +4833,16 @@ private fun AlarmEditorDialog(
                 item {
                     Column {
                         Text(
-                            text = "Smart Wake Window (Early Window)",
+                            text = "Smart Wake Window",
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             modifier = Modifier.padding(top = 3.dp),
-                            text = "A user-controlled interval before the hard deadline. WakeSync uses your on-device sleep pattern to choose a gentler predicted wake point; the Guardrail Wake Time always wins.",
+                            text = if (draft.mode == AlarmMode.SMART_WAKE) {
+                                "How early WakeSync is allowed to wake you before the hard deadline."
+                            } else {
+                                "Not used for Standard Alarm."
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -4905,11 +4854,14 @@ private fun AlarmEditorDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                    listOf(0, 10, 15, 20, 30)
-                        .filter { it == 0 || it <= maxSmartWindowMinutes }
+                    listOf(10, 15, 20, 30)
+                        .filter { it <= maxSmartWindowMinutes }
                         .forEach { minutes ->
                         FilterChip(
-                            selected = draft.smartWindowMinutes == minutes,
+                            selected =
+                                draft.mode == AlarmMode.SMART_WAKE &&
+                                    draft.smartWindowMinutes == minutes,
+                            enabled = draft.mode == AlarmMode.SMART_WAKE,
                             onClick = {
                                 draft = draft.copy(
                                     smartWindowMinutes = minutes,
@@ -4917,7 +4869,7 @@ private fun AlarmEditorDialog(
                                 )
                             },
                             label = {
-                                Text(if (minutes == 0) "Off" else minutes.toString())
+                                Text(minutes.toString() + "m")
                             }
                         )
                     }
@@ -4926,14 +4878,19 @@ private fun AlarmEditorDialog(
 
                 item {
                     Text(
-                        text = when (draft.smartWindowMinutes) {
-                        0 -> "No early window: alarm at the Guardrail Wake Time."
-                        10 -> "Tight: up to 10 minutes before the Guardrail Wake Time."
-                        15 -> "Gentle: up to 15 minutes early."
-                        20 -> "Balanced: up to 20 minutes early."
-                        30 -> "Flexible: up to 30 minutes early."
-                        else -> "Flexible: up to 30 minutes early. The Guardrail Wake Time remains the hard deadline."
-                    },
+                        text =
+                            if (draft.mode == AlarmMode.STANDARD) {
+                                "Standard Alarm rings exactly at " +
+                                    formatClock(draft.hour, draft.minute) + "."
+                            } else {
+                                when (draft.smartWindowMinutes) {
+                                    10 -> "Tight: up to 10 minutes before the hard deadline."
+                                    15 -> "Gentle: up to 15 minutes early."
+                                    20 -> "Balanced: up to 20 minutes early."
+                                    30 -> "Flexible: up to 30 minutes early."
+                                    else -> "WakeSync stays inside your selected Smart Wake window."
+                                }
+                            },
                     style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -4985,9 +4942,16 @@ private fun AlarmEditorDialog(
 
                 item {
                     Text(
-                        text = "Smart Wake Window (Early Window): WakeSync may choose a gentler predicted wake point before the deadline. Guardrail Wake Time (Hard Deadline): " +
-                            formatClock(draft.hour, draft.minute) +
-                            " is the hard latest alarm time.",
+                        text =
+                            if (draft.mode == AlarmMode.STANDARD) {
+                                "Standard Alarm: " +
+                                    formatClock(draft.hour, draft.minute) +
+                                    " is the exact alarm time."
+                            } else {
+                                "Smart Wake: live sleep can wake you inside the selected window; historical fallback is limited to the final 10 minutes. " +
+                                    formatClock(draft.hour, draft.minute) +
+                                    " remains the hard deadline."
+                            },
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
