@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="0 0 420 420" role="img" aria-labelledby="title desc">
+  <title id="title">WakeSync mark</title>
+  <desc id="desc">Sunrise over layered sleep waves on a midnight field.</desc>
+  <defs>
+    <radialGradient id="glow" cx=".5" cy=".36" r=".48"><stop offset="0" stop-color="#FFB44A" stop-opacity=".38"/><stop offset="1" stop-color="#FFB44A" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="420" height="420" rx="96" fill="#080D1F"/>
+  <circle cx="210" cy="145" r="132" fill="url(#glow)"/>
+  <path d="M108 202 C108 119 151 72 210 72 C269 72 312 119 312 202" fill="none" stroke="#FFB44A" stroke-width="24" stroke-linecap="round"/>
+  <rect x="82" y="198" width="256" height="22" rx="11" fill="#E9ECFF"/>
+  <path d="M62 278 C110 308 141 190 196 188 C251 186 270 302 329 280 C349 273 365 259 381 242 V368 H62Z" fill="#6F63FF"/>
+  <path d="M50 308 C101 342 143 235 199 235 C258 235 279 335 339 306 C358 297 377 283 392 268 V372 H50Z" fill="#9A84FF"/>
+</svg>
