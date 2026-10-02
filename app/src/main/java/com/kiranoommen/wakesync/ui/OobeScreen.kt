@@ -78,9 +78,6 @@ fun OobeScreen(
 
     WakeSyncTheme(darkTheme = darkTheme) {
         var step by remember { mutableIntStateOf(0) }
-        var nameDraft by remember(displayName) {
-            mutableStateOf(displayName)
-        }
         val colors = MaterialTheme.colorScheme
 
         Box(
@@ -111,7 +108,7 @@ fun OobeScreen(
                         .padding(top = 18.dp),
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
-                    repeat(4) { index ->
+                    repeat(3) { index ->
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -144,15 +141,7 @@ fun OobeScreen(
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        1 -> OobeName(
-                            modifier = Modifier.fillMaxSize(),
-                            name = nameDraft,
-                            onNameChange = {
-                                nameDraft = it.take(24)
-                            }
-                        )
-
-                        2 -> OobeTheme(
+                        1 -> OobeTheme(
                             modifier = Modifier.fillMaxSize(),
                             selected = themeMode,
                             onSelected = onThemeModeChange
@@ -193,22 +182,10 @@ fun OobeScreen(
 
                     Button(
                         onClick = {
-                            when (step) {
-                                1 -> {
-                                    onDisplayNameChange(
-                                        nameDraft.trim()
-                                    )
-                                    step++
-                                }
-
-                                3 -> {
-                                    onDisplayNameChange(
-                                        nameDraft.trim()
-                                    )
-                                    onFinish()
-                                }
-
-                                else -> step++
+                            if (step == 2) {
+                                onFinish()
+                            } else {
+                                step++
                             }
                         },
                         shape = RoundedCornerShape(999.dp),
@@ -218,7 +195,7 @@ fun OobeScreen(
                         )
                     ) {
                         Text(
-                            text = if (step == 3) {
+                            text = if (step == 2) {
                                 "Finish setup"
                             } else {
                                 "Continue"
@@ -262,7 +239,7 @@ private fun OobeWelcome(
         modifier = modifier,
         eyebrow = "WELCOME",
         title = "Let’s set up WakeSync.",
-        body = "A quick first-run setup personalizes your greeting, appearance, optional sleep connection, and alarm reliability. Standard Alarm works without health data.",
+        body = "A quick first-run setup covers appearance, optional sleep connection, and alarm reliability. Standard Alarm works without health data.",
         footer = "Your health data stays on your device."
     )
 }
