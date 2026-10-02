@@ -7,7 +7,7 @@
   <img alt="Android 28+" src="https://img.shields.io/badge/Android-28%2B-6F63FF?style=flat-square&logo=android&logoColor=white" />
   <img alt="Health Connect read only" src="https://img.shields.io/badge/Health%20Connect-read--only-9A84FF?style=flat-square" />
   <img alt="On-device processing" src="https://img.shields.io/badge/processing-on--device-FFB44A?style=flat-square" />
-  <img alt="Version 0.5.0" src="https://img.shields.io/badge/version-0.5.0-E9ECFF?style=flat-square&labelColor=15192A" />
+  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-E9ECFF?style=flat-square&labelColor=15192A" />
 </p>
 
 <p align="center">
@@ -44,9 +44,9 @@ For a wake range of **6:20–7:00 AM**:
 | 6:20 AM | Earliest allowed wake |
 | 6:20–7:00 AM | Fresh Awake or Light sleep can trigger the alarm while live monitoring stays active |
 | 6:50–7:00 AM | A saved-history fallback may fire if live sleep has not already woken you |
-| 7:00 AM | Independent hard-stop alarm fires regardless |
+| 7:00 AM | Independent hard-stop alarm rings if the user has not explicitly ended the wake sequence |
 
-WakeSync never intentionally wakes before the user's earliest time. The hard-stop alarm is scheduled independently so live data and prediction are not the only paths to waking the user.
+WakeSync never intentionally wakes before the user's earliest time. If an early Smart Wake ring is simply dismissed, the hard deadline stays armed. The user must explicitly choose **I'm awake — stop remaining alarms** to end the sequence early.
 
 ## 🌙 Live data rules
 
@@ -80,7 +80,7 @@ Raw sleep records are read from Health Connect as needed rather than duplicated 
 - live Awake / Light wake logic
 - historical fallback limited to the final 10 minutes while live monitoring remains active
 - independent hard-stop alarm
-- exact alarm scheduling
+- exact alarm scheduling with recoverable permission setup from Settings
 - full-screen alarm handling
 - four-tab Home / Alarms / Sleep / Settings interface with swipe navigation
 - redesigned full-screen ringing UI with per-alarm label, mode/reason context, and snooze
