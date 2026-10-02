@@ -426,7 +426,7 @@ private fun OobePermissions(
 
         Text(
             text =
-                "You can finish setup now, but WakeSync will clearly flag anything that still needs attention in Settings."
+                "You can finish setup now, but WakeSync will clearly flag anything that still needs attention in Settings.",
             style =
                 MaterialTheme.typography.bodySmall,
             color =
