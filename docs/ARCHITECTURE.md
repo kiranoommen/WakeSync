@@ -1,169 +1,116 @@
 # WakeSync Architecture
 
-## MVP objective
+## Current objective
 
-Prove that WakeSync can read Fitbit-originated sleep-stage data through Android Health Connect, normalize it locally, and produce a personalized wake-window recommendation without uploading health data.
+WakeSync is an Android smart alarm that uses sufficiently fresh sleep-stage records from Health Connect to choose a wake point inside a user-defined range without uploading health data.
 
 ## Technology
 
 - Kotlin
 - Jetpack Compose
 - Android Health Connect
-- Local persistence only
-- No mandatory backend for MVP
+- AlarmManager exact alarms
+- Foreground services for the bounded live-monitoring and ringing periods
+- Local SharedPreferences for wake settings
+- No required backend
 
-## Package structure
-
-```
-com.kiranoommen.wakesync
-├── data
-│   ├── healthconnect
-│   └── local
-├── domain
-│   ├── model
-│   ├── repository
-│   └── wakewindow
-├── ui
-│   ├── home
-│   ├── sleepdetails
-│   ├── onboarding
-│   └── components
-└── MainActivity
-```
-
-The current proof of concept is intentionally flatter and can migrate toward this structure as functionality grows.
-
-## Data flow
+## Live Smart Wake flow
 
 ```
-Fitbit / Pixel Watch
-        ↓
-      Fitbit
+Wearable / sleep app
         ↓
  Android Health Connect
         ↓
- HealthConnectDataSource
+ exact monitor-start alarm
         ↓
- SleepRepository
+ WakeMonitorService
         ↓
- normalized SleepNight
+ read newest sleep stage once/minute
         ↓
- WakeWindowEngine
+ freshness + wake-stage decision
         ↓
- Home UI / Sleep Details UI
+ WakeAlarmController
+        ↓
+ AlarmRingingService / AlarmActivity
 ```
 
-WakeSync should not require a WakeSync cloud service to perform this flow.
+The latest acceptable wake time is also scheduled independently as an AlarmManager alarm. The live monitor is therefore an optimization layer, not the only path to waking the user.
 
-## Health permissions
+## Timing
 
-MVP permission:
+Given:
 
-- Read sleep
+- earliest acceptable wake = E
+- latest acceptable wake = L
 
-Do not request write access.
+WakeSync schedules:
 
-Only request additional permissions such as heart rate or HRV when a concrete feature needs them.
+- monitor start = E − 45 minutes
+- earliest possible smart wake = E
+- hard deadline = L
 
-## Domain models
+The 45 minutes before E are used only to establish whether Health Connect is supplying current data. No smart alarm is fired before E.
 
-### SleepNight
+## Live data rule
 
-Represents one sleep session:
+A Health Connect sleep-stage record is considered current only when the newest stage is ongoing or ended no more than five minutes ago.
 
-- start
-- end
-- data origin
-- stage segments
-- total sleep duration
+This protects against treating a delayed wearable sync as a live stage.
 
-### SleepStageSegment
+If the newest stage is stale or absent:
 
-- start
-- end
-- type: Awake / REM / Light / Deep / Unknown
+- do not infer a current sleep stage;
+- do not move the alarm earlier;
+- keep the independent deadline alarm.
 
-### WakePreferences
+## Wake decision
 
-- latest acceptable wake time
-- earliest acceptable wake time
-- alarm enabled
-- optional weekday schedule
+Inside E…L:
 
-### WakeRecommendation
+- Awake → wake
+- Light → wake
+- REM → wake only when 10 minutes or less remain
+- Deep → wait
+- Unknown → wait
 
-- recommended wake start
-- recommended wake end
-- selected alarm time
-- confidence
-- reason / explanation
+At L, wake regardless of stage.
 
-### WakeFeedback
+These rules are deterministic product heuristics, not a claim that consumer wearables measure sleep stages with clinical precision.
 
-Optional morning feedback:
+## Permissions
 
-- easy
-- okay
-- groggy
-- slept through
+Base sleep history:
 
-This data remains local in the MVP.
+- `READ_SLEEP`
 
-## Local persistence
+Live Smart Wake additionally needs:
 
-Use Room when persistent personalization begins.
+- `READ_HEALTH_DATA_IN_BACKGROUND` when the Health Connect feature is available;
+- exact alarm access;
+- notifications;
+- full-screen intent access on Android 14+ for the alarm UI.
 
-Suggested tables:
+WakeSync requests no Health Connect write permission.
 
-- sleep_night_summary
-- wake_preferences
-- wake_feedback
-- wake_recommendation_history
+## Reliability
 
-Avoid duplicating raw Health Connect records unless needed. Prefer storing derived summaries and user feedback.
+- Monitor and deadline are separate exact alarms.
+- A successful smart wake cancels the current deadline and schedules the next day.
+- Boot, clock changes, timezone changes, and exact-alarm permission changes trigger schedule restoration.
+- If the live foreground monitor is stopped by the OS, the hard-deadline AlarmManager alarm remains scheduled.
+- Alarm audio uses alarm audio attributes and repeats until the user taps **I’m awake**.
 
-## Wake-window engine
+## Persistence
 
-The engine should not assume a universal 90-minute sleep cycle.
+Wake range and enabled state are stored locally. Raw Health Connect records are not duplicated into a WakeSync database.
 
-Initial algorithm inputs:
-
-1. user wake deadline;
-2. earliest acceptable wake time;
-3. recent sleep-stage history;
-4. estimated current-night sleep onset;
-5. personal historical stage timing;
-6. prior wake feedback when available.
-
-The engine outputs a bounded recommendation inside the user's allowed window.
-
-## Live vs predictive behavior
-
-Health Connect may not receive finalized Fitbit stage data continuously during the night.
-
-Therefore WakeSync should support two logical modes:
-
-### Predictive mode
-
-Uses prior nights and current sleep onset assumptions to predict a favorable wake window.
-
-This can work even if stage data is only finalized after waking.
-
-### Live mode
-
-Only enable if the connected ecosystem exposes sufficiently current overnight stage data to WakeSync.
-
-The UI should never imply live stage detection unless the data source actually supports it.
+Room can be added later if feedback/history-based personalization requires persistent derived records.
 
 ## Privacy architecture
 
-MVP requirements:
-
 - all sleep analysis on-device;
-- read-only Health Connect permission;
+- read-only Health Connect access;
 - no health-data upload;
-- no advertising SDK with access to health data;
+- no advertising SDK with health-data access;
 - no selling or sharing health information;
-- user can revoke Health Connect permission at any time.
-
-If a future feature introduces sync or cloud backup, it should be opt-in and separately reviewed.
+- permissions remain revocable by the user.
