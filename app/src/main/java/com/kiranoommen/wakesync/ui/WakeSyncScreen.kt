@@ -3994,8 +3994,7 @@ private fun SleepTargetWheel(
     val listState =
         rememberLazyListState(
             initialFirstVisibleItemIndex =
-                (selectedIndex - 1)
-                    .coerceAtLeast(0)
+                selectedIndex
         )
     val fling =
         rememberSnapFlingBehavior(
