@@ -1,29 +1,46 @@
 package com.kiranoommen.wakesync.data
 
 import android.content.Context
+import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
 
 class AlarmStore(context: Context) {
 
-    private val prefs = context.getSharedPreferences("wakesync_alarms", Context.MODE_PRIVATE)
+    private val prefs =
+        context.getSharedPreferences(
+            "wakesync_alarms",
+            Context.MODE_PRIVATE
+        )
 
     fun load(): List<AlarmSchedule> {
-        return prefs.getStringSet(KEY_ALARMS, emptySet())
+        return prefs.getStringSet(
+            KEY_ALARMS,
+            emptySet()
+        )
             .orEmpty()
             .mapNotNull(::decode)
-            .sortedWith(compareBy<AlarmSchedule> { it.hour }.thenBy { it.minute })
+            .sortedWith(
+                compareBy<AlarmSchedule> { it.hour }
+                    .thenBy { it.minute }
+            )
     }
 
     fun save(schedules: List<AlarmSchedule>) {
         prefs.edit()
-            .putStringSet(KEY_ALARMS, schedules.map(::encode).toSet())
+            .putStringSet(
+                KEY_ALARMS,
+                schedules.map(::encode).toSet()
+            )
             .apply()
     }
 
-    private fun encode(schedule: AlarmSchedule): String {
-        val safeLabel = schedule.label
-            .replace("|", " ")
-            .replace("\n", " ")
+    private fun encode(
+        schedule: AlarmSchedule
+    ): String {
+        val safeLabel =
+            schedule.label
+                .replace("|", " ")
+                .replace("\n", " ")
 
         return listOf(
             schedule.id,
@@ -37,13 +54,18 @@ class AlarmStore(context: Context) {
             schedule.skippedDates.sorted().joinToString(","),
             schedule.soundEnabled.toString(),
             schedule.vibrationEnabled.toString(),
-            schedule.snoozeMinutes.toString(),
+            "0", // legacy snooze slot kept for storage compatibility
             schedule.mode.name,
-            schedule.backupRingCount.coerceIn(0, 3).toString()
+            schedule.backupRingCount
+                .coerceIn(0, 3)
+                .toString(),
+            schedule.oneTimeDate.orEmpty()
         ).joinToString("|")
     }
 
-    private fun decode(value: String): AlarmSchedule? {
+    private fun decode(
+        value: String
+    ): AlarmSchedule? {
         val parts = value.split("|")
         if (parts.size < 9) return null
 
@@ -58,37 +80,51 @@ class AlarmStore(context: Context) {
                     .filter { it.isNotBlank() }
                     .map { it.toInt() }
                     .toSet(),
-                smartWindowMinutes = parts[5].toInt(),
-                smartOffsetMinutes = parts[6].toInt(),
-                enabled = parts[7].toBoolean(),
+                smartWindowMinutes =
+                    parts[5].toInt(),
+                smartOffsetMinutes =
+                    parts[6].toInt(),
+                enabled =
+                    parts[7].toBoolean(),
                 skippedDates = parts[8]
                     .split(",")
                     .filter { it.isNotBlank() }
                     .toSet(),
-                soundEnabled = parts.getOrNull(9)?.toBooleanStrictOrNull() ?: true,
-                vibrationEnabled = parts.getOrNull(10)?.toBooleanStrictOrNull() ?: true,
-                snoozeMinutes = parts.getOrNull(11)?.toIntOrNull() ?: 5,
+                soundEnabled =
+                    parts.getOrNull(9)
+                        ?.toBooleanStrictOrNull()
+                        ?: true,
+                vibrationEnabled =
+                    parts.getOrNull(10)
+                        ?.toBooleanStrictOrNull()
+                        ?: true,
                 mode = parts.getOrNull(12)
                     ?.let {
                         runCatching {
-                            com.kiranoommen.wakesync.model.AlarmMode.valueOf(it)
+                            AlarmMode.valueOf(it)
                         }.getOrNull()
                     }
-                    ?: if (parts[5].toIntOrNull() == 0) {
-                        com.kiranoommen.wakesync.model.AlarmMode.STANDARD
+                    ?: if (
+                        parts[5].toIntOrNull() == 0
+                    ) {
+                        AlarmMode.STANDARD
                     } else {
-                        com.kiranoommen.wakesync.model.AlarmMode.SMART_WAKE
+                        AlarmMode.SMART_WAKE
                     },
                 backupRingCount =
                     parts.getOrNull(13)
                         ?.toIntOrNull()
                         ?.coerceIn(0, 3)
-                        ?: 0
+                        ?: 0,
+                oneTimeDate =
+                    parts.getOrNull(14)
+                        ?.takeIf { it.isNotBlank() }
             )
         }.getOrNull()
     }
 
     companion object {
-        private const val KEY_ALARMS = "alarms"
+        private const val KEY_ALARMS =
+            "alarms"
     }
 }
