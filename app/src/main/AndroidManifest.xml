@@ -92,6 +92,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".alarm.AlarmReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".alarm.ScheduleRestoreReceiver"
             android:exported="false">
             <intent-filter>
