@@ -13,9 +13,13 @@ import java.time.ZonedDateTime
 object WakeAlarmScheduler {
 
     const val MONITOR_LEAD_MINUTES = 45L
+    const val PREDICTIVE_CUTOFF_MINUTES = 15L
+
+    const val EXTRA_ALARM_REASON = "alarm_reason"
 
     private const val MONITOR_REQUEST_CODE = 4101
     private const val DEADLINE_REQUEST_CODE = 4102
+    private const val PREDICTIVE_REQUEST_CODE = 4104
 
     data class ScheduleResult(
         val scheduled: Boolean,
@@ -47,7 +51,10 @@ object WakeAlarmScheduler {
         return scheduleForDate(context, preferences, date)
     }
 
-    fun scheduleTomorrow(context: Context, preferences: WakePreferences): ScheduleResult {
+    fun scheduleTomorrow(
+        context: Context,
+        preferences: WakePreferences
+    ): ScheduleResult {
         if (!preferences.enabled || !preferences.hasValidRange()) {
             return ScheduleResult(false)
         }
@@ -59,15 +66,37 @@ object WakeAlarmScheduler {
         )
     }
 
+    fun schedulePredictiveWake(
+        context: Context,
+        wakeAt: ZonedDateTime,
+        reason: String
+    ): Boolean {
+        if (!canScheduleExactAlarms(context)) return false
+
+        val alarmManager = context.getSystemService(AlarmManager::class.java)
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            wakeAt.toInstant().toEpochMilli(),
+            predictivePendingIntent(context, reason)
+        )
+        return true
+    }
+
     fun cancelAll(context: Context) {
         val alarmManager = context.getSystemService(AlarmManager::class.java)
         alarmManager.cancel(monitorPendingIntent(context))
         alarmManager.cancel(deadlinePendingIntent(context))
+        alarmManager.cancel(predictivePendingIntent(context, ""))
     }
 
     fun cancelDeadline(context: Context) {
         context.getSystemService(AlarmManager::class.java)
             .cancel(deadlinePendingIntent(context))
+    }
+
+    fun cancelPredictive(context: Context) {
+        context.getSystemService(AlarmManager::class.java)
+            .cancel(predictivePendingIntent(context, ""))
     }
 
     private fun scheduleForDate(
@@ -76,6 +105,8 @@ object WakeAlarmScheduler {
         date: LocalDate
     ): ScheduleResult {
         if (!canScheduleExactAlarms(context)) return ScheduleResult(false)
+
+        cancelPredictive(context)
 
         val now = ZonedDateTime.now()
         val zone = now.zone
@@ -131,7 +162,24 @@ object WakeAlarmScheduler {
         PendingIntent.getBroadcast(
             context,
             DEADLINE_REQUEST_CODE,
-            Intent(context, WakeAlarmReceiver::class.java),
+            Intent(context, WakeAlarmReceiver::class.java).putExtra(
+                EXTRA_ALARM_REASON,
+                "Hard wake deadline reached"
+            ),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+    private fun predictivePendingIntent(
+        context: Context,
+        reason: String
+    ): PendingIntent =
+        PendingIntent.getBroadcast(
+            context,
+            PREDICTIVE_REQUEST_CODE,
+            Intent(context, WakeAlarmReceiver::class.java).putExtra(
+                EXTRA_ALARM_REASON,
+                reason
+            ),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 }
