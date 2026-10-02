@@ -332,12 +332,8 @@ class MainActivity : ComponentActivity() {
                     onRefresh = ::refreshSleep,
                     onSaveSchedule = { schedule ->
                         val cappedWindow =
-                            if (schedule.mode == AlarmMode.STANDARD) {
-                                0
-                            } else {
-                                schedule.smartWindowMinutes
-                                    .coerceIn(10, maxSmartWindowMinutes)
-                            }
+                            schedule.smartWindowMinutes
+                                .coerceIn(10, maxSmartWindowMinutes)
 
                         val capped = schedule.copy(
                             smartWindowMinutes = cappedWindow,
@@ -440,23 +436,20 @@ class MainActivity : ComponentActivity() {
 
                         persist(
                             schedules.map { schedule ->
-                                if (schedule.mode == AlarmMode.STANDARD) {
-                                    schedule.copy(
-                                        smartWindowMinutes = 0,
-                                        smartOffsetMinutes = 0
-                                    )
-                                } else {
-                                    val capped =
-                                        schedule.smartWindowMinutes
-                                            .coerceAtMost(minutes)
-                                    schedule.copy(
-                                        smartWindowMinutes =
-                                            capped.coerceAtLeast(10),
-                                        smartOffsetMinutes =
+                                val capped =
+                                    schedule.smartWindowMinutes
+                                        .coerceAtMost(minutes)
+                                        .coerceAtLeast(10)
+                                schedule.copy(
+                                    smartWindowMinutes = capped,
+                                    smartOffsetMinutes =
+                                        if (schedule.mode == AlarmMode.STANDARD) {
+                                            0
+                                        } else {
                                             schedule.smartOffsetMinutes
                                                 .coerceAtMost(capped)
-                                    )
-                                }
+                                        }
+                                )
                             }
                         )
                     },
