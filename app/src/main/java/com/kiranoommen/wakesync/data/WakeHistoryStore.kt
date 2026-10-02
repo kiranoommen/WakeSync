@@ -9,6 +9,8 @@ class WakeHistoryStore(context: Context) {
         context.getSharedPreferences("wake_history", Context.MODE_PRIVATE)
 
     fun save(profile: HistoricalWakeProfile) {
+        if (profile.usableNights < 3) return
+
         preferences.edit()
             .putInt(KEY_USABLE_NIGHTS, profile.usableNights)
             .putString(
