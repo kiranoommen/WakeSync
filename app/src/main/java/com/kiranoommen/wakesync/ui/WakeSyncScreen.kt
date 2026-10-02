@@ -160,8 +160,6 @@ fun WakeSyncScreen(
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
-    onSleepGoalChange: (Int) -> Unit,
-    onGoalsEnabledChange: (Boolean) -> Unit,
     onMaxSmartWindowChange: (Int) -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -335,14 +333,8 @@ fun WakeSyncScreen(
                                     historyReadAvailable,
                                 themeMode =
                                     themeMode,
-                                sleepGoalMinutes =
-                                    sleepGoalMinutes,
-                                goalsEnabled =
-                                    goalsEnabled,
                                 maxSmartWindowMinutes =
                                     maxSmartWindowMinutes,
-                                nights =
-                                    nights,
                                 onConnect =
                                     onConnect,
                                 onRequestHistoryAccess =
@@ -351,10 +343,6 @@ fun WakeSyncScreen(
                                     onRequestExactAlarmAccess,
                                 onThemeModeChange =
                                     onThemeModeChange,
-                                onSleepGoalChange =
-                                    onSleepGoalChange,
-                                onGoalsEnabledChange =
-                                    onGoalsEnabledChange,
                                 onMaxSmartWindowChange =
                                     onMaxSmartWindowChange
                             )
@@ -4995,6 +4983,35 @@ private fun dayItems(): List<Pair<Int, String>> = listOf(
     DayOfWeek.FRIDAY.value to "F",
     DayOfWeek.SATURDAY.value to "S"
 )
+
+private fun scheduleLabel(
+    schedule: AlarmSchedule
+): String {
+    if (schedule.isOneTime) {
+        val date =
+            schedule.oneTimeDate?.let {
+                runCatching {
+                    LocalDate.parse(it)
+                }.getOrNull()
+            }
+
+        return if (date != null) {
+            if (date == LocalDate.now().plusDays(1)) {
+                "Tomorrow only"
+            } else {
+                date.format(
+                    DateTimeFormatter.ofPattern(
+                        "EEE, MMM d"
+                    )
+                )
+            }
+        } else {
+            "One time"
+        }
+    }
+
+    return daysLabel(schedule.days)
+}
 
 private fun daysLabel(days: Set<Int>): String {
     if (days == AlarmSchedule.WEEKDAYS) return "Mon, Tue, Wed, Thu, Fri"
