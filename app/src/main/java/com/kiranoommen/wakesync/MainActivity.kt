@@ -28,6 +28,7 @@ import com.kiranoommen.wakesync.data.HealthConnectManager
 import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.data.WakeHistoryStore
 import com.kiranoommen.wakesync.data.WakePreferencesStore
+import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.WakePreferences
 import com.kiranoommen.wakesync.ui.OobeScreen
@@ -86,14 +87,24 @@ class MainActivity : ComponentActivity() {
 
             val historyReadAvailable = healthConnectManager.historyReadAvailable()
 
-            fun setupReady(preferences: WakePreferences = wakePreferences): Boolean =
-                hasPermission &&
-                    backgroundReadAvailable &&
-                    hasBackgroundReadPermission &&
+            fun setupReady(preferences: WakePreferences = wakePreferences): Boolean {
+                val alarmBasicsReady =
                     exactAlarmAccess &&
-                    notificationsAllowed &&
-                    fullScreenAlarmAccess &&
-                    preferences.hasValidRange()
+                        notificationsAllowed &&
+                        fullScreenAlarmAccess &&
+                        preferences.hasValidSchedule()
+
+                if (!alarmBasicsReady) return false
+
+                return when (preferences.mode) {
+                    AlarmMode.STANDARD -> true
+                    AlarmMode.SMART_WAKE ->
+                        hasPermission &&
+                            backgroundReadAvailable &&
+                            hasBackgroundReadPermission &&
+                            preferences.hasValidRange()
+                }
+            }
 
             fun refreshSleep() {
                 if (!hasPermission) return

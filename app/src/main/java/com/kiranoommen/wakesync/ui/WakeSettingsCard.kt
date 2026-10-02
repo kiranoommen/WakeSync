@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.WakePreferences
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -42,14 +44,23 @@ fun WakeSettingsCard(
 ) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
+    val smartMode = preferences.mode == AlarmMode.SMART_WAKE
     val rangeValid = preferences.hasValidRange()
-    val setupReady = sleepPermissionGranted &&
-        backgroundReadAvailable &&
-        backgroundReadGranted &&
+
+    val alarmBasicsReady =
         exactAlarmAccess &&
-        notificationsAllowed &&
-        fullScreenAlarmAccess &&
-        rangeValid
+            notificationsAllowed &&
+            fullScreenAlarmAccess
+
+    val smartDataReady =
+        sleepPermissionGranted &&
+            backgroundReadAvailable &&
+            backgroundReadGranted &&
+            rangeValid
+
+    val setupReady =
+        alarmBasicsReady &&
+            if (smartMode) smartDataReady else true
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -60,86 +71,162 @@ fun WakeSettingsCard(
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Text(
-                text = "Smart wake",
+                text = "Alarm",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
 
             Text(
                 modifier = Modifier.padding(top = 5.dp),
-                text = "WakeSync starts live sleep monitoring 15 minutes before your range. Live stages stay primary throughout the wake window. A saved-history fallback is armed only in the final 10 minutes, while your hard deadline remains independent.",
+                text = "Choose how you want WakeSync to wake you.",
                 color = colors.onSurfaceVariant
             )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(top = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(
+                FilterChip(
                     modifier = Modifier.weight(1f),
+                    selected = smartMode,
                     onClick = {
-                        TimePickerDialog(
-                            context,
-                            { _, hour, minute ->
-                                onPreferencesChanged(
-                                    preferences.copy(
-                                        earliestHour = hour,
-                                        earliestMinute = minute
-                                    )
-                                )
-                            },
-                            preferences.earliestHour,
-                            preferences.earliestMinute,
-                            false
-                        ).show()
+                        onPreferencesChanged(
+                            preferences.copy(mode = AlarmMode.SMART_WAKE)
+                        )
+                    },
+                    label = {
+                        Text(
+                            "Smart Wake",
+                            modifier = Modifier.padding(vertical = 5.dp)
+                        )
                     }
-                ) {
-                    Text("From ${formatTime(preferences.earliest)}")
-                }
+                )
 
-                OutlinedButton(
+                FilterChip(
                     modifier = Modifier.weight(1f),
+                    selected = !smartMode,
                     onClick = {
-                        TimePickerDialog(
-                            context,
-                            { _, hour, minute ->
-                                onPreferencesChanged(
-                                    preferences.copy(
-                                        latestHour = hour,
-                                        latestMinute = minute
-                                    )
-                                )
-                            },
-                            preferences.latestHour,
-                            preferences.latestMinute,
-                            false
-                        ).show()
+                        onPreferencesChanged(
+                            preferences.copy(mode = AlarmMode.STANDARD)
+                        )
+                    },
+                    label = {
+                        Text(
+                            "Standard Alarm",
+                            modifier = Modifier.padding(vertical = 5.dp)
+                        )
                     }
-                ) {
-                    Text("By ${formatTime(preferences.latest)}")
-                }
-            }
-
-            if (!rangeValid) {
-                Text(
-                    modifier = Modifier.padding(top = 8.dp),
-                    text = "The end of the wake range must be later than the start.",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
-            RequirementRow(
-                label = "Sleep + background Health Connect access",
-                ready = sleepPermissionGranted &&
-                    backgroundReadAvailable &&
-                    backgroundReadGranted,
-                unavailable = !backgroundReadAvailable,
-                actionLabel = "Allow",
-                onAction = onRequestHealthPermissions
+            Text(
+                modifier = Modifier.padding(top = 10.dp),
+                text = if (smartMode) {
+                    "WakeSync watches live sleep inside your range, keeps a history fallback near the deadline, and always preserves the hard stop."
+                } else {
+                    "A normal alarm at one exact time. No Health Connect or sleep monitoring is required."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant
             )
+
+            if (smartMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    onPreferencesChanged(
+                                        preferences.copy(
+                                            earliestHour = hour,
+                                            earliestMinute = minute
+                                        )
+                                    )
+                                },
+                                preferences.earliestHour,
+                                preferences.earliestMinute,
+                                false
+                            ).show()
+                        }
+                    ) {
+                        Text("From ${formatTime(preferences.earliest)}")
+                    }
+
+                    OutlinedButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    onPreferencesChanged(
+                                        preferences.copy(
+                                            latestHour = hour,
+                                            latestMinute = minute
+                                        )
+                                    )
+                                },
+                                preferences.latestHour,
+                                preferences.latestMinute,
+                                false
+                            ).show()
+                        }
+                    ) {
+                        Text("By ${formatTime(preferences.latest)}")
+                    }
+                }
+
+                if (!rangeValid) {
+                    Text(
+                        modifier = Modifier.padding(top = 8.dp),
+                        text = "The end of the wake range must be later than the start.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                RequirementRow(
+                    label = "Sleep + background Health Connect access",
+                    ready = sleepPermissionGranted &&
+                        backgroundReadAvailable &&
+                        backgroundReadGranted,
+                    unavailable = !backgroundReadAvailable,
+                    actionLabel = "Allow",
+                    onAction = onRequestHealthPermissions
+                )
+            } else {
+                OutlinedButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    onClick = {
+                        TimePickerDialog(
+                            context,
+                            { _, hour, minute ->
+                                onPreferencesChanged(
+                                    preferences.copy(
+                                        standardHour = hour,
+                                        standardMinute = minute
+                                    )
+                                )
+                            },
+                            preferences.standardHour,
+                            preferences.standardMinute,
+                            false
+                        ).show()
+                    }
+                ) {
+                    Text("Alarm at ${formatTime(preferences.standardTime)}")
+                }
+            }
 
             RequirementRow(
                 label = "Exact alarms",
@@ -171,19 +258,25 @@ fun WakeSettingsCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (preferences.enabled) {
-                            "Smart alarm on"
-                        } else {
-                            "Smart alarm off"
+                        text = when {
+                            smartMode && preferences.enabled -> "Smart Wake on"
+                            smartMode -> "Smart Wake off"
+                            preferences.enabled -> "Standard alarm on"
+                            else -> "Standard alarm off"
                         },
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         modifier = Modifier.padding(top = 2.dp),
-                        text = if (setupReady) {
-                            "Ready for live overnight monitoring."
-                        } else {
-                            "Complete the setup items above to turn it on."
+                        text = when {
+                            setupReady && smartMode ->
+                                "Ready for live overnight monitoring."
+                            setupReady ->
+                                "Ready to ring exactly at ${formatTime(preferences.standardTime)}."
+                            smartMode ->
+                                "Complete the Smart Wake setup items above."
+                            else ->
+                                "Complete the alarm setup items above."
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant

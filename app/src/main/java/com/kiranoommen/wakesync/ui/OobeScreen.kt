@@ -262,7 +262,7 @@ private fun OobeWelcome(
         modifier = modifier,
         eyebrow = "WELCOME",
         title = "Let’s set up WakeSync.",
-        body = "A quick first-run setup personalizes your greeting, appearance, sleep connection, and alarm reliability. WakeSync keeps your health data on-device.",
+        body = "A quick first-run setup personalizes your greeting, appearance, optional sleep connection, and alarm reliability. Standard Alarm works without health data.",
         footer = "Your health data stays on your device."
     )
 }
@@ -437,7 +437,7 @@ private fun OobePermissions(
 
         Text(
             text =
-                "WakeSync needs read-only sleep access for your sleep history and Exact Alarm access so your Guardrail Wake Time can fire on time.",
+                "Health Connect enables Smart Wake and sleep insights. Standard Alarm works without it. Exact Alarm access keeps your configured alarm time precise.",
             color =
                 colors.onSurfaceVariant
         )
@@ -467,7 +467,7 @@ private fun OobePermissions(
                 if (healthUnavailable) {
                     "Health Connect is not currently available on this device. You can finish setup and connect later from Settings."
                 } else {
-                    "Read-only access lets WakeSync read sleep sessions and sleep stages. Compatible with Pixel Watch, Galaxy Watch, Garmin, Oura, Fitbit, and all Health Connect wearables."
+                    "Optional read-only access enables Smart Wake and sleep insights from compatible Health Connect sources. Standard Alarm does not require it."
                 },
             actionLabel =
                 if (

@@ -8,6 +8,22 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+## 0.4.0 — 2026-10-02
+
+### Added
+- first-class **Standard Alarm** mode with a separate exact alarm time;
+- Smart Wake / Standard Alarm mode selector;
+- Standard Alarm operation without Health Connect or background sleep access;
+- redesigned full-screen alarm UI with a large live clock, alarm-mode badge, wake reason, configured schedule, and oversized dismiss control;
+- mode-aware alarm notification copy.
+
+### Changed
+- alarm readiness now requires Health Connect only for Smart Wake;
+- switching to Standard Alarm cancels Smart Wake monitoring and predictive fallback while preserving exact alarm reliability;
+- existing Smart Wake range and Standard Alarm time are stored independently.
+
+### Previous unreleased timing changes
+
 ### Changed
 - shortened live-monitor lead time from 45 minutes to 15 minutes before the earliest allowed wake;
 - kept live Health Connect stage monitoring active throughout the full user wake window;

@@ -38,7 +38,17 @@ Verify:
 - full-screen alarm access is handled on Android 14+;
 - Smart Wake cannot be enabled until required setup is complete.
 
-### 2. Wake-range boundaries
+### 2. Standard Alarm
+
+Verify:
+- Standard Alarm can be selected without Health Connect permission;
+- one exact alarm time can be configured independently of the Smart Wake range;
+- enabling Standard Alarm does not schedule the live monitor or historical fallback;
+- switching from Smart Wake to Standard Alarm stops any active live monitor;
+- Standard Alarm rings with the Standard Alarm UI/reason;
+- dismissing schedules the next day's standard alarm when the alarm remains enabled.
+
+### 3. Wake-range boundaries
 
 For a test range such as 6:20–7:00:
 - monitor starts at 6:05;
@@ -49,7 +59,7 @@ For a test range such as 6:20–7:00:
 
 Also test a wake range shorter than 10 minutes. Historical fallback must never schedule earlier than the user's earliest wake time.
 
-### 3. Fresh live data
+### 4. Fresh live data
 
 During the live portion of the range:
 - fresh Awake → wake;
@@ -59,7 +69,7 @@ During the live portion of the range:
 
 Confirm that triggering a live wake cancels the remaining current-day alarms and schedules the next day.
 
-### 4. Stale or missing live data
+### 5. Stale or missing live data
 
 Test:
 - latest stage older than five minutes;
@@ -73,7 +83,7 @@ Expected:
 - allow the separately armed historical fallback to fire if live data never produces a favorable stage;
 - preserve the hard stop.
 
-### 5. Predictive fallback
+### 6. Predictive fallback
 
 With at least three usable historical nights:
 - build and store a profile;
@@ -85,7 +95,7 @@ With insufficient history:
 - no predictive alarm should be trusted;
 - hard stop should remain the final wake path.
 
-### 6. Hard stop
+### 7. Hard stop
 
 This is mandatory.
 
@@ -99,7 +109,7 @@ Test with:
 Expected:
 - hard-stop alarm still rings at the configured deadline.
 
-### 7. Device state
+### 8. Device state
 
 Test alarm behavior with:
 - screen off;
@@ -111,7 +121,7 @@ Test alarm behavior with:
 
 OEM-specific battery management should be documented when discovered.
 
-### 8. Restart and clock changes
+### 9. Restart and clock changes
 
 Verify schedule restoration after:
 - device reboot;
@@ -119,7 +129,7 @@ Verify schedule restoration after:
 - timezone change;
 - exact-alarm permission state change.
 
-### 9. Alarm UI
+### 10. Alarm UI
 
 Verify:
 - full-screen alarm appears when permitted;
@@ -129,7 +139,7 @@ Verify:
 - current-day alarms are cleared;
 - next day's wake schedule remains intact.
 
-### 10. Privacy regression
+### 11. Privacy regression
 
 Verify:
 - no raw sleep records are written to logs;

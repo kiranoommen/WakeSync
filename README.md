@@ -7,7 +7,7 @@
   <img alt="Android 28+" src="https://img.shields.io/badge/Android-28%2B-6F63FF?style=flat-square&logo=android&logoColor=white" />
   <img alt="Health Connect read only" src="https://img.shields.io/badge/Health%20Connect-read--only-9A84FF?style=flat-square" />
   <img alt="On-device processing" src="https://img.shields.io/badge/processing-on--device-FFB44A?style=flat-square" />
-  <img alt="Version 0.3.1" src="https://img.shields.io/badge/version-0.3.1-E9ECFF?style=flat-square&labelColor=15192A" />
+  <img alt="Version 0.4.0" src="https://img.shields.io/badge/version-0.4.0-E9ECFF?style=flat-square&labelColor=15192A" />
 </p>
 
 <p align="center">
@@ -31,11 +31,10 @@
   <img src="docs/assets/smart-wake-flow.svg" alt="WakeSync smart wake fallback ladder" width="100%" />
 </p>
 
-WakeSync uses a three-layer wake strategy:
+WakeSync now has two alarm modes:
 
-1. **Live sleep stage**
-2. **Saved historical prediction**
-3. **Guaranteed hard stop**
+- **Smart Wake** — live sleep stage → saved historical fallback → guaranteed hard stop.
+- **Standard Alarm** — one exact alarm time with no Health Connect or sleep monitoring required.
 
 For a wake range of **6:20–7:00 AM**:
 
@@ -75,12 +74,14 @@ Raw sleep records are read from Health Connect as needed rather than duplicated 
 - Android Health Connect sleep reads
 - read-only sleep-stage access
 - background Health Connect reads when supported
-- configurable earliest wake and hard deadline
+- selectable Smart Wake or Standard Alarm mode
+- configurable Smart Wake range and independent standard alarm time
 - live Awake / Light wake logic
 - historical fallback limited to the final 10 minutes while live monitoring remains active
 - independent hard-stop alarm
 - exact alarm scheduling
 - full-screen alarm handling
+- redesigned full-screen ringing UI with mode/reason context
 - alarm sound and vibration
 - reboot, clock-change, and timezone-change schedule restoration
 - local wake settings and derived history

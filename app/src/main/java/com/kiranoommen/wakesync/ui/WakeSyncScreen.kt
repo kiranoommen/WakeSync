@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.SleepExporter
+import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
 import com.kiranoommen.wakesync.model.WakePreferences
@@ -336,6 +337,9 @@ private fun HomeTab(
         item { PrivacyBanner() }
 
         when {
+            wakePreferences.mode == AlarmMode.STANDARD && !hasPermission -> item {
+                ConnectCard(onConnect = onConnect, optional = true)
+            }
             sdkStatus == HealthConnectClient.SDK_UNAVAILABLE -> item {
                 StatusCard(
                     "Health Connect unavailable",
@@ -348,7 +352,7 @@ private fun HomeTab(
                     "Install or update Health Connect, then return to WakeSync."
                 )
             }
-            !hasPermission -> item { ConnectCard(onConnect) }
+            !hasPermission -> item { ConnectCard(onConnect = onConnect) }
             else -> {
                 item {
                     Row(
@@ -442,13 +446,19 @@ private fun WakeWindowHero(
         ) {
             Column {
                 Text(
-                    "YOUR WAKE WINDOW",
+                    text = if (preferences.mode == AlarmMode.STANDARD) {
+                        "STANDARD ALARM"
+                    } else {
+                        "YOUR WAKE WINDOW"
+                    },
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White.copy(alpha = 0.82f)
                 )
                 Text(
                     modifier = Modifier.padding(top = 10.dp),
                     text = when {
+                        preferences.mode == AlarmMode.STANDARD ->
+                            formatAlarmTime(preferences.standardTime)
                         !hasPermission -> "Connect sleep data"
                         preferences.enabled -> formatWakeRange(preferences)
                         else -> "Set your wake range"
@@ -460,10 +470,16 @@ private fun WakeWindowHero(
                 Text(
                     modifier = Modifier.padding(top = 8.dp),
                     text = when {
-                        !hasPermission -> "Read-only Health Connect access is the first step."
+                        preferences.mode == AlarmMode.STANDARD && preferences.enabled ->
+                            "Exact alarm · no sleep monitoring"
+                        preferences.mode == AlarmMode.STANDARD ->
+                            "Choose one exact time and turn the alarm on."
+                        !hasPermission ->
+                            "Read-only Health Connect access is required for Smart Wake."
                         preferences.enabled ->
                             "Live stage first · history fallback in final 10m · hard stop always"
-                        else -> "Choose the earliest and latest time you are willing to wake."
+                        else ->
+                            "Choose the earliest and latest time you are willing to wake."
                     },
                     color = Color.White.copy(alpha = 0.86f)
                 )
@@ -744,10 +760,19 @@ private fun PrivacyBanner() {
 }
 
 @Composable
-private fun ConnectCard(onConnect: () -> Unit) {
-    SettingsCard("Connect your sleep data") {
+private fun ConnectCard(
+    onConnect: () -> Unit,
+    optional: Boolean = false
+) {
+    SettingsCard(
+        if (optional) "Optional sleep insights" else "Connect your sleep data"
+    ) {
         Text(
-            "WakeSync reads the sleep records already available through Android Health Connect.",
+            text = if (optional) {
+                "Standard Alarm works without Health Connect. Connect later if you also want sleep analytics or Smart Wake."
+            } else {
+                "WakeSync reads the sleep records already available through Android Health Connect."
+            },
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Button(
@@ -759,7 +784,12 @@ private fun ConnectCard(onConnect: () -> Unit) {
                 containerColor = Amber,
                 contentColor = Color(0xFF15192A)
             )
-        ) { Text("Connect sleep data", fontWeight = FontWeight.Bold) }
+        ) {
+            Text(
+                if (optional) "Connect Health Connect" else "Connect sleep data",
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
@@ -832,10 +862,13 @@ private fun stageMinutes(night: SleepNight, type: SleepStageType): Long =
         .filter { it.type == type }
         .sumOf { ChronoUnit.MINUTES.between(it.start, it.end).coerceAtLeast(0) }
 
-private fun formatWakeRange(preferences: WakePreferences): String {
-    val formatter = DateTimeFormatter.ofPattern("h:mm a")
-    return "${preferences.earliest.format(formatter)} – ${preferences.latest.format(formatter)}"
-}
+private val alarmTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+
+private fun formatAlarmTime(time: java.time.LocalTime): String =
+    time.format(alarmTimeFormatter)
+
+private fun formatWakeRange(preferences: WakePreferences): String =
+    "${formatAlarmTime(preferences.earliest)} – ${formatAlarmTime(preferences.latest)}"
 
 private fun formatMinutes(minutes: Int): String {
     val safe = minutes.coerceAtLeast(0)
