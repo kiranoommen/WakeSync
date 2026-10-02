@@ -4920,7 +4920,7 @@ private fun BottomNav(
                             if (isDark) {
                                 0.22f
                             } else {
-                                0.75f
+                                0.74f
                             }
                     ),
                     Color.White.copy(
@@ -4928,7 +4928,7 @@ private fun BottomNav(
                             if (isDark) {
                                 0.035f
                             } else {
-                                0.18f
+                                0.16f
                             }
                     )
                 )
@@ -4937,13 +4937,7 @@ private fun BottomNav(
         colors =
             CardDefaults.cardColors(
                 containerColor =
-                    if (isDark) {
-                        Color(0xA6141926)
-                    } else {
-                        Color.White.copy(
-                            alpha = 0.72f
-                        )
-                    },
+                    Color.Transparent,
                 contentColor =
                     colors.onSurface
             ),
@@ -4957,130 +4951,140 @@ private fun BottomNav(
                     }
             )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 7.dp,
-                    vertical = 7.dp
-                ),
-            horizontalArrangement =
-                Arrangement.SpaceEvenly,
-            verticalAlignment =
-                Alignment.CenterVertically
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
         ) {
-            tabs.forEachIndexed {
-                    index,
-                    (tab, label, icon) ->
-                val activation =
-                    (
-                        1f -
-                            abs(
-                                pagerPosition -
-                                    index.toFloat()
-                            )
-                        )
-                        .coerceIn(
-                            0f,
-                            1f
-                        )
-                val selected =
-                    activation >= 0.5f
-                val scale =
-                    1f +
-                        activation *
-                        0.035f
-                val contentColor =
-                    if (selected) {
-                        colors.onSurface
-                    } else {
-                        colors.onSurfaceVariant
-                    }
+            WakeGlassBackdrop(
+                modifier =
+                    Modifier.matchParentSize()
+            )
 
-                Card(
-                    onClick = {
-                        onSelected(tab)
-                    },
-                    modifier = Modifier
-                        .scale(scale)
-                        .height(58.dp),
-                    shape =
-                        RoundedCornerShape(
-                            999.dp
-                        ),
-                    border =
-                        if (
-                            activation >
-                            0.04f
-                        ) {
-                            BorderStroke(
-                                1.dp,
-                                Lavender.copy(
-                                    alpha =
-                                        0.08f +
-                                            activation *
-                                            0.24f
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 7.dp,
+                        vertical = 7.dp
+                    ),
+                horizontalArrangement =
+                    Arrangement.SpaceEvenly,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                tabs.forEachIndexed {
+                        index,
+                        (tab, label, icon) ->
+                    val activation =
+                        (
+                            1f -
+                                abs(
+                                    pagerPosition -
+                                        index.toFloat()
                                 )
                             )
+                            .coerceIn(
+                                0f,
+                                1f
+                            )
+                    val selected =
+                        activation >= 0.5f
+                    val scale =
+                        1f +
+                            activation *
+                            0.035f
+                    val contentColor =
+                        if (selected) {
+                            colors.onSurface
                         } else {
-                            null
+                            colors.onSurfaceVariant
+                        }
+
+                    Card(
+                        onClick = {
+                            onSelected(tab)
                         },
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                Lavender.copy(
-                                    alpha =
-                                        activation *
-                                            if (isDark) {
-                                                0.18f
-                                            } else {
-                                                0.11f
-                                            }
-                                ),
-                            contentColor =
-                                contentColor
-                        )
-                ) {
-                    Column(
                         modifier = Modifier
-                            .padding(
-                                horizontal = 14.dp,
-                                vertical = 7.dp
+                            .scale(scale)
+                            .height(58.dp),
+                        shape =
+                            RoundedCornerShape(
+                                999.dp
                             ),
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally,
-                        verticalArrangement =
-                            Arrangement.Center
+                        border =
+                            if (
+                                activation >
+                                0.04f
+                            ) {
+                                BorderStroke(
+                                    1.dp,
+                                    Lavender.copy(
+                                        alpha =
+                                            0.08f +
+                                                activation *
+                                                0.24f
+                                    )
+                                )
+                            } else {
+                                null
+                            },
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    Lavender.copy(
+                                        alpha =
+                                            activation *
+                                                if (isDark) {
+                                                    0.18f
+                                                } else {
+                                                    0.11f
+                                                }
+                                    ),
+                                contentColor =
+                                    contentColor
+                            )
                     ) {
-                        Icon(
-                            imageVector =
-                                icon,
-                            contentDescription =
-                                label,
-                            modifier =
-                                Modifier.size(
-                                    24.dp
+                        Column(
+                            modifier = Modifier
+                                .padding(
+                                    horizontal = 14.dp,
+                                    vertical = 7.dp
                                 ),
-                            tint =
-                                contentColor
-                        )
-                        Text(
-                            modifier =
-                                Modifier.padding(
-                                    top = 2.dp
-                                ),
-                            text = label,
-                            style =
-                                MaterialTheme.typography.labelSmall,
-                            fontWeight =
-                                if (selected) {
-                                    FontWeight.Bold
-                                } else {
-                                    FontWeight.Medium
-                                },
-                            color =
-                                contentColor
-                        )
+                            horizontalAlignment =
+                                Alignment.CenterHorizontally,
+                            verticalArrangement =
+                                Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector =
+                                    icon,
+                                contentDescription =
+                                    label,
+                                modifier =
+                                    Modifier.size(
+                                        24.dp
+                                    ),
+                                tint =
+                                    contentColor
+                            )
+                            Text(
+                                modifier =
+                                    Modifier.padding(
+                                        top = 2.dp
+                                    ),
+                                text = label,
+                                style =
+                                    MaterialTheme.typography.labelSmall,
+                                fontWeight =
+                                    if (selected) {
+                                        FontWeight.Bold
+                                    } else {
+                                        FontWeight.Medium
+                                    },
+                                color =
+                                    contentColor
+                            )
+                        }
                     }
                 }
             }
