@@ -6,11 +6,10 @@ data class HistoricalWakeProfile(
     val sampleCounts: List<Int>
 ) {
     fun scoreAt(minutesBeforeWake: Int): Double? {
-        if (minutesBeforeWake !in averageScores.indices) return null
-        if (sampleCounts.getOrNull(minutesBeforeWake)?.let { it < MIN_SAMPLES } != false) {
-            return null
-        }
-        return averageScores[minutesBeforeWake]
+        val score = averageScores.getOrNull(minutesBeforeWake) ?: return null
+        val samples = sampleCounts.getOrNull(minutesBeforeWake) ?: return null
+        if (samples < MIN_SAMPLES) return null
+        return score
     }
 
     private companion object {
