@@ -975,7 +975,7 @@ private fun DashboardWidgetTile(
                             title =
                                 "Smart Alarm Status",
                             meaning =
-                                "Guardrail Wake Time (Hard Deadline) is the latest time the alarm will sound. Smart Wake Window (Early Window) is the optional earlier interval WakeSync can use.",
+                                "Must be awake by (Hard Deadline) is the latest time the alarm will sound. Smart Wake Window (Early Window) is the optional earlier interval WakeSync can use.",
                             measurement =
                                 "WakeSync schedules the hard deadline with Android and may choose an earlier wake point only inside the configured window.",
                             importance =
@@ -1439,7 +1439,7 @@ private fun SmartAlarmDashboardTile(
                     FontWeight.ExtraBold
             )
             Text(
-                text = "Guardrail Wake Time",
+                text = "Must be awake by",
                 style =
                     MaterialTheme.typography.bodySmall,
                 color =
@@ -2688,7 +2688,7 @@ private fun EmptyAlarmCard(
                 )
                 Text(
                     modifier = Modifier.padding(top = 7.dp),
-                    text = "Set your Guardrail Wake Time — the latest time the alarm will sound. WakeSync can wake you gently inside the Smart Wake Window before it.",
+                    text = "Set your Must be awake by — the latest time the alarm will sound. WakeSync can wake you gently inside the Smart Wake Window before it.",
                     color = Color.White.copy(alpha = 0.78f)
                 )
 
@@ -2720,6 +2720,7 @@ private fun AlarmsTab(
     schedules: List<AlarmSchedule>,
     onAdd: () -> Unit,
     onEdit: (AlarmSchedule) -> Unit,
+    onDuplicate: (AlarmSchedule) -> Unit,
     onToggle: (AlarmSchedule, Boolean) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit
@@ -2744,7 +2745,7 @@ private fun AlarmsTab(
             ) {
                 Text(
                     modifier = Modifier.padding(vertical = 5.dp),
-                    text = "+ Add wake schedule",
+                    text = "+ Add alarm",
                     fontWeight = FontWeight.ExtraBold
                 )
             }
@@ -2757,7 +2758,7 @@ private fun AlarmsTab(
                     infoSheet = MetricInfo(
                         title = "Weekly alarm overview",
                         meaning = "A rolling seven-day view beginning today, rather than a fixed Monday-to-Sunday calendar block.",
-                        measurement = "WakeSync maps each of the next seven dates to enabled recurring schedules and shows the earliest Guardrail Wake Time if schedules overlap.",
+                        measurement = "WakeSync maps each of the next seven dates to enabled alarms and shows the earliest “Must be awake by” time if schedules overlap.",
                         importance = "The rolling view makes the next actual alarms, days off and changing weekday times obvious at a glance."
                     )
                 }
@@ -2777,15 +2778,16 @@ private fun AlarmsTab(
             AlarmScheduleCard(
                 schedule = schedule,
                 onEdit = { onEdit(schedule) },
+                onDuplicate = { onDuplicate(schedule) },
                 onToggle = { onToggle(schedule, it) },
                 onSkip = { onSkipNext(schedule) },
                 onClearSkips = { onClearSkips(schedule) },
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Wake schedule",
-                        meaning = "A recurring wake-by deadline with optional smart-window flexibility.",
-                        measurement = "WakeSync stores the selected weekdays, wake-by time and allowed early-wake window locally, then schedules the protected deadline with Android.",
-                        importance = "The schedule is the guardrail: WakeSync can optimize inside the window but cannot intentionally wake you later than the deadline."
+                        meaning = "A reusable wake schedule that can be Smart Wake or a standard exact alarm.",
+                        measurement = "WakeSync stores the schedule locally and protects the selected “Must be awake by” time with Android alarm scheduling.",
+                        importance = "Smart Wake may ring earlier inside its window, but never intentionally later than the protected time."
                     )
                 }
             )
@@ -2893,9 +2895,7 @@ private fun WeeklyAlarmOverview(
                             .asSequence()
                             .filter {
                                 it.enabled &&
-                                    it.days.contains(
-                                        date.dayOfWeek.value
-                                    )
+                                    it.isScheduledOn(date)
                             }
                             .minByOrNull {
                                 it.hour * 60 +
@@ -3034,6 +3034,7 @@ private fun WeeklyAlarmOverview(
 private fun AlarmScheduleCard(
     schedule: AlarmSchedule,
     onEdit: () -> Unit,
+    onDuplicate: () -> Unit,
     onToggle: (Boolean) -> Unit,
     onSkip: () -> Unit,
     onClearSkips: () -> Unit,
@@ -3147,11 +3148,14 @@ private fun AlarmScheduleCard(
                     ) {
                         Text(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            text = if (schedule.smartWindowMinutes == 0) {
-                                "Exact time"
-                            } else {
-                                schedule.smartWindowMinutes.toString() + "m smart window"
-                            },
+                            text =
+                                if (schedule.mode == AlarmMode.STANDARD) {
+                                    "Standard alarm"
+                                } else {
+                                    "Smart Wake · " +
+                                        schedule.smartWindowMinutes +
+                                        " min"
+                                },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -3166,7 +3170,7 @@ private fun AlarmScheduleCard(
                     ) {
                         Text(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            text = daysLabel(schedule.days),
+                            text = scheduleLabel(schedule),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium
                         )
@@ -3250,18 +3254,47 @@ private fun AlarmScheduleCard(
                     }
 
                     Row(
-                        modifier = Modifier.padding(top = 7.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier
+                            .horizontalScroll(
+                                rememberScrollState()
+                            )
+                            .padding(top = 7.dp),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(4.dp)
                     ) {
-                        TextButton(onClick = onSkip) {
+                        TextButton(
+                            onClick = onDuplicate
+                        ) {
                             Text(
-                                if (nextSkipped) "Undo skip" else "Skip next",
+                                "Duplicate",
                                 color = Lavender
                             )
                         }
+
+                        if (!schedule.isOneTime) {
+                            TextButton(
+                                onClick = onSkip
+                            ) {
+                                Text(
+                                    if (nextSkipped) {
+                                        "Undo skip"
+                                    } else {
+                                        "Skip next"
+                                    },
+                                    color = Lavender
+                                )
+                            }
+                        }
+
                         if (futureSkips.size > 1) {
-                            TextButton(onClick = onClearSkips) {
-                                Text("Clear skips", color = colors.onSurfaceVariant)
+                            TextButton(
+                                onClick = onClearSkips
+                            ) {
+                                Text(
+                                    "Clear skips",
+                                    color =
+                                        colors.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -3279,21 +3312,30 @@ private fun AlarmScheduleCard(
             textContentColor = colors.onSurfaceVariant,
             title = {
                 Text(
-                    if (nextSkipped) "Turn this schedule off?"
-                    else "Skip once or turn schedule off?"
+                    when {
+                        schedule.isOneTime ->
+                            "Turn this alarm off?"
+                        nextSkipped ->
+                            "Turn this schedule off?"
+                        else ->
+                            "Skip once or turn schedule off?"
+                    }
                 )
             },
             text = {
                 Text(
-                    if (nextSkipped) {
-                        "The next occurrence is already skipped. Turning this off disables the recurring schedule until you switch it back on."
-                    } else {
-                        "Skip once keeps this recurring schedule active and automatically resumes it on the next matching day."
+                    when {
+                        schedule.isOneTime ->
+                            "This is a one-time alarm. You can turn it back on after choosing a future date."
+                        nextSkipped ->
+                            "The next occurrence is already skipped. Turning this off disables the recurring schedule until you switch it back on."
+                        else ->
+                            "Skip once keeps this recurring schedule active and automatically resumes it on the next matching day."
                     }
                 )
             },
             confirmButton = {
-                if (!nextSkipped) {
+                if (!nextSkipped && !schedule.isOneTime) {
                     Button(
                         onClick = {
                             onSkip()
