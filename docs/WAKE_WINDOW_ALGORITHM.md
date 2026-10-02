@@ -1,114 +1,75 @@
-# Wake Window Algorithm — Version 1
+# Live Smart Wake Algorithm — Version 2
 
 ## Goal
 
-Choose a wake time inside a user-defined acceptable window that is more likely to coincide with an easier waking point.
+Wake the user at a favorable point inside the exact time range they chose while guaranteeing an alarm by the end of that range.
 
 Example:
 
 - earliest acceptable wake: 6:20 AM
 - must be awake by: 7:00 AM
+- monitoring begins: 5:35 AM
 
-WakeSync may choose any recommendation inside that 40-minute interval.
+Monitoring before 6:20 AM does **not** mean the alarm may ring before 6:20 AM.
 
-## Important constraint
+## Inputs
 
-WakeSync should not claim that consumer wearables measure sleep stages with clinical precision.
+- earliest acceptable wake time;
+- latest acceptable wake time;
+- newest Health Connect sleep-stage record;
+- timestamp of that record.
 
-The algorithm is a personalized estimate built from wearable-provided stage data and the user's own history.
+## Step 1 — Protect the deadline
 
-## V1 approach
+Schedule the latest acceptable wake time as an independent hard alarm before live monitoring begins.
 
-### Step 1 — Build personal history
+Live optimization must never be allowed to remove the guarantee that the alarm will ring by the deadline.
 
-Use approximately 14–30 usable nights where possible.
+## Step 2 — Start observing 45 minutes early
 
-For each night derive:
+At earliest wake minus 45 minutes, start the bounded live monitor.
 
-- sleep onset;
-- final wake time;
-- total sleep;
-- stage transitions;
-- timing of late-night Deep / Light / REM / Awake;
-- source package;
-- optional morning feedback.
+Poll Health Connect once per minute.
 
-### Step 2 — Normalize nights by sleep onset
+Before the earliest acceptable wake time, only observe. Never trigger Smart Wake.
 
-Instead of comparing clock time alone, represent each stage transition as minutes since sleep onset.
+## Step 3 — Reject stale data
 
-This allows a 10 PM night and a midnight night to be compared meaningfully.
+Treat the latest sleep stage as live only if:
 
-### Step 3 — Estimate favorable wake periods
+- the stage is currently ongoing; or
+- its end time is no more than five minutes old.
 
-For the final 60–90 minutes of historical sleep, score each minute based on:
+If the newest stage is older than that, consider live state unknown.
 
-- Awake: highest base score
-- Light: high score
-- REM: moderate score
-- Deep: strong penalty
-- proximity to natural end of prior sleep sessions
-- prior successful wake feedback at similar relative timing
+Do not extrapolate a current stage from stale records.
 
-Example baseline weights:
+## Step 4 — Decide only inside the user range
 
-- Awake: +1.0
-- Light: +0.8
-- REM: +0.35
-- Deep: -1.0
+From the earliest acceptable wake time through the deadline:
 
-These are implementation defaults, not medical claims.
+| Stage | Action |
+| --- | --- |
+| Awake | Wake now |
+| Light | Wake now |
+| REM | Wake when 10 minutes or less remain |
+| Deep | Wait |
+| Unknown / stale / missing | Wait |
 
-### Step 4 — Project tonight
+The REM rule is a deadline-pressure compromise so the app does not ignore a non-deep stage and then force a wake at the final second.
 
-Given tonight's estimated sleep onset, shift the learned relative timing forward into clock time.
+## Step 5 — Hard deadline
 
-Only consider candidate times inside the user's acceptable wake window.
+At the latest acceptable wake time, ring regardless of sleep stage or live-data availability.
 
-### Step 5 — Choose a window, not a magic minute
+This is the non-negotiable fallback.
 
-Return an interval, usually 10–20 minutes, centered around the highest-scoring region.
+## Data-source limitation
 
-Example:
+WakeSync reads Health Connect; it does not control when Fitbit, Samsung Health, another wearable, or another sleep app writes its data.
 
-> Best wake window: 6:34–6:49 AM
+If the source does not publish stages during sleep, the live algorithm safely degrades to the user's hard deadline instead of claiming to know the current stage.
 
-If the historical signal is weak, widen the window and lower confidence.
+## Interpretation
 
-## Confidence
-
-Initial confidence should depend on:
-
-- number of usable nights;
-- consistency of stage timing;
-- consistency of source data;
-- presence of recent data;
-- prior wake feedback.
-
-Suggested labels:
-
-- Learning
-- Moderate confidence
-- Strong pattern
-
-Avoid presenting a fake precise percentage before the model has enough validation.
-
-## Safety / UX behavior
-
-If the user specifies “must be awake by 7:00 AM”, WakeSync must always trigger the final alarm by that time even if the predicted window is poor.
-
-Wake-window optimization can move the alarm earlier, never later than the deadline.
-
-## Future versions
-
-Potential additions:
-
-- heart rate / HRV;
-- movement;
-- sleep debt;
-- day-of-week patterns;
-- adaptive wake-feedback weighting;
-- separate weekday/weekend models;
-- on-device ML after enough data exists.
-
-V1 should remain explainable and deterministic so behavior can be validated.
+Consumer sleep staging is an estimate. WakeSync uses the source's stage labels as a scheduling signal, not as a medical diagnosis and not as a measurement of cortisol.
