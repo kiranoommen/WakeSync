@@ -17,6 +17,8 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import com.kiranoommen.wakesync.AlarmActivity
+import com.kiranoommen.wakesync.data.AlarmStore
+import com.kiranoommen.wakesync.model.AlarmMode
 
 class AlarmRingingService : Service() {
 
@@ -29,12 +31,33 @@ class AlarmRingingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val reason = intent?.getStringExtra(WakeAlarmController.EXTRA_REASON)
-            ?: "Wake window"
+        val scheduleId =
+            intent?.getStringExtra(MultiAlarmController.EXTRA_SCHEDULE_ID)
+        val reason =
+            intent?.getStringExtra(MultiAlarmController.EXTRA_REASON)
+                ?: "WakeSync alarm"
+        val kind =
+            intent?.getStringExtra(MultiAlarmController.EXTRA_KIND)
+                ?: AlarmScheduler.KIND_DEADLINE
 
-        startAsForeground(reason)
-        startAlarmSound()
-        startVibration()
+        val schedule = scheduleId?.let { id ->
+            AlarmStore(this).load().firstOrNull { it.id == id }
+        }
+
+        startAsForeground(
+            scheduleId = scheduleId,
+            reason = reason,
+            kind = kind,
+            smart = schedule?.mode == AlarmMode.SMART_WAKE
+        )
+
+        if (schedule?.soundEnabled != false) {
+            startAlarmSound()
+        }
+        if (schedule?.vibrationEnabled != false) {
+            startVibration()
+        }
+
         return START_STICKY
     }
 
@@ -46,36 +69,48 @@ class AlarmRingingService : Service() {
             }
         }
         mediaPlayer = null
-
         vibrator?.cancel()
         vibrator = null
-
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun startAsForeground(reason: String) {
+    private fun startAsForeground(
+        scheduleId: String?,
+        reason: String,
+        kind: String,
+        smart: Boolean
+    ) {
         val fullScreenIntent = PendingIntent.getActivity(
             this,
-            4301,
+            (scheduleId ?: "wakesync").hashCode(),
             Intent(this, AlarmActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra(WakeAlarmController.EXTRA_REASON, reason)
+                putExtra(MultiAlarmController.EXTRA_SCHEDULE_ID, scheduleId)
+                putExtra(MultiAlarmController.EXTRA_REASON, reason)
+                putExtra(MultiAlarmController.EXTRA_KIND, kind)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val standard = reason == "Standard alarm"
         val notification = Notification.Builder(this, ALARM_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(
-                if (standard) "WakeSync · Standard Alarm" else "WakeSync · Smart Wake"
+                if (smart) {
+                    "WakeSync · Smart Wake"
+                } else {
+                    "WakeSync · Standard Alarm"
+                }
             )
             .setContentText(
-                if (standard) "Your alarm is ringing." else "WakeSync chose this wake moment."
+                if (smart) {
+                    "WakeSync chose this wake moment."
+                } else {
+                    "Your alarm is ringing."
+                }
             )
             .setCategory(Notification.CATEGORY_ALARM)
             .setPriority(Notification.PRIORITY_MAX)
@@ -112,10 +147,15 @@ class AlarmRingingService : Service() {
                 setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setContentType(
+                            AudioAttributes.CONTENT_TYPE_SONIFICATION
+                        )
                         .build()
                 )
-                setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
+                setWakeMode(
+                    applicationContext,
+                    PowerManager.PARTIAL_WAKE_LOCK
+                )
                 setDataSource(applicationContext, alarmUri)
                 isLooping = true
                 prepare()
@@ -126,14 +166,20 @@ class AlarmRingingService : Service() {
 
     @Suppress("DEPRECATION")
     private fun startVibration() {
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            getSystemService(VibratorManager::class.java).defaultVibrator
-        } else {
-            getSystemService(VIBRATOR_SERVICE) as Vibrator
-        }
+        vibrator =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                getSystemService(VibratorManager::class.java)
+                    .defaultVibrator
+            } else {
+                getSystemService(VIBRATOR_SERVICE) as Vibrator
+            }
 
-        val pattern = longArrayOf(0, 700, 300, 700, 600)
-        vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+        vibrator?.vibrate(
+            VibrationEffect.createWaveform(
+                longArrayOf(0, 700, 300, 700, 600),
+                0
+            )
+        )
     }
 
     private fun createNotificationChannel() {
