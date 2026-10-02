@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import com.kiranoommen.wakesync.MainActivity
 import com.kiranoommen.wakesync.data.WakeHistoryStore
+import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.WakePreferences
 import java.time.Duration
 import java.time.LocalDate
@@ -38,16 +39,21 @@ object WakeAlarmScheduler {
     }
 
     fun schedule(context: Context, preferences: WakePreferences): ScheduleResult {
-        if (!preferences.enabled || !preferences.hasValidRange()) {
+        if (!preferences.enabled || !preferences.hasValidSchedule()) {
             cancelAll(context)
             return ScheduleResult(false)
         }
 
         val now = ZonedDateTime.now()
         var date = now.toLocalDate()
-        val todayDeadline = date.atTime(preferences.latest).atZone(now.zone)
+        val todayTarget = date.atTime(
+            when (preferences.mode) {
+                AlarmMode.SMART_WAKE -> preferences.latest
+                AlarmMode.STANDARD -> preferences.standardTime
+            }
+        ).atZone(now.zone)
 
-        if (!now.isBefore(todayDeadline)) {
+        if (!now.isBefore(todayTarget)) {
             date = date.plusDays(1)
         }
 
@@ -58,7 +64,7 @@ object WakeAlarmScheduler {
         context: Context,
         preferences: WakePreferences
     ): ScheduleResult {
-        if (!preferences.enabled || !preferences.hasValidRange()) {
+        if (!preferences.enabled || !preferences.hasValidSchedule()) {
             return ScheduleResult(false)
         }
 
@@ -88,13 +94,13 @@ object WakeAlarmScheduler {
     fun cancelAll(context: Context) {
         val alarmManager = context.getSystemService(AlarmManager::class.java)
         alarmManager.cancel(monitorPendingIntent(context))
-        alarmManager.cancel(deadlinePendingIntent(context))
+        alarmManager.cancel(deadlinePendingIntent(context, ""))
         alarmManager.cancel(predictivePendingIntent(context, ""))
     }
 
     fun cancelDeadline(context: Context) {
         context.getSystemService(AlarmManager::class.java)
-            .cancel(deadlinePendingIntent(context))
+            .cancel(deadlinePendingIntent(context, ""))
     }
 
     fun cancelPredictive(context: Context) {
@@ -108,6 +114,29 @@ object WakeAlarmScheduler {
         date: LocalDate
     ): ScheduleResult {
         if (!canScheduleExactAlarms(context)) return ScheduleResult(false)
+
+        val alarmManager = context.getSystemService(AlarmManager::class.java)
+
+        if (preferences.mode == AlarmMode.STANDARD) {
+            alarmManager.cancel(monitorPendingIntent(context))
+            cancelPredictive(context)
+
+            val alarmAt = date.atTime(preferences.standardTime).atZone(
+                ZonedDateTime.now().zone
+            )
+
+            scheduleAlarmClock(
+                context = context,
+                alarmManager = alarmManager,
+                wakeAt = alarmAt,
+                reason = "Standard alarm"
+            )
+
+            return ScheduleResult(
+                scheduled = true,
+                hardDeadline = alarmAt
+            )
+        }
 
         cancelPredictive(context)
 
@@ -152,8 +181,6 @@ object WakeAlarmScheduler {
                     candidate.isBefore(deadline)
             }
 
-        val alarmManager = context.getSystemService(AlarmManager::class.java)
-
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             monitorStart.toInstant().toEpochMilli(),
@@ -168,19 +195,11 @@ object WakeAlarmScheduler {
             )
         }
 
-        val showAlarmIntent = PendingIntent.getActivity(
-            context,
-            4103,
-            Intent(context, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        alarmManager.setAlarmClock(
-            AlarmManager.AlarmClockInfo(
-                deadline.toInstant().toEpochMilli(),
-                showAlarmIntent
-            ),
-            deadlinePendingIntent(context)
+        scheduleAlarmClock(
+            context = context,
+            alarmManager = alarmManager,
+            wakeAt = deadline,
+            reason = "Hard wake deadline reached"
         )
 
         return ScheduleResult(
@@ -192,6 +211,28 @@ object WakeAlarmScheduler {
         )
     }
 
+    private fun scheduleAlarmClock(
+        context: Context,
+        alarmManager: AlarmManager,
+        wakeAt: ZonedDateTime,
+        reason: String
+    ) {
+        val showAlarmIntent = PendingIntent.getActivity(
+            context,
+            4103,
+            Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        alarmManager.setAlarmClock(
+            AlarmManager.AlarmClockInfo(
+                wakeAt.toInstant().toEpochMilli(),
+                showAlarmIntent
+            ),
+            deadlinePendingIntent(context, reason)
+        )
+    }
+
     private fun monitorPendingIntent(context: Context): PendingIntent =
         PendingIntent.getBroadcast(
             context,
@@ -200,13 +241,16 @@ object WakeAlarmScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-    private fun deadlinePendingIntent(context: Context): PendingIntent =
+    private fun deadlinePendingIntent(
+        context: Context,
+        reason: String
+    ): PendingIntent =
         PendingIntent.getBroadcast(
             context,
             DEADLINE_REQUEST_CODE,
             Intent(context, WakeAlarmReceiver::class.java).putExtra(
                 EXTRA_ALARM_REASON,
-                "Hard wake deadline reached"
+                reason
             ),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
