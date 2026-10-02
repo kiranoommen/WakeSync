@@ -329,30 +329,6 @@ fun WakeSyncScreen(
                                     hasPermission,
                                 exactAlarmAccess =
                                     exactAlarmAccess,
-                                hasAnalyticsPermission =
-                                    hasAnalyticsPermission,
-                                hasHistoryPermission =
-                                    hasHistoryPermission,
-                                historyReadAvailable =
-                                    historyReadAvailable,
-                                themeMode =
-                                    themeMode,
-                                sleepGoalMinutes =
-                                    sleepGoalMinutes,
-                                goalsEnabled =
-                                    goalsEnabled,
-                                maxSmartWindowMinutes =
-                                    maxSmartWindowMinutes,
-                                retainGeneratedExports =
-                                    retainGeneratedExports,
-                                displayName =
-                                    displayName,
-                                AppTab.SETTINGS ->
-                            SettingsTab(
-                                hasPermission =
-                                    hasPermission,
-                                exactAlarmAccess =
-                                    exactAlarmAccess,
                                 hasHistoryPermission =
                                     hasHistoryPermission,
                                 historyReadAvailable =
