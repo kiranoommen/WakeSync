@@ -260,7 +260,7 @@ class MainActivity : ComponentActivity() {
                     }
                 },
                 onImAwake = {
-                    WakeAlarmController.dismiss(this)
+                    WakeAlarmController.markAwake(this)
                 },
                 onRefresh = ::refreshSleep
             )
