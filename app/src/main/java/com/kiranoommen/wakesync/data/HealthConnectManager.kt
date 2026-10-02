@@ -5,8 +5,6 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.permission.HealthPermission.Companion.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND
-import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
-import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
@@ -27,11 +25,6 @@ class HealthConnectManager(private val context: Context) {
 
         val requiredSleepPermissions = setOf(
             HealthPermission.getReadPermission(SleepSessionRecord::class)
-        )
-
-        val analyticsPermissions = setOf(
-            HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class),
-            HealthPermission.getReadPermission(RestingHeartRateRecord::class)
         )
 
         val historyPermissions = setOf(
@@ -85,13 +78,6 @@ class HealthConnectManager(private val context: Context) {
             .contains(BACKGROUND_READ_PERMISSION)
     }
 
-    suspend fun hasAnalyticsPermissions(): Boolean {
-        val client = clientOrNull() ?: return false
-        return client.permissionController
-            .getGrantedPermissions()
-            .containsAll(analyticsPermissions)
-    }
-
     suspend fun hasHistoryPermission(): Boolean {
         if (!historyReadAvailable()) return false
         val client = clientOrNull() ?: return false
@@ -116,62 +102,15 @@ class HealthConnectManager(private val context: Context) {
             )
         )
 
-        val canReadAnalytics = hasAnalyticsPermissions()
-
-        val hrvRecords = if (canReadAnalytics) {
-            runCatching {
-                client.readRecords(
-                    ReadRecordsRequest(
-                        recordType = HeartRateVariabilityRmssdRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(start, end),
-                        ascendingOrder = false,
-                        pageSize = 500
-                    )
-                ).records
-            }.getOrDefault(emptyList())
-        } else {
-            emptyList()
-        }
-
-        val restingRecords = if (canReadAnalytics) {
-            runCatching {
-                client.readRecords(
-                    ReadRecordsRequest(
-                        recordType = RestingHeartRateRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(start, end),
-                        ascendingOrder = false,
-                        pageSize = 500
-                    )
-                ).records
-            }.getOrDefault(emptyList())
-        } else {
-            emptyList()
-        }
-
         val zone = ZoneId.systemDefault()
 
         return response.records.map { record ->
-            val wakeDate = record.endTime.atZone(zone).toLocalDate()
-
-            val hrvForNight = hrvRecords
-                .filter { hrv ->
-                    !hrv.time.isBefore(record.startTime) &&
-                        hrv.time.isBefore(record.endTime.plus(2, ChronoUnit.HOURS))
-                }
-                .map { it.heartRateVariabilityMillis }
-                .takeIf { it.isNotEmpty() }
-                ?.average()
-
-            val rhrForNight = restingRecords
-                .firstOrNull { it.time.atZone(zone).toLocalDate() == wakeDate }
-                ?.beatsPerMinute
-
             SleepNight(
                 start = record.startTime,
                 end = record.endTime,
                 sourcePackage = record.metadata.dataOrigin.packageName,
-                restingHeartRateBpm = rhrForNight,
-                averageHrvMs = hrvForNight,
+                restingHeartRateBpm = null,
+                averageHrvMs = null,
                 stages = record.stages.map { stage ->
                     SleepStageSegment(
                         start = stage.startTime,
