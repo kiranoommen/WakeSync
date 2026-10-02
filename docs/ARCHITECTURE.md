@@ -39,24 +39,26 @@ Wearable / sleep app
         ↓
  recent history → PredictiveWakeEngine → saved compact profile
         ↓
- exact monitor-start alarm (E - 45m)
+ schedule historical fallback in final 10m (when usable)
+        ↓
+ schedule independent hard deadline L
+        ↓
+ exact monitor-start alarm (E - 15m)
         ↓
  WakeMonitorService
         ↓
- fresh Awake / Light before cutoff
+ E reached → poll fresh live stages once/minute
         ↓
- cutoff = max(E, L - 15m)
+ Awake / Light before fallback → live wake wins
         ↓
- saved historical prediction
+ historical fallback fires if live has not already woken user
         ↓
- exact predictive alarm (when usable)
-        ↓
- independent hard deadline L
+ hard deadline L remains guaranteed
         ↓
  AlarmRingingService / AlarmActivity
 ```
 
-The deadline alarm is scheduled independently before live monitoring begins. Neither the live layer nor the predictive layer is allowed to remove that safety net unless the user has already been woken.
+The historical fallback and hard deadline are both armed independently. Live monitoring remains active through the entire allowed wake window until one of the wake paths fires.
 
 ## Timing
 
@@ -67,16 +69,16 @@ Given:
 
 WakeSync uses:
 
-- monitor start = E − 45 minutes
+- monitor start = E − 15 minutes
 - earliest possible wake = E
-- predictive cutoff = max(E, L − 15 minutes)
+- historical fallback window start = max(E, L − 10 minutes)
 - hard deadline = L
 
-The 45 minutes before E are observation only.
+The 15 minutes before E are observation only.
 
 ## 🟣 Layer 1 — Live stage
 
-From E until the predictive cutoff, WakeSync polls Health Connect once per minute.
+From E until the user is awakened or L arrives, WakeSync polls Health Connect once per minute.
 
 A stage is considered current only when it is ongoing or ended within the last five minutes.
 
@@ -88,7 +90,7 @@ A stage is considered current only when it is ongoing or ended within the last f
 
 This avoids treating delayed wearable sync as live data.
 
-## 🟪 Layer 2 — Saved historical prediction
+## 🟪 Layer 2 — Saved historical fallback
 
 Whenever recent sleep is loaded, WakeSync uses up to 30 nights to derive a compact wake profile.
 
@@ -102,15 +104,19 @@ For each minute in the final 60 minutes before historical sleep end, stage weigh
 
 The saved profile contains average score and sample count for each minute-before-natural-wake position. Raw Health Connect records are not copied into local storage.
 
-At the predictive cutoff, WakeSync evaluates only candidates that remain inside the user's allowed range. A candidate requires at least three historical samples and an average score of at least 0.45.
+When the day's alarm chain is scheduled, WakeSync evaluates only candidates in the final 10 minutes before L, constrained so no candidate can be earlier than E.
 
-The highest-scoring eligible minute is scheduled as an exact predictive alarm. If no eligible minute exists, no predictive alarm is added.
+A candidate requires at least three historical samples and an average score of at least 0.45.
+
+The highest-scoring eligible minute before L is scheduled as an exact historical-fallback alarm. If no eligible minute exists, no historical alarm is added.
+
+Live monitoring continues even after that fallback is armed.
 
 ## 🟠 Layer 3 — Hard deadline
 
-The hard deadline remains scheduled with AlarmManager regardless of live or predictive availability.
+The hard deadline remains scheduled with AlarmManager regardless of live or historical availability.
 
-If live data is stale, the saved profile is weak, predictive scheduling fails, or the monitor is stopped by the OS, the deadline alarm still fires at L.
+If live data is stale, the saved profile is weak, historical scheduling fails, or the monitor is stopped by the OS, the deadline alarm still fires at L.
 
 ## Permissions
 
@@ -129,8 +135,9 @@ WakeSync requests no Health Connect write permission.
 
 ## Reliability
 
-- Monitor, predictive wake, and deadline are distinct exact-alarm paths.
-- A successful live or predictive wake cancels the current day's remaining alarms and schedules the next day.
+- Monitor, historical fallback, and deadline are distinct exact-alarm paths.
+- A successful live wake cancels the historical fallback and hard deadline for the current morning.
+- A historical fallback wake cancels the hard deadline for the current morning.
 - Boot, clock changes, timezone changes, and exact-alarm permission changes restore the schedule.
 - The live monitor runs for a bounded period and handles Android 15 foreground-service timeout callbacks.
 - Alarm audio uses alarm audio attributes and repeats until the user taps **I’m awake**.
