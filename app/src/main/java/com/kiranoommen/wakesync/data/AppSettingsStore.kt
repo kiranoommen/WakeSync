@@ -80,10 +80,10 @@ class AppSettingsStore(context: Context) {
         }
 
     var maxSmartWindowMinutes: Int
-        get() = prefs.getInt(KEY_MAX_SMART_WINDOW, 30)
+        get() = prefs.getInt(KEY_MAX_SMART_WINDOW, 30).coerceIn(10, 30)
         set(value) {
             prefs.edit()
-                .putInt(KEY_MAX_SMART_WINDOW, value.coerceIn(10, 45))
+                .putInt(KEY_MAX_SMART_WINDOW, value.coerceIn(10, 30))
                 .apply()
         }
 
