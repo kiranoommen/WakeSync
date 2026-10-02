@@ -7,7 +7,7 @@
   <img alt="Android 28+" src="https://img.shields.io/badge/Android-28%2B-6F63FF?style=flat-square&logo=android&logoColor=white" />
   <img alt="Health Connect read only" src="https://img.shields.io/badge/Health%20Connect-read--only-9A84FF?style=flat-square" />
   <img alt="On-device processing" src="https://img.shields.io/badge/processing-on--device-FFB44A?style=flat-square" />
-  <img alt="Version 0.2.0" src="https://img.shields.io/badge/version-0.2.0-E9ECFF?style=flat-square&labelColor=15192A" />
+  <img alt="Version 0.3.0" src="https://img.shields.io/badge/version-0.3.0-E9ECFF?style=flat-square&labelColor=15192A" />
 </p>
 
 <p align="center">
@@ -85,7 +85,11 @@ Raw sleep records are read from Health Connect as needed rather than duplicated 
 - alarm sound and vibration
 - reboot, clock-change, and timezone-change schedule restoration
 - local wake settings and derived history
-- light/dark visual system
+- sleep analytics dashboard and richer sleep log
+- optional HRV and resting-heart-rate context
+- optional extended Health Connect history
+- local CSV, PDF, and shareable story exports
+- onboarding plus light/dark/system themes
 - Android CI build
 
 ## 📱 Android requirements
@@ -150,6 +154,7 @@ Start with the **[visual documentation hub](docs/README.md)**.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Wake algorithm](docs/WAKE_WINDOW_ALGORITHM.md)
 - [Testing plan](docs/TESTING.md)
+- [Sleep metrics & scoring](docs/SLEEP_METRICS.md)
 - [Privacy model](docs/PRIVACY.md)
 - [MVP roadmap](docs/MVP_ROADMAP.md)
 - [Changelog](CHANGELOG.md)
