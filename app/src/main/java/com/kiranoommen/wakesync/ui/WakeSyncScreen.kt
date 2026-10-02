@@ -3421,6 +3421,16 @@ private fun SettingsTab(
     var showDonationQr by remember {
         mutableStateOf(false)
     }
+    var showSleepTargetPicker by remember {
+        mutableStateOf(false)
+    }
+    var sleepTargetDraft by remember(
+        sleepGoalMinutes
+    ) {
+        mutableStateOf(
+            sleepGoalMinutes
+        )
+    }
     val settingsContext =
         LocalContext.current
 
@@ -3494,16 +3504,103 @@ private fun SettingsTab(
                             MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    SleepTargetWheel(
-                        selectedMinutes =
-                            sleepGoalMinutes,
-                        onSelected =
-                            onSleepGoalChange
-                    )
+                    Card(
+                        onClick = {
+                            sleepTargetDraft =
+                                sleepGoalMinutes
+                            showSleepTargetPicker =
+                                true
+                        },
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        shape =
+                            RoundedCornerShape(18.dp),
+                        border =
+                            if (
+                                MaterialTheme.colorScheme.background
+                                    .luminance() <
+                                    0.5f
+                            ) {
+                                BorderStroke(
+                                    1.dp,
+                                    Color.White.copy(
+                                        alpha = 0.10f
+                                    )
+                                )
+                            } else {
+                                null
+                            },
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor =
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                        .copy(
+                                            alpha =
+                                                if (
+                                                    MaterialTheme.colorScheme.background
+                                                        .luminance() <
+                                                        0.5f
+                                                ) {
+                                                    0.34f
+                                                } else {
+                                                    0.24f
+                                                }
+                                        ),
+                                contentColor =
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 16.dp,
+                                    vertical = 14.dp
+                                ),
+                            horizontalArrangement =
+                                Arrangement.SpaceBetween,
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text =
+                                        "Nightly target",
+                                    style =
+                                        MaterialTheme.typography.labelMedium,
+                                    color =
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    modifier =
+                                        Modifier.padding(
+                                            top = 2.dp
+                                        ),
+                                    text =
+                                        formatSleepTarget(
+                                            sleepGoalMinutes
+                                        ),
+                                    style =
+                                        MaterialTheme.typography.titleLarge,
+                                    fontWeight =
+                                        FontWeight.ExtraBold
+                                )
+                            }
+
+                            Text(
+                                text = "Tap to adjust",
+                                style =
+                                    MaterialTheme.typography.labelSmall,
+                                color = Lavender,
+                                fontWeight =
+                                    FontWeight.Bold
+                            )
+                        }
+                    }
 
                     Text(
                         text =
-                            "Choose any target from 4h 00m to 12h 00m in 15-minute steps. Used for goal progress and sleep-debt estimates.",
+                            "Tap the target field to choose any duration from 4h 00m to 12h 00m in 15-minute steps. Changes apply only after you confirm.",
                         style =
                             MaterialTheme.typography.bodySmall,
                         color =
@@ -3972,6 +4069,88 @@ private fun SettingsTab(
                     Modifier.height(12.dp)
             )
         }
+    }
+
+    if (showSleepTargetPicker) {
+        AlertDialog(
+            onDismissRequest = {
+                showSleepTargetPicker =
+                    false
+                sleepTargetDraft =
+                    sleepGoalMinutes
+            },
+            title = {
+                Text(
+                    text =
+                        "Choose sleep target",
+                    fontWeight =
+                        FontWeight.ExtraBold
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            10.dp
+                        )
+                ) {
+                    Text(
+                        text =
+                            "Scroll to your preferred nightly sleep target.",
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    SleepTargetWheel(
+                        selectedMinutes =
+                            sleepTargetDraft,
+                        onSelected = {
+                            sleepTargetDraft =
+                                it
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onSleepGoalChange(
+                            sleepTargetDraft
+                        )
+                        showSleepTargetPicker =
+                            false
+                    },
+                    shape =
+                        RoundedCornerShape(
+                            999.dp
+                        )
+                ) {
+                    Text(
+                        text = "✓ Confirm",
+                        fontWeight =
+                            FontWeight.ExtraBold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        sleepTargetDraft =
+                            sleepGoalMinutes
+                        showSleepTargetPicker =
+                            false
+                    }
+                ) {
+                    Text(
+                        text = "✕ Cancel",
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+                }
+            }
+        )
     }
 
     if (showDonationQr) {
