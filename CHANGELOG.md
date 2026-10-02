@@ -4,6 +4,11 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+### Added
+- branded adaptive launcher icon using the current WakeSync palette;
+- visual repository banner, smart-wake flow, palette, and privacy artwork;
+- visual documentation hub and branded cross-navigation.
+
 ### Planned
 - real-device validation of live Health Connect sleep-stage freshness;
 - expanded wake-history feedback and confidence handling;
