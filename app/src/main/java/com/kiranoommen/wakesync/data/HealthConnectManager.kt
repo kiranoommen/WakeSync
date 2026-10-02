@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.feature.HealthConnectFeatures
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.permission.HealthPermission.Companion.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
@@ -19,7 +20,7 @@ class HealthConnectManager(private val context: Context) {
     companion object {
         const val PROVIDER_PACKAGE = "com.google.android.apps.healthdata"
         const val BACKGROUND_READ_PERMISSION =
-            "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
+            PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND
 
         val requiredSleepPermissions = setOf(
             HealthPermission.getReadPermission(SleepSessionRecord::class)
