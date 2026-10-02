@@ -1802,60 +1802,96 @@ private fun MorningBriefingCard(
                 )
             }
 
-            Column(modifier = Modifier.padding(17.dp)) {
+            Column(
+                modifier =
+                    Modifier.padding(17.dp)
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier.fillMaxWidth(),
+                    verticalAlignment =
+                        Alignment.Top
                 ) {
+                    InfoTrigger(
+                        onClick = onInfo
+                    )
+
                     Column(
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(
+                                start = 10.dp,
+                                top = 1.dp
+                            )
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = greeting,
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    modifier = Modifier.padding(top = 2.dp),
-                                    text = "Here’s your sleep briefing",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            InfoTrigger(onClick = onInfo)
-                        }
+                        Text(
+                            text = greeting,
+                            style =
+                                MaterialTheme.typography.headlineMedium,
+                            fontWeight =
+                                FontWeight.ExtraBold,
+                            color =
+                                MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            modifier =
+                                Modifier.padding(
+                                    top = 2.dp
+                                ),
+                            text =
+                                "Here’s your sleep briefing",
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
                         Card(
-                            onClick = onStatusClick,
-                            modifier = Modifier.padding(top = 13.dp),
-                            shape = RoundedCornerShape(999.dp),
-                            border = BorderStroke(
-                                1.dp,
-                                statusColor.copy(alpha = 0.32f)
-                            ),
-                            colors = CardDefaults.cardColors(
-                                containerColor = statusColor.copy(alpha = 0.12f),
-                                contentColor = statusColor
-                            )
+                            onClick =
+                                onStatusClick,
+                            modifier =
+                                Modifier.padding(
+                                    top = 13.dp
+                                ),
+                            shape =
+                                RoundedCornerShape(
+                                    999.dp
+                                ),
+                            border =
+                                BorderStroke(
+                                    1.dp,
+                                    statusColor.copy(
+                                        alpha = 0.32f
+                                    )
+                                ),
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        statusColor.copy(
+                                            alpha = 0.12f
+                                        ),
+                                    contentColor =
+                                        statusColor
+                                )
                         ) {
                             Text(
-                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
+                                modifier =
+                                    Modifier.padding(
+                                        horizontal = 11.dp,
+                                        vertical = 7.dp
+                                    ),
                                 text = status,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.ExtraBold
+                                style =
+                                    MaterialTheme.typography.labelMedium,
+                                fontWeight =
+                                    FontWeight.ExtraBold
                             )
                         }
                     }
 
                     HomeScoreGauge(
                         modifier = Modifier
-                            .padding(start = 14.dp)
+                            .padding(
+                                start = 12.dp
+                            )
                             .size(92.dp),
                         score = score,
                         color = scoreColor,
