@@ -120,10 +120,7 @@ fun SleepAnalyticsScreen(
     loading: Boolean,
     targetSleepMinutes: Int,
     goalsEnabled: Boolean,
-    onRefresh: () -> Unit,
-    onShareCsv: (List<NightAnalytics>) -> Unit,
-    onSharePdf: (PeriodAnalytics) -> Unit,
-    onShareStory: (PeriodAnalytics) -> Unit
+    onRefresh: () -> Unit
 ) {
     var range by remember { mutableStateOf(SleepRange.TWO_WEEKS) }
     var compare by remember { mutableStateOf(false) }
@@ -133,7 +130,6 @@ fun SleepAnalyticsScreen(
     var customEnd by remember { mutableStateOf<LocalDate?>(null) }
     var showCustomRange by remember { mutableStateOf(false) }
     var selectedNight by remember { mutableStateOf<NightAnalytics?>(null) }
-    var showExportPreview by remember { mutableStateOf(false) }
     var showScoreBreakdown by remember { mutableStateOf(false) }
     var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
 
@@ -321,37 +317,18 @@ fun SleepAnalyticsScreen(
                 }
             )
 
-            Row(
+            ArchitectureCard(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(10.dp)
-            ) {
-                ArchitectureCard(
-                    modifier = Modifier.weight(1f),
-                    analytics = analytics,
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Architecture & regularity",
-                            meaning = "Stage ratios summarize Deep and REM trends. SRI estimates how consistent your sleep/wake timing is from day to day.",
-                            measurement = "Stage ratios use wearable-classified stage minutes. SRI compares sleep/wake state in 15-minute clock-time epochs on adjacent tracked days.",
-                            importance = "Regularity can make sleep timing more predictable, while stage ratios are best treated as personal trends rather than fixed targets."
-                        )
-                    }
-                )
-
-                RecoveryCard(
-                    modifier = Modifier.weight(1f),
-                    analytics = analytics,
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Biometric recovery",
-                            meaning = "HRV means Heart Rate Variability: beat-to-beat timing variation used as a recovery trend. RHR means Resting Heart Rate: your resting pulse rate.",
-                            measurement = "WakeSync reads optional HRV and RHR records from Health Connect and summarizes the values associated with recent nights.",
-                            importance = "These metrics are usually most useful relative to your own baseline, not a universal good/bad threshold."
-                        )
-                    }
-                )
-            }
+                analytics = analytics,
+                onInfo = {
+                    infoSheet = MetricInfo(
+                        title = "Sleep pattern",
+                        meaning = "A compact look at stage mix and how consistent your sleep timing has been.",
+                        measurement = "Stage ratios come from Health Connect sleep stages. Regularity compares sleep/wake timing across tracked nights.",
+                        importance = "WakeSync keeps this view focused on patterns that can help explain Smart Wake behavior rather than trying to replace a full fitness dashboard."
+                    )
+                }
+            )
 
             SleepLogCard(
                 analytics = allAnalytics,
@@ -376,19 +353,6 @@ fun SleepAnalyticsScreen(
                 }
             )
 
-            ExportCard(
-                onOpenPreview = {
-                    showExportPreview = true
-                },
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Export & share",
-                        meaning = "WakeSync can generate a PDF summary, CSV log or shareable visual card only when you explicitly request it.",
-                        measurement = "Exports are created locally from the currently selected period.",
-                        importance = "The preview tells you exactly what leaves the app before Android's share sheet opens."
-                    )
-                }
-            )
         }
     }
 
@@ -413,33 +377,6 @@ fun SleepAnalyticsScreen(
             goalsEnabled = goalsEnabled,
             onDismiss = {
                 selectedNight = null
-            }
-        )
-    }
-
-    if (showExportPreview) {
-        ExportPreviewSheet(
-            analytics = analytics,
-            onDismiss = {
-                showExportPreview = false
-            },
-            onPdf = {
-                showExportPreview = false
-                onSharePdf(analytics)
-            },
-            onCsv = {
-                showExportPreview = false
-                onShareCsv(
-                    sortedNights(
-                        analytics.nights,
-                        sort,
-                        sortDescending
-                    )
-                )
-            },
-            onStory = {
-                showExportPreview = false
-                onShareStory(analytics)
             }
         )
     }
