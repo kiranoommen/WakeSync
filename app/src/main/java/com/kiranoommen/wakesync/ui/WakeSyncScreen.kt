@@ -592,30 +592,63 @@ private fun HomeTab(
             }
 
             item {
-                DashboardBentoGrid(
-                    widgets = listOf(
-                        AppSettingsStore.WIDGET_SLEEP,
-                        AppSettingsStore.WIDGET_INSIGHT
-                    ),
-                    analytics =
-                        dashboardAnalytics,
-                    nights = nights,
-                    schedules = schedules,
-                    loading = loading,
-                    goalsEnabled =
-                        goalsEnabled,
-                    sleepGoalMinutes =
-                        sleepGoalMinutes,
-                    onEditSchedule =
-                        onEditSchedule,
-                    onSkipNext =
-                        onSkipNext,
-                    onGoAlarms =
-                        onGoAlarms,
-                    onInfo = {
-                        infoSheet = it
-                    }
-                )
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(10.dp)
+                ) {
+                    LastNightDashboardTile(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        night =
+                            nights.maxByOrNull {
+                                it.end
+                            },
+                        loading = loading,
+                        onInfo = {
+                            infoSheet = MetricInfo(
+                                title =
+                                    "Last night",
+                                meaning =
+                                    "A compact view of sleep duration, efficiency and stage mix from the latest Health Connect sleep session.",
+                                measurement =
+                                    "WakeSync reads the latest sleep session and stage intervals available through Health Connect.",
+                                importance =
+                                    "This context helps explain Smart Wake behavior without turning Home into a full sleep dashboard."
+                            )
+                        }
+                    )
+
+                    InsightDashboardTile(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        text =
+                            if (goalsEnabled) {
+                                SleepAnalytics.insightFor(
+                                    dashboardAnalytics,
+                                    sleepGoalMinutes
+                                )
+                            } else {
+                                "You averaged " +
+                                    formatMinutes(
+                                        dashboardAnalytics
+                                            .averageSleepMinutes
+                                    ) +
+                                    " of sleep recently."
+                            },
+                        onInfo = {
+                            infoSheet = MetricInfo(
+                                title =
+                                    "Recent sleep pattern",
+                                meaning =
+                                    "A short on-device summary of your recent sleep trend.",
+                                measurement =
+                                    "WakeSync compares recent sleep duration, efficiency, regularity and timing.",
+                                importance =
+                                    "The summary exists to support Smart Wake context, not to replace your fitness tracker’s sleep app."
+                            )
+                        }
+                    )
+                }
             }
         }
 
