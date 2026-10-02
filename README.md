@@ -17,7 +17,7 @@ The core idea is simple:
 - different times for different day groups;
 - Guardrail Wake Time as the hard deadline;
 - Exact Alarm Access reliability setup during first-run onboarding;
-- adjustable Smart Wake Windows: Off / 10 / 15 / 20 / 30 / 45 minutes;
+- adjustable Smart Wake Windows: Off / 10 / 15 / 20 / 30 minutes;
 - rolling seven-day schedule overview beginning today;
 - exact Android alarm scheduling;
 - hard deadline backup;
