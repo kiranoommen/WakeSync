@@ -16,6 +16,7 @@ The core idea is simple:
 - recurring weekday schedules;
 - different times for different day groups;
 - Guardrail Wake Time as the hard deadline;
+- Exact Alarm Access reliability setup during first-run onboarding;
 - adjustable Smart Wake Windows: Off / 10 / 15 / 20 / 30 / 45 minutes;
 - rolling seven-day schedule overview beginning today;
 - exact Android alarm scheduling;
@@ -35,15 +36,15 @@ The core idea is simple:
 - Deep / Light / REM / Awake stage distribution;
 - interactive duration + efficiency trend chart;
 - wearable-derived Sleep Regularity Index estimate;
-- personal sleep goal, sleep-debt estimate and streaks;
-- expandable sortable sleep log;
+- optional sleep goal from 4h 00m to 12h 00m in 15-minute wheel increments, plus sleep-debt estimate and streaks;
+- expandable sleep log with Date / Score / numeric Duration sorting, ascending/descending toggles and deterministic date tie-breakers;
 - optional HRV and resting-heart-rate metrics when Health Connect provides them;
 - local trend-based WakeSync insights;
 - CSV, PDF and story-card export generated locally.
 
 ### Dashboard
 
-- first-run onboarding for preferred name, appearance and Health Connect setup;
+- first-run onboarding for preferred name, appearance, Health Connect and Exact Alarm reliability setup;
 - contextual morning briefing and color-coded daily Sleep Score hero;
 - transparent four-pillar daily score breakdown;
 - asymmetric two-column Bento dashboard;
@@ -60,6 +61,12 @@ The core idea is simple:
 - System / Dark / Light mode;
 - WakeSync indigo / lavender / amber design system;
 - safe-area handling for Android status/navigation bars.
+
+### Support
+
+- privacy-first, ad-free support card in Settings;
+- PayPal donation deep link;
+- locally bundled scannable PayPal donation QR PNG.
 
 ## Privacy
 
