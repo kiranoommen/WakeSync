@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,7 +82,7 @@ private fun AlarmRingingScreen(
     preferences: WakePreferences,
     onDismiss: () -> Unit
 ) {
-    var now by mutableStateOf(LocalDateTime.now())
+    var now by remember { mutableStateOf(LocalDateTime.now()) }
 
     LaunchedEffect(Unit) {
         while (true) {
