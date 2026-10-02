@@ -121,7 +121,7 @@ class AlarmScheduler(private val context: Context) {
             time = deadline,
             sequenceDeadline = deadline,
             kind = KIND_DEADLINE,
-            reason = "Hard wake deadline reached"
+            reason = "Must be awake by time reached"
         )
 
         scheduleBackupRings(schedule, deadline)
@@ -162,7 +162,7 @@ class AlarmScheduler(private val context: Context) {
                 time = time,
                 sequenceDeadline = deadline,
                 kind = backupKind(index),
-                reason = "Backup ring $index of $count"
+                reason = "Backup alarm $index of $count"
             )
         }
     }
