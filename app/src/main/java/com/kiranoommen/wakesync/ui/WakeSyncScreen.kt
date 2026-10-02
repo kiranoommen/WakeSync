@@ -462,7 +462,7 @@ private fun WakeWindowHero(
                     text = when {
                         !hasPermission -> "Read-only Health Connect access is the first step."
                         preferences.enabled ->
-                            "Live stage first · predictive history at T−15 · hard stop always"
+                            "Live stage first · history fallback in final 10m · hard stop always"
                         else -> "Choose the earliest and latest time you are willing to wake."
                     },
                     color = Color.White.copy(alpha = 0.86f)
