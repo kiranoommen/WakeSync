@@ -59,7 +59,10 @@ The core idea is simple:
 ### Appearance
 
 - System / Dark / Light mode;
-- WakeSync indigo / lavender / amber design system;
+- pager-linked procedural ambient mesh background using midnight, violet, amber and cyan light fields;
+- Home ↔ Alarms ↔ Sleep ↔ Settings horizontal swipe navigation synchronized with the floating bottom bar;
+- reflective translucent Bento glass surfaces with Android 12+ hardware blur and a graceful opacity fallback on older Android versions;
+- high-contrast light-mode text and reduced nested card chrome;
 - safe-area handling for Android status/navigation bars.
 
 ### Support
