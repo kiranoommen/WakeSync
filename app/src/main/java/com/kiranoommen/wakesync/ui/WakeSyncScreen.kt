@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
+import com.kiranoommen.wakesync.model.WakePreferences
 import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Indigo
 import com.kiranoommen.wakesync.ui.theme.Lavender
@@ -44,10 +44,22 @@ import java.time.temporal.ChronoUnit
 fun WakeSyncScreen(
     sdkStatus: Int,
     hasPermission: Boolean,
+    backgroundReadAvailable: Boolean,
+    hasBackgroundReadPermission: Boolean,
+    exactAlarmAccess: Boolean,
+    notificationsAllowed: Boolean,
+    fullScreenAlarmAccess: Boolean,
+    wakePreferences: WakePreferences,
     loading: Boolean,
     nights: List<SleepNight>,
     errorMessage: String?,
     onConnect: () -> Unit,
+    onRequestExactAlarmAccess: () -> Unit,
+    onRequestNotifications: () -> Unit,
+    onRequestFullScreenAlarmAccess: () -> Unit,
+    onWakePreferencesChanged: (WakePreferences) -> Unit,
+    onAlarmEnabledChanged: (Boolean) -> Unit,
+    onImAwake: () -> Unit,
     onRefresh: () -> Unit
 ) {
     WakeSyncTheme {
@@ -84,7 +96,29 @@ fun WakeSyncScreen(
 
                 Spacer(Modifier.height(18.dp))
 
-                WakeWindowHero(hasPermission = hasPermission)
+                WakeWindowHero(
+                    hasPermission = hasPermission,
+                    preferences = wakePreferences,
+                    onImAwake = onImAwake
+                )
+
+                Spacer(Modifier.height(14.dp))
+
+                WakeSettingsCard(
+                    preferences = wakePreferences,
+                    sleepPermissionGranted = hasPermission,
+                    backgroundReadAvailable = backgroundReadAvailable,
+                    backgroundReadGranted = hasBackgroundReadPermission,
+                    exactAlarmAccess = exactAlarmAccess,
+                    notificationsAllowed = notificationsAllowed,
+                    fullScreenAlarmAccess = fullScreenAlarmAccess,
+                    onPreferencesChanged = onWakePreferencesChanged,
+                    onRequestHealthPermissions = onConnect,
+                    onRequestExactAlarmAccess = onRequestExactAlarmAccess,
+                    onRequestNotifications = onRequestNotifications,
+                    onRequestFullScreenAlarmAccess = onRequestFullScreenAlarmAccess,
+                    onAlarmEnabledChanged = onAlarmEnabledChanged
+                )
 
                 Spacer(Modifier.height(14.dp))
 
@@ -185,7 +219,11 @@ fun WakeSyncScreen(
 }
 
 @Composable
-private fun WakeWindowHero(hasPermission: Boolean) {
+private fun WakeWindowHero(
+    hasPermission: Boolean,
+    preferences: WakePreferences,
+    onImAwake: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -221,7 +259,11 @@ private fun WakeWindowHero(hasPermission: Boolean) {
 
                 Text(
                     modifier = Modifier.padding(top = 12.dp),
-                    text = if (hasPermission) "Learning your pattern" else "Connect sleep data",
+                    text = when {
+                        !hasPermission -> "Connect sleep data"
+                        preferences.enabled -> formatWakeRange(preferences)
+                        else -> "Set your wake range"
+                    },
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White
@@ -229,10 +271,13 @@ private fun WakeWindowHero(hasPermission: Boolean) {
 
                 Text(
                     modifier = Modifier.padding(top = 6.dp),
-                    text = if (hasPermission) {
-                        "We’ll calculate a different wake window each night from your own sleep history."
-                    } else {
-                        "Read-only Health Connect access is the first step."
+                    text = when {
+                        !hasPermission ->
+                            "Read-only Health Connect access is the first step."
+                        preferences.enabled ->
+                            "Live monitoring starts 45 minutes before your range. WakeSync uses fresh Awake or Light sleep first, switches to your saved sleep-history pattern 15 minutes before the deadline, and never goes past your end time."
+                        else ->
+                            "Choose the earliest and latest time you are willing to wake."
                     },
                     color = Color.White.copy(alpha = 0.82f)
                 )
@@ -240,8 +285,8 @@ private fun WakeWindowHero(hasPermission: Boolean) {
                 Spacer(Modifier.height(18.dp))
 
                 Button(
-                    onClick = { },
-                    enabled = false,
+                    onClick = onImAwake,
+                    enabled = preferences.enabled,
                     shape = RoundedCornerShape(22.dp),
                     colors = ButtonDefaults.buttonColors(
                         disabledContainerColor = Color.White.copy(alpha = 0.16f),
@@ -404,7 +449,7 @@ private fun SleepNightCard(night: SleepNight) {
                 }
 
                 Text(
-                    text = (durationMinutes / 60) + "h " + (durationMinutes % 60) + "m",
+                    text = "${durationMinutes / 60}h ${durationMinutes % 60}m",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -499,3 +544,11 @@ private fun formatMinutes(minutes: Long): String {
     val remainder = minutes % 60
     return if (hours > 0) hours.toString() + "h " + remainder + "m" else remainder.toString() + "m"
 }
+
+
+private val wakeRangeTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+
+private fun formatWakeRange(preferences: WakePreferences): String =
+    preferences.earliest.format(wakeRangeTimeFormatter) +
+        " – " +
+        preferences.latest.format(wakeRangeTimeFormatter)
