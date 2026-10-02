@@ -33,10 +33,12 @@ fun WakeSettingsCard(
     backgroundReadGranted: Boolean,
     exactAlarmAccess: Boolean,
     notificationsAllowed: Boolean,
+    fullScreenAlarmAccess: Boolean,
     onPreferencesChanged: (WakePreferences) -> Unit,
     onRequestHealthPermissions: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onRequestNotifications: () -> Unit,
+    onRequestFullScreenAlarmAccess: () -> Unit,
     onAlarmEnabledChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
@@ -47,6 +49,7 @@ fun WakeSettingsCard(
         backgroundReadGranted &&
         exactAlarmAccess &&
         notificationsAllowed &&
+        fullScreenAlarmAccess &&
         rangeValid
 
     Card(
@@ -151,6 +154,13 @@ fun WakeSettingsCard(
                 ready = notificationsAllowed,
                 actionLabel = "Allow",
                 onAction = onRequestNotifications
+            )
+
+            RequirementRow(
+                label = "Full-screen alarm",
+                ready = fullScreenAlarmAccess,
+                actionLabel = "Allow",
+                onAction = onRequestFullScreenAlarmAccess
             )
 
             Row(
