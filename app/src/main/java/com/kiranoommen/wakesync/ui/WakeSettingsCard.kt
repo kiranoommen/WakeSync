@@ -68,7 +68,7 @@ fun WakeSettingsCard(
 
             Text(
                 modifier = Modifier.padding(top = 5.dp),
-                text = "WakeSync starts checking live sleep 45 minutes before your range, wakes you at a favorable point inside it, and always alarms by the end time.",
+                text = "WakeSync starts checking live sleep 45 minutes before your range. At 15 minutes before your deadline it hands off to your saved sleep-history prediction; the deadline alarm remains the final fallback.",
                 color = colors.onSurfaceVariant
             )
 
