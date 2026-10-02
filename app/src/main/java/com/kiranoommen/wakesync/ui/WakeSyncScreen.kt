@@ -137,6 +137,7 @@ private enum class AppTab {
 private const val PAYPAL_DONATION_URL =
     "https://www.paypal.com/donate/?business=MNCUN6HWWXAEY&no_recurring=0&currency_code=USD"
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun WakeSyncScreen(
     sdkStatus: Int,
