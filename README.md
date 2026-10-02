@@ -85,7 +85,7 @@ Raw sleep records are read from Health Connect as needed rather than duplicated 
 - full-screen alarm handling
 - four-tab Home / Alarms / Sleep / Settings interface with swipe navigation
 - progressive alarm editor with advanced controls under More Options
-- redesigned full-screen ringing UI with per-alarm label, mode/reason context, and snooze
+- redesigned full-screen ringing UI with per-alarm label, mode/reason context, and Backup Alarm controls
 - alarm sound and vibration
 - reboot, clock-change, and timezone-change schedule restoration
 - local wake settings and derived history
