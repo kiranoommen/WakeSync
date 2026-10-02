@@ -93,11 +93,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessAlarm
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Settings
 import androidx.health.connect.client.HealthConnectClient
 import com.kiranoommen.wakesync.data.AppSettingsStore
-import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.domain.SleepAnalytics
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
@@ -144,35 +142,27 @@ fun WakeSyncScreen(
     nights: List<SleepNight>,
     schedules: List<AlarmSchedule>,
     exactAlarmAccess: Boolean,
-    hasAnalyticsPermission: Boolean,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
     sleepGoalMinutes: Int,
     goalsEnabled: Boolean,
-    dashboardWidgets: List<String>,
-    displayName: String,
     maxSmartWindowMinutes: Int,
-    retainGeneratedExports: Boolean,
     errorMessage: String?,
     onConnect: () -> Unit,
     onRefresh: () -> Unit,
     onSaveSchedule: (AlarmSchedule) -> Unit,
     onDeleteSchedule: (AlarmSchedule) -> Unit,
+    onDuplicateSchedule: (AlarmSchedule) -> Unit,
     onToggleSchedule: (AlarmSchedule, Boolean) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit,
-    onRequestAnalyticsAccess: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
     onGoalsEnabledChange: (Boolean) -> Unit,
-    onDashboardWidgetsChange: (List<String>) -> Unit,
-    onDisplayNameChange: (String) -> Unit,
-    onMaxSmartWindowChange: (Int) -> Unit,
-    onRetainGeneratedExportsChange: (Boolean) -> Unit,
-    onClearGeneratedExports: () -> Unit
+    onMaxSmartWindowChange: (Int) -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
     val darkTheme = when (themeMode) {
@@ -294,13 +284,7 @@ fun WakeSyncScreen(
                                 sleepGoalMinutes =
                                     sleepGoalMinutes,
                                 goalsEnabled =
-                                    goalsEnabled,
-                                dashboardWidgets =
-                                    dashboardWidgets,
-                                displayName =
-                                    displayName,
-                                onDashboardWidgetsChange =
-                                    onDashboardWidgetsChange
+                                    goalsEnabled
                             )
 
                         AppTab.ALARMS ->
@@ -317,6 +301,8 @@ fun WakeSyncScreen(
                                     editingSchedule =
                                         it
                                 },
+                                onDuplicate =
+                                    onDuplicateSchedule,
                                 onToggle =
                                     onToggleSchedule,
                                 onSkipNext =
@@ -327,40 +313,14 @@ fun WakeSyncScreen(
 
                         AppTab.SLEEP ->
                             SleepTab(
-                                nights =
-                                    nights,
-                                loading =
-                                    loading,
+                                nights = nights,
+                                loading = loading,
                                 sleepGoalMinutes =
                                     sleepGoalMinutes,
                                 goalsEnabled =
                                     goalsEnabled,
                                 onRefresh =
-                                    onRefresh,
-                                onShareCsv = {
-                                    SleepExporter
-                                        .shareCsv(
-                                            context,
-                                            it,
-                                            retainGeneratedExports
-                                        )
-                                },
-                                onSharePdf = {
-                                    SleepExporter
-                                        .sharePdf(
-                                            context,
-                                            it,
-                                            retainGeneratedExports
-                                        )
-                                },
-                                onShareStory = {
-                                    SleepExporter
-                                        .shareStoryCard(
-                                            context,
-                                            it,
-                                            retainGeneratedExports
-                                        )
-                                }
+                                    onRefresh
                             )
 
                         AppTab.SETTINGS ->
@@ -387,12 +347,28 @@ fun WakeSyncScreen(
                                     retainGeneratedExports,
                                 displayName =
                                     displayName,
+                                AppTab.SETTINGS ->
+                            SettingsTab(
+                                hasPermission =
+                                    hasPermission,
+                                exactAlarmAccess =
+                                    exactAlarmAccess,
+                                hasHistoryPermission =
+                                    hasHistoryPermission,
+                                historyReadAvailable =
+                                    historyReadAvailable,
+                                themeMode =
+                                    themeMode,
+                                sleepGoalMinutes =
+                                    sleepGoalMinutes,
+                                goalsEnabled =
+                                    goalsEnabled,
+                                maxSmartWindowMinutes =
+                                    maxSmartWindowMinutes,
                                 nights =
                                     nights,
                                 onConnect =
                                     onConnect,
-                                onRequestAnalyticsAccess =
-                                    onRequestAnalyticsAccess,
                                 onRequestHistoryAccess =
                                     onRequestHistoryAccess,
                                 onRequestExactAlarmAccess =
@@ -403,14 +379,8 @@ fun WakeSyncScreen(
                                     onSleepGoalChange,
                                 onGoalsEnabledChange =
                                     onGoalsEnabledChange,
-                                onDisplayNameChange =
-                                    onDisplayNameChange,
                                 onMaxSmartWindowChange =
-                                    onMaxSmartWindowChange,
-                                onRetainGeneratedExportsChange =
-                                    onRetainGeneratedExportsChange,
-                                onClearGeneratedExports =
-                                    onClearGeneratedExports
+                                    onMaxSmartWindowChange
                             )
                     }
                 }
