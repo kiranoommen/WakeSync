@@ -2700,11 +2700,6 @@ private fun AlarmsTab(
     var infoSheet by remember {
         mutableStateOf<MetricInfo?>(null)
     }
-    var showDonationQr by remember {
-        mutableStateOf(false)
-    }
-    val settingsContext =
-        LocalContext.current
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -3350,6 +3345,11 @@ private fun SettingsTab(
     var infoSheet by remember {
         mutableStateOf<MetricInfo?>(null)
     }
+    var showDonationQr by remember {
+        mutableStateOf(false)
+    }
+    val settingsContext =
+        LocalContext.current
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
