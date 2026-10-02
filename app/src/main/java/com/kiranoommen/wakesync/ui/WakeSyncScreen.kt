@@ -1089,7 +1089,7 @@ private fun DashboardWidgetTile(
                             title =
                                 "Smart Alarm Status",
                             meaning =
-                                "Guardrail Wake Time is the hard latest time the alarm will sound. Smart Wake Window is the optional earlier interval WakeSync can use.",
+                                "Guardrail Wake Time (Hard Deadline) is the latest time the alarm will sound. Smart Wake Window (Early Window) is the optional earlier interval WakeSync can use.",
                             measurement =
                                 "WakeSync schedules the hard deadline with Android and may choose an earlier wake point only inside the configured window.",
                             importance =
@@ -4666,7 +4666,7 @@ private fun AlarmEditorDialog(
                     }
                 ) {
                         Text(
-                            text = "Guardrail Wake Time  " + formatClock(draft.hour, draft.minute),
+                            text = "Guardrail Wake Time (Hard Deadline)  " + formatClock(draft.hour, draft.minute),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -4705,12 +4705,12 @@ private fun AlarmEditorDialog(
                 item {
                     Column {
                         Text(
-                            text = "Smart Wake Window",
+                            text = "Smart Wake Window (Early Window)",
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             modifier = Modifier.padding(top = 3.dp),
-                            text = "Early interval before the Guardrail Wake Time. WakeSync uses its on-device prediction to choose a gentler wake point; the guardrail remains the hard deadline.",
+                            text = "A user-controlled interval before the hard deadline. WakeSync uses your on-device sleep pattern to choose a gentler predicted wake point; the Guardrail Wake Time always wins.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -4802,7 +4802,7 @@ private fun AlarmEditorDialog(
 
                 item {
                     Text(
-                        text = "Smart Wake Window: WakeSync may choose a light-sleep point before the deadline. Guardrail Wake Time: " +
+                        text = "Smart Wake Window (Early Window): WakeSync may choose a gentler predicted wake point before the deadline. Guardrail Wake Time (Hard Deadline): " +
                             formatClock(draft.hour, draft.minute) +
                             " is the hard latest alarm time.",
                         style = MaterialTheme.typography.bodySmall
