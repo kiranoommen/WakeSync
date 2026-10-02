@@ -154,10 +154,7 @@ private fun AlarmScreen(
         ) {
             WakeSyncBrandMark(
                 modifier =
-                    Modifier.size(
-                        width = 58.dp,
-                        height = 46.dp
-                    )
+                    Modifier.size(54.dp)
             )
 
             Text(
