@@ -3108,6 +3108,7 @@ private fun WeeklyAlarmOverview(
     }
 }
 
+}
 @Composable
 private fun AlarmScheduleCard(
     schedule: AlarmSchedule,
