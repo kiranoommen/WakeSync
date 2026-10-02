@@ -8,6 +8,13 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+### Changed
+- shortened live-monitor lead time from 45 minutes to 15 minutes before the earliest allowed wake;
+- kept live Health Connect stage monitoring active throughout the full user wake window;
+- changed historical prediction from a T-15 handoff to an independently armed fallback limited to the final 10 minutes before the hard stop;
+- preserved the independent hard-stop alarm as the final safety net.
+
+
 ## 0.3.0 — 2026-10-01
 
 ### Added

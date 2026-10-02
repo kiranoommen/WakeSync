@@ -6,14 +6,16 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.kiranoommen.wakesync.MainActivity
+import com.kiranoommen.wakesync.data.WakeHistoryStore
 import com.kiranoommen.wakesync.model.WakePreferences
+import java.time.Duration
 import java.time.LocalDate
 import java.time.ZonedDateTime
 
 object WakeAlarmScheduler {
 
-    const val MONITOR_LEAD_MINUTES = 45L
-    const val PREDICTIVE_CUTOFF_MINUTES = 15L
+    const val MONITOR_LEAD_MINUTES = 15L
+    const val HISTORICAL_FALLBACK_WINDOW_MINUTES = 10L
 
     const val EXTRA_ALARM_REASON = "alarm_reason"
 
@@ -25,6 +27,7 @@ object WakeAlarmScheduler {
         val scheduled: Boolean,
         val monitorStart: ZonedDateTime? = null,
         val earliestWake: ZonedDateTime? = null,
+        val historicalFallbackWake: ZonedDateTime? = null,
         val hardDeadline: ZonedDateTime? = null
     )
 
@@ -112,12 +115,42 @@ object WakeAlarmScheduler {
         val zone = now.zone
         val earliest = date.atTime(preferences.earliest).atZone(zone)
         val deadline = date.atTime(preferences.latest).atZone(zone)
+
         val requestedMonitorStart = earliest.minusMinutes(MONITOR_LEAD_MINUTES)
         val monitorStart = if (requestedMonitorStart.isAfter(now)) {
             requestedMonitorStart
         } else {
             now.plusSeconds(2)
         }
+
+        val requestedFallbackStart =
+            deadline.minusMinutes(HISTORICAL_FALLBACK_WINDOW_MINUTES)
+        val fallbackStart = if (requestedFallbackStart.isAfter(earliest)) {
+            requestedFallbackStart
+        } else {
+            earliest
+        }
+
+        val fallbackWindowMinutes = Duration.between(
+            fallbackStart,
+            deadline
+        ).toMinutes().toInt().coerceAtLeast(0)
+
+        val historicalFallbackWake = WakeHistoryStore(context)
+            .load()
+            ?.let { profile ->
+                PredictiveWakeEngine.chooseWakeTime(
+                    profile = profile,
+                    now = now,
+                    deadline = deadline,
+                    fallbackWindowMinutes = fallbackWindowMinutes
+                )
+            }
+            ?.wakeAt
+            ?.takeIf { candidate ->
+                candidate.isAfter(now.plusSeconds(30)) &&
+                    candidate.isBefore(deadline)
+            }
 
         val alarmManager = context.getSystemService(AlarmManager::class.java)
 
@@ -126,6 +159,14 @@ object WakeAlarmScheduler {
             monitorStart.toInstant().toEpochMilli(),
             monitorPendingIntent(context)
         )
+
+        historicalFallbackWake?.let { wakeAt ->
+            schedulePredictiveWake(
+                context = context,
+                wakeAt = wakeAt,
+                reason = "Historical fallback from your recent sleep pattern"
+            )
+        }
 
         val showAlarmIntent = PendingIntent.getActivity(
             context,
@@ -146,6 +187,7 @@ object WakeAlarmScheduler {
             scheduled = true,
             monitorStart = monitorStart,
             earliestWake = earliest,
+            historicalFallbackWake = historicalFallbackWake,
             hardDeadline = deadline
         )
     }

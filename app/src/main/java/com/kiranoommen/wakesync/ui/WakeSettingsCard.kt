@@ -67,7 +67,7 @@ fun WakeSettingsCard(
 
             Text(
                 modifier = Modifier.padding(top = 5.dp),
-                text = "WakeSync starts checking live sleep 45 minutes before your range. At 15 minutes before your deadline it hands off to your saved sleep-history prediction; the deadline alarm remains the final fallback.",
+                text = "WakeSync starts live sleep monitoring 15 minutes before your range. Live stages stay primary throughout the wake window. A saved-history fallback is armed only in the final 10 minutes, while your hard deadline remains independent.",
                 color = colors.onSurfaceVariant
             )
 

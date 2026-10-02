@@ -71,7 +71,7 @@ Delivered:
 - hard wake deadline;
 - live-stage freshness checks;
 - live Awake / Light wake decisions;
-- predictive T-15 fallback;
+- live-through historical fallback limited to the final 10 minutes;
 - historical stage normalization;
 - minimum-history threshold;
 - hard-stop fallback.

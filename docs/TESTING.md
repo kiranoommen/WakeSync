@@ -41,13 +41,13 @@ Verify:
 ### 2. Wake-range boundaries
 
 For a test range such as 6:20–7:00:
-- monitor starts at 5:35;
+- monitor starts at 6:05;
 - no alarm fires before 6:20;
-- live logic stops being the primary decision path at 6:45;
-- no predictive wake is scheduled before 6:45;
+- live monitoring remains active from 6:20 until a wake path fires;
+- historical fallback, when available, is constrained to 6:50–7:00;
 - hard-stop alarm remains scheduled for 7:00.
 
-Also test a wake range shorter than 15 minutes. Predictive logic must never schedule earlier than the user's earliest wake time.
+Also test a wake range shorter than 10 minutes. Historical fallback must never schedule earlier than the user's earliest wake time.
 
 ### 3. Fresh live data
 
@@ -70,15 +70,15 @@ Test:
 Expected:
 - do not pretend the stage is live;
 - do not wake early based on stale data;
-- proceed to predictive fallback;
+- allow the separately armed historical fallback to fire if live data never produces a favorable stage;
 - preserve the hard stop.
 
 ### 5. Predictive fallback
 
 With at least three usable historical nights:
 - build and store a profile;
-- enter the final 15-minute window;
-- verify the highest-scoring eligible remaining candidate is selected;
+- enter the final 10-minute fallback window;
+- verify the highest-scoring eligible candidate is armed without stopping live monitoring;
 - verify the predictive alarm never exceeds the hard deadline.
 
 With insufficient history:
