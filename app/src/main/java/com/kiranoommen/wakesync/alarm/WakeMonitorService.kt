@@ -50,6 +50,10 @@ class WakeMonitorService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        stopSelf(startId)
+    }
+
     private suspend fun monitorUntilWake() {
         val store = WakePreferencesStore(applicationContext)
         val healthConnect = HealthConnectManager(applicationContext)
