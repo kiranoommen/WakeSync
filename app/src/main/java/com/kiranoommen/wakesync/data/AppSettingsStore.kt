@@ -7,6 +7,14 @@ class AppSettingsStore(context: Context) {
     private val prefs =
         context.getSharedPreferences("wakesync_settings", Context.MODE_PRIVATE)
 
+    var oobeStarted: Boolean
+        get() = prefs.getBoolean(KEY_OOBE_STARTED, false)
+        set(value) {
+            prefs.edit()
+                .putBoolean(KEY_OOBE_STARTED, value)
+                .apply()
+        }
+
     var oobeCompleted: Boolean
         get() = prefs.getBoolean(KEY_OOBE_COMPLETED, false)
         set(value) {
@@ -109,6 +117,7 @@ class AppSettingsStore(context: Context) {
                 WIDGET_ALARM
             )
 
+        private const val KEY_OOBE_STARTED = "oobe_started"
         private const val KEY_OOBE_COMPLETED = "oobe_completed"
         private const val KEY_THEME = "theme_mode"
         private const val KEY_SLEEP_GOAL = "sleep_goal_minutes"
