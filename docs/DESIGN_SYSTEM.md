@@ -1,4 +1,14 @@
-# WakeSync Design System
+# ✨ WakeSync Design System
+
+<p align="center">
+  <a href="README.md"><strong>Docs Hub</strong></a> ·
+  <a href="BRANDING.md">Brand</a> ·
+  <a href="DESIGN_SYSTEM.md">Design</a> ·
+  <a href="ARCHITECTURE.md">Architecture</a> ·
+  <a href="WAKE_WINDOW_ALGORITHM.md">Wake Algorithm</a> ·
+  <a href="TESTING.md">Testing</a> ·
+  <a href="PRIVACY.md">Privacy</a>
+</p>
 
 For outward-facing naming, voice, positioning, and brand usage, see [BRANDING.md](BRANDING.md).
 
@@ -23,9 +33,13 @@ The UI should feel premium and fluid, but production usability takes priority ov
 4. **Comfortable touch targets** — interactive rows and buttons should target at least 48dp height.
 5. **Dark and light mode are first-class** — neither should look like an afterthought.
 
-## Color tokens
+## 🎨 Color tokens
 
-These are starting values, not final brand lockups.
+<p align="center">
+  <img src="assets/brand-palette.svg" alt="WakeSync design-system color palette" width="100%" />
+</p>
+
+These are the shared product and brand tokens.
 
 ### Dark mode
 
@@ -66,7 +80,7 @@ Recommended scale:
 
 Avoid overly thin weights for important health/sleep information.
 
-## Core components
+## 🧩 Core components
 
 ### WakeWindowCard
 
@@ -131,7 +145,7 @@ Shows the source or ecosystem currently contributing sleep records, for example:
 
 Health Connect is the Android data layer. Fitbit should only be shown as directly connected if WakeSync can verify it as the data origin or if a direct Fitbit integration is added later.
 
-## Motion
+## 🌊 Motion
 
 Motion should reinforce state, not decorate every element.
 
@@ -148,7 +162,7 @@ Avoid:
 - aggressive pulsing;
 - animation that could interfere with someone using the app immediately after waking.
 
-## Accessibility
+## ♿ Accessibility
 
 - 48dp minimum interactive target.
 - Do not communicate sleep stages by color alone.
