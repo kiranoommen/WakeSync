@@ -1,4 +1,8 @@
-# Changelog
+<p align="center">
+  <img src="docs/assets/wakesync-mark.svg" alt="WakeSync mark" width="110" />
+</p>
+
+# 📜 Changelog
 
 All notable WakeSync changes should be recorded here.
 
