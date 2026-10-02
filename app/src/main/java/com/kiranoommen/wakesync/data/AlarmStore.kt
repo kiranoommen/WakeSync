@@ -37,7 +37,8 @@ class AlarmStore(context: Context) {
             schedule.skippedDates.sorted().joinToString(","),
             schedule.soundEnabled.toString(),
             schedule.vibrationEnabled.toString(),
-            schedule.snoozeMinutes.toString()
+            schedule.snoozeMinutes.toString(),
+            schedule.mode.name
         ).joinToString("|")
     }
 
@@ -65,7 +66,14 @@ class AlarmStore(context: Context) {
                     .toSet(),
                 soundEnabled = parts.getOrNull(9)?.toBooleanStrictOrNull() ?: true,
                 vibrationEnabled = parts.getOrNull(10)?.toBooleanStrictOrNull() ?: true,
-                snoozeMinutes = parts.getOrNull(11)?.toIntOrNull() ?: 5
+                snoozeMinutes = parts.getOrNull(11)?.toIntOrNull() ?: 5,
+                mode = parts.getOrNull(12)
+                    ?.let { runCatching { com.kiranoommen.wakesync.model.AlarmMode.valueOf(it) }.getOrNull() }
+                    ?: if (parts[5].toIntOrNull() == 0) {
+                        com.kiranoommen.wakesync.model.AlarmMode.STANDARD
+                    } else {
+                        com.kiranoommen.wakesync.model.AlarmMode.SMART_WAKE
+                    }
             )
         }.getOrNull()
     }
