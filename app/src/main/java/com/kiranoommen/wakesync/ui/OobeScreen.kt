@@ -262,8 +262,8 @@ private fun OobeWelcome(
     OobePage(
         modifier = modifier,
         eyebrow = "WELCOME",
-        title = "Wake better, without guessing.",
-        body = "WakeSync turns your Health Connect sleep history into a private, personalized morning experience — with protected alarm deadlines and clear sleep trends.",
+        title = "Let’s set up WakeSync.",
+        body = "A quick first-run setup personalizes your greeting, appearance, sleep connection, and alarm reliability. WakeSync keeps your health data on-device.",
         footer = "Your health data stays on your device."
     )
 }
