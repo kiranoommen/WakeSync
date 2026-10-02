@@ -2,100 +2,133 @@
 
 ## Milestone 1 — Health Connect proof of concept
 
-Status: **in progress**
+Status: **complete**
 
-Success criteria:
-
-- app installs on Android;
-- read-only sleep permission can be granted;
-- recent sleep sessions load;
-- stage segments display;
-- source package is visible;
-- Fitbit-originated data can be identified or its absence clearly diagnosed.
+Delivered:
+- Android app shell;
+- read-only sleep permission;
+- recent sleep-session loading;
+- sleep-stage parsing and display;
+- source package visibility;
+- Fitbit/Health Connect data-path validation tooling.
 
 ## Milestone 2 — Production UI shell
 
-Build the locked WakeSync visual direction in both dark and light mode.
+Status: **in progress**
 
-Screens:
+Delivered:
+- core WakeSync visual direction;
+- dark/light-aware color system;
+- wake-window hero;
+- Smart Wake setup card;
+- privacy messaging;
+- sleep-session summaries;
+- alarm screen.
 
-1. Onboarding / permission
-2. Home
-3. Sleep details
-4. Settings / wake preferences
-
-Components:
-
-- wake-window hero card;
-- “I’m awake” CTA;
-- fluid sleep-stage chart;
-- sleep-stage summary cards;
-- stage detail rows;
-- privacy banner;
-- Health Connect source/status.
+Remaining:
+- richer sleep-detail presentation;
+- production app icon / logo;
+- onboarding polish;
+- final screenshot and accessibility pass.
 
 ## Milestone 3 — Local persistence
 
-Add Room for:
+Status: **partially complete**
 
-- wake preferences;
-- derived sleep summaries;
-- morning wake feedback;
-- recommendation history.
+Delivered:
+- wake preferences stored locally;
+- derived historical wake profile stored locally.
 
-No cloud account required.
+Remaining:
+- decide whether Room is actually necessary;
+- persist morning feedback if/when feedback-driven learning is added;
+- persist recommendation/wake-event history only if it materially improves the product.
+
+A database should not be added only because it appeared in the original roadmap.
 
 ## Milestone 4 — Wake Window Engine v1
 
-Implement:
+Status: **implemented; needs real-world validation**
 
+Delivered:
 - earliest wake boundary;
 - hard wake deadline;
+- live-stage freshness checks;
+- live Awake / Light wake decisions;
+- predictive T-15 fallback;
 - historical stage normalization;
-- nightly personalized calculation;
-- learning/confidence state;
-- fallback behavior when data is sparse.
+- minimum-history threshold;
+- hard-stop fallback.
+
+Remaining:
+- validate thresholds using real overnight data;
+- add user-facing confidence/readiness state only after measurements justify it.
 
 ## Milestone 5 — Alarm behavior
 
-Implement reliable Android alarm scheduling.
+Status: **implemented; reliability testing in progress**
 
-Requirements:
+Delivered:
+- exact monitor-start alarm;
+- independent hard-stop alarm;
+- exact predictive fallback alarm;
+- foreground monitoring service;
+- alarm sound and vibration;
+- full-screen alarm flow;
+- reboot / time / timezone restoration;
+- “I’m awake” handling.
 
-- final deadline alarm cannot be skipped by recommendation logic;
-- clear handling for battery optimization and exact alarms;
-- morning CTA;
-- snooze strategy;
-- wake feedback.
+Remaining:
+- OEM battery-management testing;
+- repeated overnight device testing;
+- snooze strategy, if product requirements call for one.
 
 ## Milestone 6 — Real-world Fitbit testing
 
-Test on multiple nights with Fitbit-originated sleep data.
+Status: **next priority**
 
-Validate:
+Validate across multiple nights:
 
-- when Health Connect receives stage records;
-- whether data is available before the user has already woken;
-- whether predictive mode or live mode is practical;
+- when Fitbit-originated stage records reach Health Connect;
+- whether stages are fresh enough during the wake window;
 - source attribution consistency;
-- stage completeness.
+- completeness of stage data;
+- which fallback layer actually fires;
+- whether background reads behave consistently with the phone locked and idle.
 
-## Milestone 7 — Broader Android ecosystem
+Use the [testing plan](TESTING.md).
 
-Only after Fitbit MVP is solid:
+## Milestone 7 — Feedback and personalization
 
-- Samsung Health / Galaxy Watch via Health Connect;
-- Amazfit / Zepp via Health Connect where supported;
-- WHOOP direct integration only if Health Connect is insufficient.
+Status: **planned after reliability validation**
+
+Potential work:
+- morning “how did that wake feel?” feedback;
+- confidence based on data sufficiency;
+- history weighting by recency;
+- source-specific reliability adjustments;
+- explainable reason for the selected wake time.
+
+Do not add complexity until the overnight data path is understood.
+
+## Milestone 8 — Broader Android ecosystem
+
+Status: **later**
+
+Only after the Fitbit/Health Connect path is solid:
+
+- Samsung Health / Galaxy Watch through Health Connect;
+- Amazfit / Zepp where supported;
+- direct integrations only when Health Connect is insufficient.
 
 ## Free-app cost strategy
 
 Keep recurring cost close to zero:
 
 - on-device processing;
-- no health-data backend;
+- no required health-data backend;
 - no required account;
 - no paid analytics dependency;
-- Health Connect as the common Android data layer.
+- Health Connect as the shared Android data layer.
 
-A backend should only be introduced when a feature clearly requires it.
+Introduce a backend only when a feature genuinely requires it.
