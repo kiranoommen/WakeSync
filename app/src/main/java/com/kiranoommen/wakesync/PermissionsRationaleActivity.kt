@@ -53,11 +53,11 @@ class PermissionsRationaleActivity : ComponentActivity() {
                         )
                         Text(
                             modifier = Modifier.padding(top = 12.dp),
-                            text = "HRV, resting heart rate, and extended history are optional permissions used only when you enable those analytics."
+                            text = "For live overnight Smart Wake decisions, a compatible fitness tracker is strongly recommended. Phone-only sleep estimates usually cannot provide fresh live sleep stages."
                         )
                         Text(
                             modifier = Modifier.padding(top = 12.dp),
-                            text = "WakeSync does not upload, sell, share, or modify your Health Connect data. CSV, PDF, and story exports are generated locally only when you choose to share them."
+                            text = "Extended history is optional. WakeSync does not upload, sell, share, or modify your Health Connect data."
                         )
                     }
                 }
