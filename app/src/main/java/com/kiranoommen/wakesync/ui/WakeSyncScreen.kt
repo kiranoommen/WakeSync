@@ -95,6 +95,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Settings
 import androidx.health.connect.client.HealthConnectClient
+import com.kiranoommen.wakesync.R
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.domain.SleepAnalytics
@@ -118,6 +119,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private enum class AppTab {
