@@ -1,8 +1,22 @@
-# WakeSync Testing Plan
+# 🧪 WakeSync Testing Plan
+
+<p align="center">
+  <a href="README.md"><strong>Docs Hub</strong></a> ·
+  <a href="BRANDING.md">Brand</a> ·
+  <a href="DESIGN_SYSTEM.md">Design</a> ·
+  <a href="ARCHITECTURE.md">Architecture</a> ·
+  <a href="WAKE_WINDOW_ALGORITHM.md">Wake Algorithm</a> ·
+  <a href="TESTING.md">Testing</a> ·
+  <a href="PRIVACY.md">Privacy</a>
+</p>
 
 Alarm reliability is the highest-priority behavior in WakeSync. Live and predictive wake logic are optimizations; the hard stop is the safety net.
 
-## CI baseline
+<p align="center">
+  <img src="assets/smart-wake-flow.svg" alt="WakeSync fallback ladder under test" width="100%" />
+</p>
+
+## ✅ CI baseline
 
 Every pull request should pass:
 
@@ -12,7 +26,7 @@ gradle :app:assembleDebug
 
 CI proves the project compiles. It does not prove overnight alarm reliability.
 
-## Required manual test matrix
+## 📋 Required manual test matrix
 
 ### 1. Basic setup
 
@@ -123,7 +137,7 @@ Verify:
 - notification content does not expose sensitive stage/history detail unnecessarily;
 - only required Health Connect permissions are requested.
 
-## Real-world overnight validation
+## 🌙 Real-world overnight validation
 
 Before treating live wake as production-ready, collect repeated tests across actual overnight wearable sync behavior.
 
