@@ -20,5 +20,7 @@ data class SleepNight(
     val start: Instant,
     val end: Instant,
     val stages: List<SleepStageSegment>,
-    val sourcePackage: String
+    val sourcePackage: String,
+    val restingHeartRateBpm: Long? = null,
+    val averageHrvMs: Double? = null
 )

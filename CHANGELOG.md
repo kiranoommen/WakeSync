@@ -8,7 +8,23 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+## 0.3.0 — 2026-10-01
+
 ### Added
+- branded multi-tab app shell and onboarding;
+- detailed sleep analytics and sleep log;
+- optional HRV and resting-heart-rate analytics;
+- optional extended Health Connect history access;
+- local CSV, PDF, and story-card exports;
+- theme, sleep-goal, profile, and export-retention settings;
+- sleep-metrics calculation and product-claim guardrails.
+
+### Changed
+- merged the mature UI/analytics work onto the newer live Smart Wake architecture without restoring the retired multi-alarm scheduler;
+- expanded the Health Connect permission rationale and privacy documentation;
+- preserved the live → T-15 historical prediction → independent hard-stop alarm flow.
+
+### Existing repository improvements
 - branded adaptive launcher icon using the current WakeSync palette;
 - visual repository banner, smart-wake flow, palette, and privacy artwork;
 - visual documentation hub and branded cross-navigation.

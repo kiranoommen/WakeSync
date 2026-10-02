@@ -24,7 +24,7 @@ Delivered:
 
 ## Milestone 2 — Production UI shell
 
-Status: **in progress**
+Status: **substantially implemented; polish and device validation remain**
 
 Delivered:
 - core WakeSync visual direction;
@@ -35,7 +35,11 @@ Delivered:
 - Smart Wake setup card;
 - privacy messaging;
 - sleep-session summaries;
-- alarm screen.
+- alarm screen;
+- onboarding;
+- sleep analytics dashboard and log;
+- local CSV/PDF/story exports;
+- optional HRV/resting-heart-rate context.
 
 Remaining:
 - richer sleep-detail presentation;
