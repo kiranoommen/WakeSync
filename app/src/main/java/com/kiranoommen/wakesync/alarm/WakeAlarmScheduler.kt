@@ -120,6 +120,9 @@ object WakeAlarmScheduler {
         if (preferences.mode == AlarmMode.STANDARD) {
             alarmManager.cancel(monitorPendingIntent(context))
             cancelPredictive(context)
+            context.stopService(
+                Intent(context, WakeMonitorService::class.java)
+            )
 
             val alarmAt = date.atTime(preferences.standardTime).atZone(
                 ZonedDateTime.now().zone
