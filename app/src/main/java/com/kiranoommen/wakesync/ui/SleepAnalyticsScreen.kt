@@ -130,7 +130,6 @@ fun SleepAnalyticsScreen(
     var customEnd by remember { mutableStateOf<LocalDate?>(null) }
     var showCustomRange by remember { mutableStateOf(false) }
     var selectedNight by remember { mutableStateOf<NightAnalytics?>(null) }
-    var showScoreBreakdown by remember { mutableStateOf(false) }
     var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
 
     val today = LocalDate.now()
@@ -247,45 +246,10 @@ fun SleepAnalyticsScreen(
                 }
             )
         } else {
-            ScoreHeroCard(
-                analytics = analytics,
-                previous = previousAnalytics,
-                targetSleepMinutes = targetSleepMinutes,
-                goalsEnabled = goalsEnabled,
-                onScoreClick = { showScoreBreakdown = true },
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "WakeSync Sleep Score",
-                        meaning = "A 0–100 wellness summary of how your recent sleep compares with your own goals and pattern.",
-                        measurement = "40% Duration + 25% Efficiency + 20% Regularity + 15% Latency. It is a WakeSync wellness score, not a clinical score.",
-                        importance = "The score compresses several signals into one quick glance while the pillar breakdown keeps the math transparent."
-                    )
-                }
-            )
-
             SleepRangeQuickTiles(
                 analytics = analytics,
                 onInfo = {
                     infoSheet = it
-                }
-            )
-
-            InsightCard(
-                text = if (goalsEnabled) {
-                    SleepAnalytics.insightFor(
-                        analytics,
-                        targetSleepMinutes
-                    )
-                } else {
-                    pureSleepInsight(analytics)
-                },
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "WakeSync Insight",
-                        meaning = "A plain-language observation generated from your recent local sleep trend.",
-                        measurement = "WakeSync compares recent duration, consistency and stage trends on-device. No health data is sent to a cloud AI service.",
-                        importance = "A useful insight should help you notice repeatable patterns, not make a diagnosis from one night."
-                    )
                 }
             )
 
@@ -317,38 +281,6 @@ fun SleepAnalyticsScreen(
                 }
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(10.dp)
-            ) {
-                ArchitectureCard(
-                    modifier = Modifier.weight(1f),
-                    analytics = analytics,
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Architecture & regularity",
-                            meaning = "Stage ratios summarize Deep and REM trends. SRI estimates how consistent your sleep/wake timing is from day to day.",
-                            measurement = "Stage ratios use wearable-classified stage minutes. SRI compares sleep/wake state in 15-minute clock-time epochs on adjacent tracked days.",
-                            importance = "Regularity can make sleep timing more predictable, while stage ratios are best treated as personal trends rather than fixed targets."
-                        )
-                    }
-                )
-
-                RecoveryCard(
-                    modifier = Modifier.weight(1f),
-                    analytics = analytics,
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Biometric recovery",
-                            meaning = "HRV means Heart Rate Variability: beat-to-beat timing variation used as a recovery trend. RHR means Resting Heart Rate: your resting pulse rate.",
-                            measurement = "WakeSync reads optional HRV and RHR records from Health Connect and summarizes the values associated with recent nights.",
-                            importance = "These metrics are usually most useful relative to your own baseline, not a universal good/bad threshold."
-                        )
-                    }
-                )
-            }
-
             SleepLogCard(
                 analytics = allAnalytics,
                 sort = sort,
@@ -379,15 +311,6 @@ fun SleepAnalyticsScreen(
         info = infoSheet,
         onDismiss = { infoSheet = null }
     )
-
-    if (showScoreBreakdown) {
-        ScoreBreakdownSheet(
-            analytics = analytics,
-            onDismiss = {
-                showScoreBreakdown = false
-            }
-        )
-    }
 
     if (selectedNight != null) {
         NightBreakdownSheet(
