@@ -110,17 +110,23 @@ class AlarmRingingService : Service() {
         val notification = Notification.Builder(this, ALARM_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(
-                if (smart) {
-                    "WakeSync · Smart Wake"
-                } else {
-                    "WakeSync · Standard Alarm"
+                when {
+                    kind == "test" ->
+                        "WakeSync · Test Alarm"
+                    smart ->
+                        "WakeSync · Smart Wake"
+                    else ->
+                        "WakeSync · Standard Alarm"
                 }
             )
             .setContentText(
-                if (smart) {
-                    "WakeSync chose this wake moment."
-                } else {
-                    "Your alarm is ringing."
+                when {
+                    kind == "test" ->
+                        "Testing alarm sound, vibration and full-screen behavior."
+                    smart ->
+                        "WakeSync chose this wake moment."
+                    else ->
+                        "Your alarm is ringing."
                 }
             )
             .setCategory(Notification.CATEGORY_ALARM)
