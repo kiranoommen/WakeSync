@@ -173,6 +173,9 @@ fun WakeSyncScreen(
     onRequestHistoryAccess: () -> Unit,
     onWakeFeedback: (String, WakeFeedback) -> Unit,
     onClearWakeHistory: () -> Unit,
+    onRequestBackgroundSmartWakeAccess: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
+    onOpenFullScreenSettings: () -> Unit,
     onTestAlarm: () -> Unit,
     onOpenAlarmVolumeSettings: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
@@ -385,6 +388,12 @@ fun WakeSyncScreen(
                                     onRequestHistoryAccess,
                                 onRequestExactAlarmAccess =
                                     onRequestExactAlarmAccess,
+                                onRequestBackgroundSmartWakeAccess =
+                                    onRequestBackgroundSmartWakeAccess,
+                                onOpenNotificationSettings =
+                                    onOpenNotificationSettings,
+                                onOpenFullScreenSettings =
+                                    onOpenFullScreenSettings,
                                 onTestAlarm =
                                     onTestAlarm,
                                 onOpenAlarmVolumeSettings =
@@ -3330,6 +3339,9 @@ private fun SettingsTab(
     onConnect: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
+    onRequestBackgroundSmartWakeAccess: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
+    onOpenFullScreenSettings: () -> Unit,
     onTestAlarm: () -> Unit,
     onOpenAlarmVolumeSettings: () -> Unit,
     onThemeModeChange: (String) -> Unit,
@@ -3620,6 +3632,12 @@ private fun SettingsTab(
                 alarmVolumePercent = alarmVolumePercent,
                 onGrantExactAlarmAccess =
                     onRequestExactAlarmAccess,
+                onRequestBackgroundSmartWakeAccess =
+                    onRequestBackgroundSmartWakeAccess,
+                onOpenNotificationSettings =
+                    onOpenNotificationSettings,
+                onOpenFullScreenSettings =
+                    onOpenFullScreenSettings,
                 onOpenAlarmVolumeSettings =
                     onOpenAlarmVolumeSettings,
                 onTestAlarm = onTestAlarm
