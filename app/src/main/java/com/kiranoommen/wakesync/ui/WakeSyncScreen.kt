@@ -574,6 +574,23 @@ private fun HomeTab(
             }
         }
 
+        item {
+            SmartWakeStatusCard(
+                readiness = smartWakeReadiness,
+                nextSchedule = next?.first
+            )
+        }
+
+        if (wakeEvents.isNotEmpty()) {
+            item {
+                WakeHistorySection(
+                    events = wakeEvents,
+                    onFeedback = onWakeFeedback,
+                    onClear = onClearWakeHistory
+                )
+            }
+        }
+
         if (
             sdkStatus == HealthConnectClient.SDK_UNAVAILABLE ||
             sdkStatus == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
@@ -3302,6 +3319,8 @@ private fun SleepTab(
 private fun SettingsTab(
     hasPermission: Boolean,
     exactAlarmAccess: Boolean,
+    smartWakeReadiness: SmartWakeReadiness,
+    alarmVolumePercent: Int,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
@@ -3311,6 +3330,8 @@ private fun SettingsTab(
     onConnect: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
+    onTestAlarm: () -> Unit,
+    onOpenAlarmVolumeSettings: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
     onGoalsEnabledChange: (Boolean) -> Unit
@@ -3594,95 +3615,15 @@ private fun SettingsTab(
         }
 
         item {
-            SettingsBentoCard(
-                title = "Permissions & Reliability",
-                borderColor =
-                    if (exactAlarmAccess) {
-                        Mint.copy(alpha = 0.28f)
-                    } else {
-                        Sunrise.copy(alpha = 0.34f)
-                    },
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Exact alarm reliability",
-                        meaning = "Android exact-alarm access lets WakeSync protect the Must be awake by with precise OS scheduling.",
-                        measurement = "WakeSync checks Android's exact-alarm capability. If access was skipped during onboarding, you can grant it here at any time.",
-                        importance = "Without exact-alarm access, Android power management can delay time-critical alarms."
-                    )
-                }
-            ) {
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.SpaceBetween,
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier =
-                            Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text =
-                                "Exact alarm access",
-                            fontWeight =
-                                FontWeight.ExtraBold
-                        )
-                        Text(
-                            modifier =
-                                Modifier.padding(
-                                    top = 3.dp
-                                ),
-                            text =
-                                if (
-                                    exactAlarmAccess
-                                ) {
-                                    "Reliable wake-by scheduling enabled"
-                                } else {
-                                    "Action Required · exact-alarm access was not granted during setup"
-                                },
-                            style =
-                                MaterialTheme.typography.bodySmall,
-                            color =
-                                if (
-                                    exactAlarmAccess
-                                ) {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                } else {
-                                    Sunrise
-                                }
-                        )
-                    }
-
-                    ConnectionBadge(
-                        connected =
-                            exactAlarmAccess,
-                        connectedLabel = "Granted",
-                        disconnectedLabel = "Action Required"
-                    )
-                }
-
-                if (!exactAlarmAccess) {
-                    Button(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                        onClick = onRequestExactAlarmAccess,
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Amber,
-                            contentColor = Color(0xFF15192A)
-                        )
-                    ) {
-                        Text(
-                            text = "Grant exact alarm access",
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    }
-                }
-
-            }
+            AlarmReliabilityCard(
+                readiness = smartWakeReadiness,
+                alarmVolumePercent = alarmVolumePercent,
+                onGrantExactAlarmAccess =
+                    onRequestExactAlarmAccess,
+                onOpenAlarmVolumeSettings =
+                    onOpenAlarmVolumeSettings,
+                onTestAlarm = onTestAlarm
+            )
         }
 
         item {
