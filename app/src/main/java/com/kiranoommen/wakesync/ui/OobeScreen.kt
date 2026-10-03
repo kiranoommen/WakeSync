@@ -28,15 +28,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -60,11 +56,9 @@ import com.kiranoommen.wakesync.ui.theme.WakeSyncTheme
 fun OobeScreen(
     sdkStatus: Int,
     themeMode: String,
-    displayName: String,
     hasPermission: Boolean,
     exactAlarmAccess: Boolean,
     onThemeModeChange: (String) -> Unit,
-    onDisplayNameChange: (String) -> Unit,
     onConnect: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onFinish: () -> Unit
@@ -239,68 +233,9 @@ private fun OobeWelcome(
         modifier = modifier,
         eyebrow = "WELCOME",
         title = "Let’s set up WakeSync.",
-        body = "A quick first-run setup covers appearance, optional sleep connection, and alarm reliability. Standard Alarm works without health data.",
-        footer = "Your health data stays on your device."
+        body = "WakeSync is built around Smart Wake: use your overnight sleep data to find a better moment to wake, while a must-be-awake time protects you from being late.",
+        footer = "For live Smart Wake, a fitness tracker or smartwatch is strongly recommended. Your health data stays on your device."
     )
-}
-
-@Composable
-private fun OobeName(
-    modifier: Modifier,
-    name: String,
-    onNameChange: (String) -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 42.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Text(
-            text = "PERSONALIZE",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = Lavender
-        )
-        Text(
-            text = "What should WakeSync call you?",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = colors.onBackground
-        )
-        Text(
-            text = "This is only used for greetings like “Good morning, Alex” and is stored locally.",
-            color = colors.onSurfaceVariant
-        )
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = colors.surface.copy(alpha = 0.68f),
-                contentColor = colors.onSurface
-            )
-        ) {
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                value = name,
-                onValueChange = onNameChange,
-                singleLine = true,
-                label = {
-                    Text("Preferred name")
-                },
-                placeholder = {
-                    Text("Alex")
-                }
-            )
-        }
-    }
 }
 
 @Composable
