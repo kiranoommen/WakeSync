@@ -23,6 +23,17 @@ All notable WakeSync changes should be recorded here.
 - dashboard customization from the active Home experience;
 - CSV, PDF, and story-card export controls from the active Sleep experience.
 
+### Added
+- **Tomorrow only / Weekdays / Every day / Custom** schedule presets;
+- duplicate-alarm workflow that opens an editable copy;
+- alarm-card swipe gestures: right to toggle, left to duplicate, with haptic feedback;
+- first architecture split: AlarmEditor and full-screen ringing UI now live in dedicated UI modules.
+
+### Simplified
+- Sleep now focuses on duration, efficiency, stage timeline, trends, and the sleep log instead of recovery scoring and physiological metrics;
+- HRV/resting-heart-rate setup removed from the active UI;
+- Snooze scheduling/controller paths removed.
+
 ### Product direction
 WakeSync is an alarm app first. Sleep data exists to improve and explain Smart Wake, not to compete with full sleep-tracking apps.
 
