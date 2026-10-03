@@ -22,7 +22,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -112,21 +111,6 @@ class AlarmActivity : ComponentActivity() {
                         }
                         finish()
                     },
-                    onSnooze = {
-                        val id = schedule?.id
-                        val minutes =
-                            schedule?.snoozeMinutes ?: 0
-
-                        if (id != null && minutes > 0) {
-                            MultiAlarmController.snooze(
-                                context = this@AlarmActivity,
-                                scheduleId = id,
-                                minutes = minutes,
-                                deadlineMillis = deadlineMillis
-                            )
-                        }
-                        finish()
-                    }
                 )
             }
         }
@@ -139,8 +123,7 @@ private fun AlarmRingingScreen(
     kind: String,
     schedule: AlarmSchedule?,
     onDismissCurrent: () -> Unit,
-    onStopSequence: () -> Unit,
-    onSnooze: () -> Unit
+    onStopSequence: () -> Unit
 ) {
     var now by remember {
         mutableStateOf(LocalDateTime.now())
@@ -380,28 +363,6 @@ private fun AlarmRingingScreen(
 
             Spacer(Modifier.weight(1f))
 
-            if (
-                !remainingSequence &&
-                (schedule?.snoozeMinutes ?: 0) > 0
-            ) {
-                OutlinedButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(58.dp),
-                    onClick = onSnooze,
-                    shape =
-                        RoundedCornerShape(22.dp)
-                ) {
-                    Text(
-                        text =
-                            "SNOOZE ${schedule?.snoozeMinutes} MIN",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
-            }
-
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -424,7 +385,7 @@ private fun AlarmRingingScreen(
                 Text(
                     text =
                         if (remainingSequence) {
-                            "DISMISS THIS RING"
+                            "DISMISS — NEXT ALARM STAYS ON"
                         } else {
                             "I’M AWAKE"
                         },
@@ -449,7 +410,7 @@ private fun AlarmRingingScreen(
 
                 Text(
                     text =
-                        "Dismiss keeps your safety alarms armed.",
+                        "Dismiss keeps your remaining alarms armed.",
                     style =
                         MaterialTheme.typography.bodySmall,
                     color =
@@ -486,10 +447,10 @@ private fun alarmReasonCopy(reason: String): String =
             "Your saved sleep pattern reached its fallback wake point."
 
         reason.startsWith("Hard wake deadline") ->
-            "You reached your hard wake deadline."
+            "You reached your must-be-awake time."
 
-        reason.startsWith("Backup ring") ->
-            "This is one of your backup rings."
+        reason.startsWith("Backup alarm") ->
+            "This is one of your backup alarms."
 
         reason.startsWith("Snoozed") ->
             "Your snooze is over."
@@ -510,7 +471,7 @@ private fun remainingSequenceCopy(
 
         kind == AlarmScheduler.KIND_DEADLINE &&
             backupCount > 0 ->
-            "$backupCount backup ring" +
+            "$backupCount backup alarm" +
                 if (backupCount == 1) {
                     " remains."
                 } else {
@@ -518,7 +479,7 @@ private fun remainingSequenceCopy(
                 }
 
         backupIndex != null ->
-            "${backupCount - backupIndex} backup ring" +
+            "${backupCount - backupIndex} backup alarm" +
                 if (backupCount - backupIndex == 1) {
                     " remains."
                 } else {
