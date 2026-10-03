@@ -2115,6 +2115,18 @@ private fun DashboardCustomizeDialog(
         )
     }
 
+    val schedulePreset =
+        when {
+            draft.oneTimeDate != null ->
+                "TOMORROW"
+            draft.days == AlarmSchedule.WEEKDAYS ->
+                "WEEKDAYS"
+            draft.days.size == 7 ->
+                "EVERY_DAY"
+            else ->
+                "CUSTOM"
+        }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -2746,8 +2758,8 @@ private fun AlarmsTab(
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Wake schedule",
-                        meaning = "A recurring wake-by deadline with optional smart-window flexibility.",
-                        measurement = "WakeSync stores the selected weekdays, wake-by time and allowed early-wake window locally, then schedules the protected deadline with Android.",
+                        meaning = "A wake schedule can be tomorrow-only or recurring, with optional Smart Wake flexibility.",
+                        measurement = "WakeSync stores the selected schedule, must-be-awake time and allowed early-wake window locally, then schedules the protected alarm with Android.",
                         importance = "The schedule is the deadline: WakeSync can optimize inside the window but cannot intentionally wake you later than the deadline."
                     )
                 }
@@ -2856,9 +2868,7 @@ private fun WeeklyAlarmOverview(
                             .asSequence()
                             .filter {
                                 it.enabled &&
-                                    it.days.contains(
-                                        date.dayOfWeek.value
-                                    )
+                                    it.isBaseScheduledOn(date)
                             }
                             .minByOrNull {
                                 it.hour * 60 +
@@ -3129,7 +3139,7 @@ private fun AlarmScheduleCard(
                     ) {
                         Text(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            text = daysLabel(schedule.days),
+                            text = scheduleDaysLabel(schedule),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium
                         )
@@ -4756,32 +4766,132 @@ private fun AlarmEditorDialog(
                 }
 
                 item {
-                    Text(
-                        text = "Repeat",
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Column {
+                        Text(
+                            text = "Schedule",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 3.dp),
+                            text = "Choose a quick preset or customize the days.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    dayItems().chunked(4).forEach { rowDays ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            rowDays.forEach { (value, label) ->
-                                FilterChip(
-                                    selected = draft.days.contains(value),
-                                    onClick = {
-                                        val newDays = draft.days.toMutableSet()
-                                        if (newDays.contains(value)) newDays.remove(value) else newDays.add(value)
-                                        draft = draft.copy(days = newDays)
-                                    },
-                                    label = { Text(label) }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(7.dp)
+                    ) {
+                        FilterChip(
+                            selected =
+                                schedulePreset == "TOMORROW",
+                            onClick = {
+                                draft = draft.copy(
+                                    oneTimeDate =
+                                        LocalDate.now()
+                                            .plusDays(1)
+                                            .toString(),
+                                    days = emptySet()
                                 )
-                            }
-                        }
+                            },
+                            label = { Text("Tomorrow only") }
+                        )
+
+                        FilterChip(
+                            selected =
+                                schedulePreset == "WEEKDAYS",
+                            onClick = {
+                                draft = draft.copy(
+                                    oneTimeDate = null,
+                                    days = AlarmSchedule.WEEKDAYS
+                                )
+                            },
+                            label = { Text("Weekdays") }
+                        )
+
+                        FilterChip(
+                            selected =
+                                schedulePreset == "EVERY_DAY",
+                            onClick = {
+                                draft = draft.copy(
+                                    oneTimeDate = null,
+                                    days = (1..7).toSet()
+                                )
+                            },
+                            label = { Text("Every day") }
+                        )
+
+                        FilterChip(
+                            selected =
+                                schedulePreset == "CUSTOM",
+                            onClick = {
+                                draft = draft.copy(
+                                    oneTimeDate = null,
+                                    days =
+                                        if (draft.days.isEmpty()) {
+                                            AlarmSchedule.WEEKDAYS
+                                        } else {
+                                            draft.days
+                                        }
+                                )
+                            },
+                            label = { Text("Custom") }
+                        )
                     }
+                }
+
+                if (schedulePreset == "CUSTOM") {
+                    item {
+                        Column(
+                            verticalArrangement =
+                                Arrangement.spacedBy(6.dp)
+                        ) {
+                            dayItems()
+                                .chunked(4)
+                                .forEach { rowDays ->
+                                    Row(
+                                        modifier =
+                                            Modifier.fillMaxWidth(),
+                                        horizontalArrangement =
+                                            Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        rowDays.forEach {
+                                                (value, label) ->
+                                            FilterChip(
+                                                selected =
+                                                    draft.days.contains(value),
+                                                onClick = {
+                                                    val newDays =
+                                                        draft.days
+                                                            .toMutableSet()
+
+                                                    if (
+                                                        newDays.contains(value)
+                                                    ) {
+                                                        newDays.remove(value)
+                                                    } else {
+                                                        newDays.add(value)
+                                                    }
+
+                                                    draft = draft.copy(
+                                                        oneTimeDate = null,
+                                                        days = newDays
+                                                    )
+                                                },
+                                                label = {
+                                                    Text(label)
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                        }
                     }
                 }
 
@@ -4966,7 +5076,9 @@ private fun AlarmEditorDialog(
         confirmButton = {
             Button(
                 onClick = { onSave(draft) },
-                enabled = draft.days.isNotEmpty()
+                enabled =
+                    draft.oneTimeDate != null ||
+                        draft.days.isNotEmpty()
             ) {
                 Text("Save")
             }
@@ -5836,7 +5948,7 @@ private fun sourceFriendlyName(
 private fun defaultSchedule(): AlarmSchedule =
     AlarmSchedule(
         id = UUID.randomUUID().toString(),
-        label = "Workday",
+        label = "Wake up",
         hour = 7,
         minute = 0,
         days = AlarmSchedule.WEEKDAYS,
@@ -5853,6 +5965,29 @@ private fun dayItems(): List<Pair<Int, String>> = listOf(
     DayOfWeek.FRIDAY.value to "F",
     DayOfWeek.SATURDAY.value to "S"
 )
+
+private fun scheduleDaysLabel(
+    schedule: AlarmSchedule
+): String {
+    val oneTime = schedule.oneTimeDate
+        ?.let {
+            runCatching {
+                LocalDate.parse(it)
+            }.getOrNull()
+        }
+
+    return if (oneTime != null) {
+        if (oneTime == LocalDate.now().plusDays(1)) {
+            "Tomorrow only"
+        } else {
+            oneTime.format(
+                DateTimeFormatter.ofPattern("EEE, MMM d")
+            )
+        }
+    } else {
+        daysLabel(schedule.days)
+    }
+}
 
 private fun daysLabel(days: Set<Int>): String {
     if (days == AlarmSchedule.WEEKDAYS) return "Mon, Tue, Wed, Thu, Fri"
