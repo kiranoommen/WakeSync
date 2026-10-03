@@ -256,7 +256,6 @@ class MainActivity : ComponentActivity() {
                         themeMode = newMode
                         appSettings.themeMode = newMode
                     },
-                    onDisplayNameChange = { },
                     onConnect = {
                         healthPermissionLauncher.launch(
                             healthConnectManager.requestedPermissions()
@@ -293,7 +292,6 @@ class MainActivity : ComponentActivity() {
                     themeMode = themeMode,
                     sleepGoalMinutes = sleepGoalMinutes,
                     goalsEnabled = goalsEnabled,
-                    displayName = "",
                     maxSmartWindowMinutes = maxSmartWindowMinutes,
                     errorMessage = errorMessage,
                     onConnect = {
