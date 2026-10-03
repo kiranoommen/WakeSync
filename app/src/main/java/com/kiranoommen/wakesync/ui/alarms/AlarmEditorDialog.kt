@@ -147,7 +147,7 @@ fun AlarmEditorDialog(
                                     .padding(start = 13.dp)
                             ) {
                                 Text(
-                                    text = "GUARDRAIL WAKE TIME",
+                                    text = "MUST BE AWAKE BY",
                                     style =
                                         MaterialTheme.typography.labelSmall,
                                     fontWeight =
@@ -175,7 +175,7 @@ fun AlarmEditorDialog(
                                             draft.mode ==
                                             AlarmMode.SMART_WAKE
                                         ) {
-                                            "Hard deadline · Tap to change"
+                                            "Latest wake time · Tap to change"
                                         } else {
                                             "Exact alarm time · Tap to change"
                                         },
