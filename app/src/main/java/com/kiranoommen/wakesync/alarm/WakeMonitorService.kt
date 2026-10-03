@@ -22,6 +22,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -123,12 +124,31 @@ class WakeMonitorService : Service() {
                     snapshot.isFresh() &&
                     isLiveWakeStage(snapshot.stage)
                 ) {
+                    val nowInstant = Instant.now()
+                    val ageSeconds =
+                        if (snapshot.stageEnd.isAfter(nowInstant)) {
+                            0L
+                        } else {
+                            Duration.between(
+                                snapshot.stageEnd,
+                                nowInstant
+                            ).seconds.coerceAtLeast(0L)
+                        }
+
                     MultiAlarmController.ring(
                         context = applicationContext,
                         scheduleId = scheduleId,
                         kind = KIND_LIVE,
                         deadlineMillis = deadlineMillis,
-                        reason = "Live sleep stage: ${snapshot.stage.name.lowercase()}"
+                        reason =
+                            "Live sleep stage: " +
+                                snapshot.stage.name.lowercase(),
+                        sleepStage =
+                            snapshot.stage.name,
+                        sourcePackage =
+                            snapshot.sourcePackage,
+                        dataAgeSeconds =
+                            ageSeconds
                     )
                     return
                 }
