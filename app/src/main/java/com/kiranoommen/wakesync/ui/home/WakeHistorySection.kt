@@ -30,7 +30,12 @@ fun WakeHistorySection(
     onFeedback: (String, WakeFeedback) -> Unit,
     onClear: () -> Unit
 ) {
-    if (events.isEmpty()) return
+    val completed =
+        events.filter {
+            it.completedAtMillis != null
+        }
+
+    if (completed.isEmpty()) return
 
     Column(
         verticalArrangement =
@@ -53,7 +58,7 @@ fun WakeHistorySection(
             }
         }
 
-        events.take(3).forEach { event ->
+        completed.take(3).forEach { event ->
             WakeHistoryCard(
                 event = event,
                 onFeedback = onFeedback
@@ -67,6 +72,12 @@ private fun WakeHistoryCard(
     event: WakeEvent,
     onFeedback: (String, WakeFeedback) -> Unit
 ) {
+    val wokeAt =
+        Instant.ofEpochMilli(
+            event.completedAtMillis
+                ?: event.firedAtMillis
+        ).atZone(ZoneId.systemDefault())
+
     val fired =
         Instant.ofEpochMilli(
             event.firedAtMillis
@@ -106,7 +117,7 @@ private fun WakeHistoryCard(
         ) {
             Text(
                 text =
-                    fired.format(
+                    wokeAt.format(
                         DateTimeFormatter.ofPattern(
                             "EEE · h:mm a"
                         )
@@ -131,6 +142,22 @@ private fun WakeHistoryCard(
                 color =
                     MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (deadline != null) {
+                Text(
+                    text =
+                        "Must be awake by: " +
+                            deadline.format(
+                                DateTimeFormatter.ofPattern(
+                                    "h:mm a"
+                                )
+                            ),
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             if (minutesEarly != null) {
                 Text(
