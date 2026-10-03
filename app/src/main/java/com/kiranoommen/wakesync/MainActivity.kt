@@ -72,9 +72,6 @@ class MainActivity : ComponentActivity() {
             var goalsEnabled by remember {
                 mutableStateOf(appSettings.goalsEnabled)
             }
-            var maxSmartWindowMinutes by remember {
-                mutableStateOf(appSettings.maxSmartWindowMinutes)
-            }
             var oobeCompleted by remember {
                 mutableStateOf(
                     appSettings.oobeCompleted ||
@@ -303,7 +300,6 @@ class MainActivity : ComponentActivity() {
                     themeMode = themeMode,
                     sleepGoalMinutes = sleepGoalMinutes,
                     goalsEnabled = goalsEnabled,
-                    maxSmartWindowMinutes = maxSmartWindowMinutes,
                     errorMessage = errorMessage,
                     onConnect = {
                         healthPermissionLauncher.launch(
@@ -314,7 +310,7 @@ class MainActivity : ComponentActivity() {
                     onSaveSchedule = { schedule ->
                         val cappedWindow =
                             schedule.smartWindowMinutes
-                                .coerceIn(10, maxSmartWindowMinutes)
+                                .coerceIn(10, 30)
 
                         val capped = schedule.copy(
                             smartWindowMinutes = cappedWindow,
@@ -450,29 +446,6 @@ class MainActivity : ComponentActivity() {
                     onGoalsEnabledChange = { enabled ->
                         goalsEnabled = enabled
                         appSettings.goalsEnabled = enabled
-                    },
-                    onMaxSmartWindowChange = { minutes ->
-                        maxSmartWindowMinutes = minutes
-                        appSettings.maxSmartWindowMinutes = minutes
-
-                        persist(
-                            schedules.map { schedule ->
-                                val capped =
-                                    schedule.smartWindowMinutes
-                                        .coerceAtMost(minutes)
-                                        .coerceAtLeast(10)
-                                schedule.copy(
-                                    smartWindowMinutes = capped,
-                                    smartOffsetMinutes =
-                                        if (schedule.mode == AlarmMode.STANDARD) {
-                                            0
-                                        } else {
-                                            schedule.smartOffsetMinutes
-                                                .coerceAtMost(capped)
-                                        }
-                                )
-                            }
-                        )
                     },
                 )
             }
