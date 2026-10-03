@@ -3704,24 +3704,6 @@ private fun SettingsTab(
                     }
                 }
 
-                SettingsToggleRow(
-                    title = "Recovery metrics",
-                    subtitle =
-                        "Optional HRV + resting heart rate",
-                    checked =
-                        hasAnalyticsPermission,
-                    enabled =
-                        !hasAnalyticsPermission,
-                    onCheckedChange = {
-                        if (
-                            it &&
-                            !hasAnalyticsPermission
-                        ) {
-                            onRequestAnalyticsAccess()
-                        }
-                    }
-                )
-
                 if (historyReadAvailable) {
                     SettingsToggleRow(
                         title = "Extended history",
