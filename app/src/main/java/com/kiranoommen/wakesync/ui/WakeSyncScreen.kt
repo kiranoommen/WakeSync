@@ -3370,6 +3370,24 @@ private fun SettingsTab(
             Arrangement.spacedBy(16.dp)
     ) {
         item {
+            AlarmReliabilityCard(
+                readiness = smartWakeReadiness,
+                alarmVolumePercent = alarmVolumePercent,
+                onGrantExactAlarmAccess =
+                    onRequestExactAlarmAccess,
+                onRequestBackgroundSmartWakeAccess =
+                    onRequestBackgroundSmartWakeAccess,
+                onOpenNotificationSettings =
+                    onOpenNotificationSettings,
+                onOpenFullScreenSettings =
+                    onOpenFullScreenSettings,
+                onOpenAlarmVolumeSettings =
+                    onOpenAlarmVolumeSettings,
+                onTestAlarm = onTestAlarm
+            )
+        }
+
+        item {
             SettingsBentoCard(
                 title = "Targets & Goals",
                 onInfo = {
@@ -3624,24 +3642,6 @@ private fun SettingsTab(
                     )
                 }
             }
-        }
-
-        item {
-            AlarmReliabilityCard(
-                readiness = smartWakeReadiness,
-                alarmVolumePercent = alarmVolumePercent,
-                onGrantExactAlarmAccess =
-                    onRequestExactAlarmAccess,
-                onRequestBackgroundSmartWakeAccess =
-                    onRequestBackgroundSmartWakeAccess,
-                onOpenNotificationSettings =
-                    onOpenNotificationSettings,
-                onOpenFullScreenSettings =
-                    onOpenFullScreenSettings,
-                onOpenAlarmVolumeSettings =
-                    onOpenAlarmVolumeSettings,
-                onTestAlarm = onTestAlarm
-            )
         }
 
         item {
