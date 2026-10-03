@@ -172,6 +172,20 @@ Verify:
 - notification content does not expose sensitive stage/history detail unnecessarily;
 - only required Health Connect permissions are requested.
 
+### 12. Readiness, Wake History, and feedback
+
+Verify:
+- Home never says live Smart Wake is active unless Health Connect has fresh stage data;
+- stale stage data is shown as delayed/waiting rather than fresh;
+- history shows Learning below the minimum usable-night threshold, Ready at 3+ nights, and Strong at 14+ nights;
+- every real alarm trigger writes one compact Wake History event;
+- live events include stage, source, and data age when available;
+- Standard, must-be-awake, historical fallback, and Backup Alarm reasons are distinguishable;
+- Test Alarm does not write Wake History or alter schedules;
+- Too early / Good / Too late feedback persists locally and updates the selected history event;
+- alarm volume below 30% is surfaced as a reliability warning;
+- notification/full-screen/exact-alarm permission problems are not presented as Ready.
+
 ## 🌙 Real-world overnight validation
 
 Before treating live wake as production-ready, collect repeated tests across actual overnight wearable sync behavior.
