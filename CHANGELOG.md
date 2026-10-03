@@ -8,6 +8,22 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+## 0.8.0 — 2026-10-02
+
+### Added
+- **Smart Wake readiness** on Home with separate live-sleep, history, background-read, exact-alarm, and alarm-path states;
+- honest live-stage freshness reporting instead of a generic Ready badge;
+- local **Wake History** showing when an alarm fired and why;
+- live Smart Wake history records stage, Health Connect source, and data freshness;
+- simple morning feedback: **Too early / Good / Too late**;
+- history sufficiency labels: **Learning / Ready / Strong** without fake percentages;
+- **Alarm Reliability** checks for exact alarms, notifications, full-screen alarm access, and Android alarm volume;
+- real **Test Alarm** action using the production ringing/full-screen path without changing schedules or Wake History.
+
+### Changed
+- Home explains when Smart Wake is armed versus when only the protected alarm path is reliable;
+- Wake History remains entirely local and stores only compact wake-decision diagnostics, not raw sleep records.
+
 ## 0.7.0 — 2026-10-02
 
 ### Changed
