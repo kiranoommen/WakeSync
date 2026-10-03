@@ -132,6 +132,12 @@ object MultiAlarmController {
         val scheduler = AlarmScheduler(appContext)
         scheduler.cancel(scheduleId)
 
+        WakeEventStore(appContext)
+            .markSequenceCompleted(
+                scheduleId = scheduleId,
+                deadlineMillis = deadlineMillis
+            )
+
         if (schedule != null && schedule.enabled) {
             scheduleNextOccurrence(
                 context = appContext,
