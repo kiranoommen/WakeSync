@@ -40,7 +40,18 @@ Verify:
 - full-screen alarm access is handled on Android 14+;
 - Smart Wake cannot be enabled until required setup is complete.
 
-### 2. Standard Alarm
+### 2. Schedule presets and Standard Alarm
+
+Verify:
+- Tomorrow only schedules the next calendar day and auto-disables after its wake sequence completes;
+- Weekdays schedules Monday through Friday;
+- Every day schedules all seven days;
+- Custom day chips preserve arbitrary weekday selections;
+- swipe right toggles an alarm on/off;
+- swipe left opens an editable duplicate with a new ID;
+- duplicated alarms do not overwrite the source schedule.
+
+### 2b. Standard Alarm
 
 Verify:
 - Standard Alarm can be selected without Health Connect permission;
@@ -48,8 +59,8 @@ Verify:
 - enabling Standard Alarm does not schedule the live monitor or historical fallback;
 - switching from Smart Wake to Standard Alarm stops any active live monitor;
 - Standard Alarm rings with the Standard Alarm UI/reason;
-- with Backup Rings off, the next recurrence remains scheduled normally;
-- with 2 Backup Rings enabled, the primary alarm is followed by rings at +5 and +10 minutes unless the user explicitly stops the remaining sequence.
+- with Backup Alarms off, the next recurrence remains scheduled normally;
+- with 2 Backup Alarms enabled, the primary alarm is followed by rings at +5 and +10 minutes unless the user explicitly stops the remaining sequence.
 
 ### 3. Wake-range boundaries
 
@@ -58,7 +69,7 @@ For a test range such as 6:20–7:00:
 - no alarm fires before 6:20;
 - live monitoring remains active from 6:20 until a wake path fires;
 - historical fallback, when available, is constrained to 6:50–7:00;
-- hard-stop alarm remains scheduled for 7:00.
+- must-be-awake alarm remains scheduled for 7:00.
 
 Also test a wake range shorter than 10 minutes. Historical fallback must never schedule earlier than the user's earliest wake time.
 
@@ -98,20 +109,18 @@ With insufficient history:
 - no predictive alarm should be trusted;
 - hard stop should remain the final wake path.
 
-### 7. Backup rings and hard stop
+### 7. Backup alarms and hard stop
 
 This is mandatory.
 
-With Backup Rings enabled:
+With Backup Alarms enabled:
 - verify 1, 2, and 3-ring configurations;
 - verify rings occur every five minutes after the hard deadline;
 - verify “Dismiss this ring” stops only the current sound/vibration;
 - verify the remaining backup alarms still fire;
 - verify “I’m awake — stop remaining alarms” cancels all remaining alarms in the current sequence;
 - verify the next recurring occurrence is still scheduled;
-- verify Snooze is not offered while Backup Rings are active.
-
-With Backup Rings disabled, verify Snooze remains available when configured.
+- verify Snooze is not part of WakeSync; Backup Alarms provide the intentional repeat-wake behavior.
 
 Hard-stop validation:
 
@@ -123,7 +132,7 @@ Test with:
 - wearable disconnected.
 
 Expected:
-- hard-stop alarm still rings at the configured deadline.
+- must-be-awake alarm still rings at the configured deadline.
 
 ### 8. Device state
 
