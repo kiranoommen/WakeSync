@@ -95,6 +95,21 @@ object MultiAlarmController {
         }
     }
 
+    fun testAlarm(context: Context) {
+        val appContext = context.applicationContext
+        val serviceIntent =
+            Intent(appContext, AlarmRingingService::class.java)
+                .putExtra(EXTRA_REASON, "Test alarm")
+                .putExtra(EXTRA_KIND, KIND_TEST)
+                .putExtra(EXTRA_DEADLINE_MILLIS, 0L)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            appContext.startForegroundService(serviceIntent)
+        } else {
+            appContext.startService(serviceIntent)
+        }
+    }
+
     fun dismissCurrent(context: Context) {
         context.applicationContext.stopService(
             Intent(
@@ -171,4 +186,5 @@ object MultiAlarmController {
     }
 
     private const val KIND_LIVE = "live"
+    private const val KIND_TEST = "test"
 }
