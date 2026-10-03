@@ -128,7 +128,20 @@ class WakeMonitorService : Service() {
                         scheduleId = scheduleId,
                         kind = KIND_LIVE,
                         deadlineMillis = deadlineMillis,
-                        reason = "Live sleep stage: ${snapshot.stage.name.lowercase()}"
+                        reason = "Live sleep stage: ${snapshot.stage.name.lowercase()}",
+                        sourcePackage = snapshot.sourcePackage,
+                        dataAgeMinutes =
+                            if (snapshot.stageEnd.isAfter(Instant.now())) {
+                                0L
+                            } else {
+                                java.time.Duration
+                                    .between(
+                                        snapshot.stageEnd,
+                                        Instant.now()
+                                    )
+                                    .toMinutes()
+                                    .coerceAtLeast(0L)
+                            }
                     )
                     return
                 }

@@ -107,7 +107,13 @@ import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
+import com.kiranoommen.wakesync.model.SmartWakeReadiness
+import com.kiranoommen.wakesync.model.WakeEvent
+import com.kiranoommen.wakesync.model.WakeFeedback
 import com.kiranoommen.wakesync.ui.alarms.AlarmEditorDialog
+import com.kiranoommen.wakesync.ui.home.SmartWakeStatusCard
+import com.kiranoommen.wakesync.ui.home.WakeHistorySection
+import com.kiranoommen.wakesync.ui.settings.AlarmReliabilityCard
 import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Coral
 import com.kiranoommen.wakesync.ui.theme.Cyan
@@ -148,6 +154,9 @@ fun WakeSyncScreen(
     nights: List<SleepNight>,
     schedules: List<AlarmSchedule>,
     exactAlarmAccess: Boolean,
+    smartWakeReadiness: SmartWakeReadiness,
+    alarmVolumePercent: Int,
+    wakeEvents: List<WakeEvent>,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
@@ -162,6 +171,13 @@ fun WakeSyncScreen(
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit,
     onRequestHistoryAccess: () -> Unit,
+    onWakeFeedback: (String, WakeFeedback) -> Unit,
+    onClearWakeHistory: () -> Unit,
+    onRequestBackgroundSmartWakeAccess: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
+    onOpenFullScreenSettings: () -> Unit,
+    onTestAlarm: () -> Unit,
+    onOpenAlarmVolumeSettings: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
@@ -288,6 +304,14 @@ fun WakeSyncScreen(
                                     sleepGoalMinutes,
                                 goalsEnabled =
                                     goalsEnabled,
+                                smartWakeReadiness =
+                                    smartWakeReadiness,
+                                wakeEvents =
+                                    wakeEvents,
+                                onWakeFeedback =
+                                    onWakeFeedback,
+                                onClearWakeHistory =
+                                    onClearWakeHistory,
                             )
 
                         AppTab.ALARMS ->
@@ -342,6 +366,10 @@ fun WakeSyncScreen(
                                     hasPermission,
                                 exactAlarmAccess =
                                     exactAlarmAccess,
+                                smartWakeReadiness =
+                                    smartWakeReadiness,
+                                alarmVolumePercent =
+                                    alarmVolumePercent,
                                 hasHistoryPermission =
                                     hasHistoryPermission,
                                 historyReadAvailable =
@@ -360,6 +388,16 @@ fun WakeSyncScreen(
                                     onRequestHistoryAccess,
                                 onRequestExactAlarmAccess =
                                     onRequestExactAlarmAccess,
+                                onRequestBackgroundSmartWakeAccess =
+                                    onRequestBackgroundSmartWakeAccess,
+                                onOpenNotificationSettings =
+                                    onOpenNotificationSettings,
+                                onOpenFullScreenSettings =
+                                    onOpenFullScreenSettings,
+                                onTestAlarm =
+                                    onTestAlarm,
+                                onOpenAlarmVolumeSettings =
+                                    onOpenAlarmVolumeSettings,
                                 onThemeModeChange =
                                     onThemeModeChange,
                                 onSleepGoalChange =
@@ -467,7 +505,11 @@ private fun HomeTab(
     onClearSkips: (AlarmSchedule) -> Unit,
     onGoAlarms: () -> Unit,
     sleepGoalMinutes: Int,
-    goalsEnabled: Boolean
+    goalsEnabled: Boolean,
+    smartWakeReadiness: SmartWakeReadiness,
+    wakeEvents: List<WakeEvent>,
+    onWakeFeedback: (String, WakeFeedback) -> Unit,
+    onClearWakeHistory: () -> Unit
 ) {
     val next = remember(schedules) { nextSchedule(schedules) }
     val nearestSkipped = remember(schedules) { nearestUpcomingSkipped(schedules) }
@@ -537,6 +579,23 @@ private fun HomeTab(
                     schedule = nearestSkipped.first,
                     skippedDate = nearestSkipped.second,
                     onUndo = { onSkipNext(nearestSkipped.first) }
+                )
+            }
+        }
+
+        item {
+            SmartWakeStatusCard(
+                readiness = smartWakeReadiness,
+                nextSchedule = next?.first
+            )
+        }
+
+        if (wakeEvents.isNotEmpty()) {
+            item {
+                WakeHistorySection(
+                    events = wakeEvents,
+                    onFeedback = onWakeFeedback,
+                    onClear = onClearWakeHistory
                 )
             }
         }
@@ -3269,6 +3328,8 @@ private fun SleepTab(
 private fun SettingsTab(
     hasPermission: Boolean,
     exactAlarmAccess: Boolean,
+    smartWakeReadiness: SmartWakeReadiness,
+    alarmVolumePercent: Int,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
@@ -3278,6 +3339,11 @@ private fun SettingsTab(
     onConnect: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
+    onRequestBackgroundSmartWakeAccess: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
+    onOpenFullScreenSettings: () -> Unit,
+    onTestAlarm: () -> Unit,
+    onOpenAlarmVolumeSettings: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
     onGoalsEnabledChange: (Boolean) -> Unit
@@ -3303,6 +3369,24 @@ private fun SettingsTab(
         verticalArrangement =
             Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            AlarmReliabilityCard(
+                readiness = smartWakeReadiness,
+                alarmVolumePercent = alarmVolumePercent,
+                onGrantExactAlarmAccess =
+                    onRequestExactAlarmAccess,
+                onRequestBackgroundSmartWakeAccess =
+                    onRequestBackgroundSmartWakeAccess,
+                onOpenNotificationSettings =
+                    onOpenNotificationSettings,
+                onOpenFullScreenSettings =
+                    onOpenFullScreenSettings,
+                onOpenAlarmVolumeSettings =
+                    onOpenAlarmVolumeSettings,
+                onTestAlarm = onTestAlarm
+            )
+        }
+
         item {
             SettingsBentoCard(
                 title = "Targets & Goals",
@@ -3557,98 +3641,6 @@ private fun SettingsTab(
                         }
                     )
                 }
-            }
-        }
-
-        item {
-            SettingsBentoCard(
-                title = "Permissions & Reliability",
-                borderColor =
-                    if (exactAlarmAccess) {
-                        Mint.copy(alpha = 0.28f)
-                    } else {
-                        Sunrise.copy(alpha = 0.34f)
-                    },
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Exact alarm reliability",
-                        meaning = "Android exact-alarm access lets WakeSync protect the Must be awake by with precise OS scheduling.",
-                        measurement = "WakeSync checks Android's exact-alarm capability. If access was skipped during onboarding, you can grant it here at any time.",
-                        importance = "Without exact-alarm access, Android power management can delay time-critical alarms."
-                    )
-                }
-            ) {
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.SpaceBetween,
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier =
-                            Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text =
-                                "Exact alarm access",
-                            fontWeight =
-                                FontWeight.ExtraBold
-                        )
-                        Text(
-                            modifier =
-                                Modifier.padding(
-                                    top = 3.dp
-                                ),
-                            text =
-                                if (
-                                    exactAlarmAccess
-                                ) {
-                                    "Reliable wake-by scheduling enabled"
-                                } else {
-                                    "Action Required · exact-alarm access was not granted during setup"
-                                },
-                            style =
-                                MaterialTheme.typography.bodySmall,
-                            color =
-                                if (
-                                    exactAlarmAccess
-                                ) {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                } else {
-                                    Sunrise
-                                }
-                        )
-                    }
-
-                    ConnectionBadge(
-                        connected =
-                            exactAlarmAccess,
-                        connectedLabel = "Granted",
-                        disconnectedLabel = "Action Required"
-                    )
-                }
-
-                if (!exactAlarmAccess) {
-                    Button(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                        onClick = onRequestExactAlarmAccess,
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Amber,
-                            contentColor = Color(0xFF15192A)
-                        )
-                    ) {
-                        Text(
-                            text = "Grant exact alarm access",
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    }
-                }
-
             }
         }
 

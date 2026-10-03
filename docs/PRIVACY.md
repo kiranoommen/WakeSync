@@ -20,7 +20,6 @@ WakeSync processes sleep data locally on the user's Android device.
 
 WakeSync requests read-only access to sleep sessions and sleep stages through Android Health Connect.
 
-WakeSync may separately request **optional** read-only access to heart-rate variability (HRV) and resting heart rate for the sleep analytics dashboard. Smart Wake does not require those two metrics.
 
 When supported, the user may also grant Health Connect's extended-history permission so WakeSync can analyze more than the default recent-history window.
 

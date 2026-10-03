@@ -53,7 +53,7 @@ class PermissionsRationaleActivity : ComponentActivity() {
                         )
                         Text(
                             modifier = Modifier.padding(top = 12.dp),
-                            text = "HRV, resting heart rate, and extended history are optional permissions used only when you enable those analytics."
+                            text = "Extended sleep history is optional and only used to improve local trends and Smart Wake history."
                         )
                         Text(
                             modifier = Modifier.padding(top = 12.dp),

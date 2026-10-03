@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.kiranoommen.wakesync.data.AlarmStore
+import com.kiranoommen.wakesync.data.WakeEventStore
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -21,7 +22,9 @@ object MultiAlarmController {
         scheduleId: String,
         kind: String,
         deadlineMillis: Long,
-        reason: String
+        reason: String,
+        sourcePackage: String? = null,
+        dataAgeMinutes: Long? = null
     ) {
         val appContext = context.applicationContext
         val store = AlarmStore(appContext)
@@ -29,6 +32,18 @@ object MultiAlarmController {
             store.load().firstOrNull { it.id == scheduleId }
                 ?: return
         val scheduler = AlarmScheduler(appContext)
+
+        WakeEventStore(appContext).record(
+            scheduleId = schedule.id,
+            scheduleLabel =
+                schedule.label.ifBlank { "Wake alarm" },
+            mode = schedule.mode,
+            kind = kind,
+            reason = reason,
+            deadlineMillis = deadlineMillis,
+            sourcePackage = sourcePackage,
+            dataAgeMinutes = dataAgeMinutes
+        )
 
         when {
             kind == KIND_LIVE ||
@@ -80,6 +95,21 @@ object MultiAlarmController {
         }
     }
 
+    fun testAlarm(context: Context) {
+        val appContext = context.applicationContext
+        val serviceIntent =
+            Intent(appContext, AlarmRingingService::class.java)
+                .putExtra(EXTRA_REASON, "Test alarm")
+                .putExtra(EXTRA_KIND, KIND_TEST)
+                .putExtra(EXTRA_DEADLINE_MILLIS, 0L)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            appContext.startForegroundService(serviceIntent)
+        } else {
+            appContext.startService(serviceIntent)
+        }
+    }
+
     fun dismissCurrent(context: Context) {
         context.applicationContext.stopService(
             Intent(
@@ -101,6 +131,12 @@ object MultiAlarmController {
 
         val scheduler = AlarmScheduler(appContext)
         scheduler.cancel(scheduleId)
+
+        WakeEventStore(appContext)
+            .markSequenceCompleted(
+                scheduleId = scheduleId,
+                deadlineMillis = deadlineMillis
+            )
 
         if (schedule != null && schedule.enabled) {
             scheduleNextOccurrence(
@@ -156,4 +192,5 @@ object MultiAlarmController {
     }
 
     private const val KIND_LIVE = "live"
+    private const val KIND_TEST = "test"
 }

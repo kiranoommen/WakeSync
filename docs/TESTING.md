@@ -164,13 +164,34 @@ Verify:
 - when safety alarms remain, “Dismiss this ring” preserves them;
 - “I’m awake — stop remaining alarms” cancels the current sequence and preserves the next recurring schedule.
 
-### 11. Privacy regression
+### 11. Smart Wake readiness and Wake History
+
+Verify:
+- readiness distinguishes live Smart Wake from history fallback and alarm-only protection;
+- history shows the actual ring path that fired;
+- live wake records include source and data age when available;
+- historical fallback, must-be-awake, Standard, and Backup Alarm reasons render clearly;
+- Too early / Good / Too late feedback persists after relaunch;
+- clearing Wake History removes only WakeSync's local wake-event log and does not alter Health Connect data.
+
+### 12. Alarm reliability card
+
+Verify:
+- exact-alarm status matches Android system state;
+- notification status matches app notification access;
+- full-screen status matches Android 14+ special access;
+- background Smart Wake reflects Health Connect background-read permission;
+- alarm-volume percentage matches Android alarm stream;
+- Test Alarm uses the normal ringing screen, sound, vibration, and dismiss path.
+
+### 13. Privacy regression
 
 Verify:
 - no raw sleep records are written to logs;
 - no health information leaves the device;
 - notification content does not expose sensitive stage/history detail unnecessarily;
-- only required Health Connect permissions are requested.
+- only required Health Connect permissions are requested;
+- HRV and resting-heart-rate permissions are no longer requested.
 
 ## 🌙 Real-world overnight validation
 
