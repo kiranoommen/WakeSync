@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,6 +44,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var wakeHistoryStore: WakeHistoryStore
 
     private val exactAlarmAccessState = mutableStateOf(false)
+    private val schedulesRefreshState = mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +61,8 @@ class MainActivity : ComponentActivity() {
             var hasHistoryPermission by remember { mutableStateOf(false) }
             var nights by remember { mutableStateOf<List<SleepNight>>(emptyList()) }
             var schedules by remember { mutableStateOf(alarmStore.load()) }
+            val scheduleRefreshTick =
+                schedulesRefreshState.intValue
             var loading by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
             var themeMode by remember { mutableStateOf(appSettings.themeMode) }
@@ -200,6 +204,13 @@ class MainActivity : ComponentActivity() {
                 contract = ActivityResultContracts.RequestPermission()
             ) { }
 
+            LaunchedEffect(scheduleRefreshTick) {
+                val stored = alarmStore.load()
+                if (stored != schedules) {
+                    schedules = stored
+                }
+            }
+
             LaunchedEffect(Unit) {
                 if (!appSettings.oobeCompleted &&
                     (
@@ -332,7 +343,35 @@ class MainActivity : ComponentActivity() {
                         persist(
                             schedules.map {
                                 if (it.id == schedule.id) {
-                                    it.copy(enabled = enabled)
+                                    val oneTimeDate =
+                                        schedule.oneTimeDate
+                                            ?.let { value ->
+                                                runCatching {
+                                                    java.time.LocalDate
+                                                        .parse(value)
+                                                }.getOrNull()
+                                            }
+
+                                    if (
+                                        enabled &&
+                                        oneTimeDate != null &&
+                                        !oneTimeDate.isAfter(
+                                            java.time.LocalDate.now()
+                                        )
+                                    ) {
+                                        schedule.copy(
+                                            enabled = true,
+                                            oneTimeDate =
+                                                java.time.LocalDate
+                                                    .now()
+                                                    .plusDays(1)
+                                                    .toString()
+                                        )
+                                    } else {
+                                        schedule.copy(
+                                            enabled = enabled
+                                        )
+                                    }
                                 } else {
                                     it
                                 }
@@ -445,6 +484,7 @@ class MainActivity : ComponentActivity() {
         if (::alarmScheduler.isInitialized) {
             exactAlarmAccessState.value =
                 alarmScheduler.canScheduleExactAlarms()
+            schedulesRefreshState.intValue += 1
         }
     }
 }
