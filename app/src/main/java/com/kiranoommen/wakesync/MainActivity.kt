@@ -117,6 +117,9 @@ class MainActivity : ComponentActivity() {
             val smartWakeReadiness =
                 SmartWakeReadiness(
                     sleepPermission = hasPermission,
+                    backgroundFeatureAvailable =
+                        healthConnectManager
+                            .backgroundReadAvailable(),
                     backgroundSleepPermission =
                         hasBackgroundPermission,
                     exactAlarmAccess =
