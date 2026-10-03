@@ -73,10 +73,13 @@ fun AlarmRingingScreen(
                 )
 
     val modeLabel =
-        if (smart) {
-            "SMART WAKE"
-        } else {
-            "STANDARD ALARM"
+        when {
+            kind == "test" ->
+                "TEST ALARM"
+            smart ->
+                "SMART WAKE"
+            else ->
+                "STANDARD ALARM"
         }
 
     val label =
@@ -341,6 +344,9 @@ fun AlarmRingingScreen(
 
 private fun alarmReasonCopy(reason: String): String =
     when {
+        reason == "Test alarm" ->
+            "This is a WakeSync test alarm."
+
         reason == "Standard alarm" ->
             "Your standard alarm is ringing."
 
@@ -358,9 +364,6 @@ private fun alarmReasonCopy(reason: String): String =
 
         reason.startsWith("Backup alarm") ->
             "This is one of your backup alarms."
-
-        reason.startsWith("Snoozed") ->
-            "Your snooze is over."
 
         else ->
             "It’s time to wake up."
