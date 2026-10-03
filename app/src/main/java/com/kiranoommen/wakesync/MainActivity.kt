@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -25,7 +26,6 @@ import com.kiranoommen.wakesync.alarm.PredictiveWakeEngine
 import com.kiranoommen.wakesync.data.AlarmStore
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.HealthConnectManager
-import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.data.WakeHistoryStore
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
@@ -44,6 +44,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var wakeHistoryStore: WakeHistoryStore
 
     private val exactAlarmAccessState = mutableStateOf(false)
+    private val schedulesRefreshState = mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,10 +58,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var hasPermission by remember { mutableStateOf(false) }
-            var hasAnalyticsPermission by remember { mutableStateOf(false) }
             var hasHistoryPermission by remember { mutableStateOf(false) }
             var nights by remember { mutableStateOf<List<SleepNight>>(emptyList()) }
             var schedules by remember { mutableStateOf(alarmStore.load()) }
+            val scheduleRefreshTick =
+                schedulesRefreshState.intValue
             var loading by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
             var themeMode by remember { mutableStateOf(appSettings.themeMode) }
@@ -69,15 +71,6 @@ class MainActivity : ComponentActivity() {
             }
             var goalsEnabled by remember {
                 mutableStateOf(appSettings.goalsEnabled)
-            }
-            var dashboardWidgets by remember {
-                mutableStateOf(appSettings.dashboardWidgets)
-            }
-            var maxSmartWindowMinutes by remember {
-                mutableStateOf(appSettings.maxSmartWindowMinutes)
-            }
-            var retainGeneratedExports by remember {
-                mutableStateOf(appSettings.retainGeneratedExports)
             }
             var oobeCompleted by remember {
                 mutableStateOf(
@@ -186,22 +179,9 @@ class MainActivity : ComponentActivity() {
                 lifecycleScope.launch {
                     hasPermission =
                         healthConnectManager.hasRequiredPermissions()
-                    hasAnalyticsPermission =
-                        healthConnectManager.hasAnalyticsPermissions()
                     hasHistoryPermission =
                         healthConnectManager.hasHistoryPermission()
 
-                    if (hasPermission) refreshSleep()
-                }
-            }
-
-            val analyticsPermissionLauncher = rememberLauncherForActivityResult(
-                contract =
-                    PermissionController.createRequestPermissionResultContract()
-            ) {
-                lifecycleScope.launch {
-                    hasAnalyticsPermission =
-                        healthConnectManager.hasAnalyticsPermissions()
                     if (hasPermission) refreshSleep()
                 }
             }
@@ -221,6 +201,13 @@ class MainActivity : ComponentActivity() {
                 contract = ActivityResultContracts.RequestPermission()
             ) { }
 
+            LaunchedEffect(scheduleRefreshTick) {
+                val stored = alarmStore.load()
+                if (stored != schedules) {
+                    schedules = stored
+                }
+            }
+
             LaunchedEffect(Unit) {
                 if (!appSettings.oobeCompleted &&
                     (
@@ -235,9 +222,6 @@ class MainActivity : ComponentActivity() {
 
                 hasPermission = runCatching {
                     healthConnectManager.hasRequiredPermissions()
-                }.getOrDefault(false)
-                hasAnalyticsPermission = runCatching {
-                    healthConnectManager.hasAnalyticsPermissions()
                 }.getOrDefault(false)
                 hasHistoryPermission = runCatching {
                     healthConnectManager.hasHistoryPermission()
@@ -274,14 +258,12 @@ class MainActivity : ComponentActivity() {
                 OobeScreen(
                     sdkStatus = healthConnectManager.sdkStatus(),
                     themeMode = themeMode,
-                    displayName = "",
                     hasPermission = hasPermission,
                     exactAlarmAccess = exactAlarmAccessState.value,
                     onThemeModeChange = { newMode ->
                         themeMode = newMode
                         appSettings.themeMode = newMode
                     },
-                    onDisplayNameChange = { },
                     onConnect = {
                         healthPermissionLauncher.launch(
                             healthConnectManager.requestedPermissions()
@@ -313,16 +295,11 @@ class MainActivity : ComponentActivity() {
                     nights = nights,
                     schedules = schedules,
                     exactAlarmAccess = exactAlarmAccessState.value,
-                    hasAnalyticsPermission = hasAnalyticsPermission,
                     hasHistoryPermission = hasHistoryPermission,
                     historyReadAvailable = historyReadAvailable,
                     themeMode = themeMode,
                     sleepGoalMinutes = sleepGoalMinutes,
                     goalsEnabled = goalsEnabled,
-                    dashboardWidgets = dashboardWidgets,
-                    displayName = "",
-                    maxSmartWindowMinutes = maxSmartWindowMinutes,
-                    retainGeneratedExports = retainGeneratedExports,
                     errorMessage = errorMessage,
                     onConnect = {
                         healthPermissionLauncher.launch(
@@ -333,7 +310,7 @@ class MainActivity : ComponentActivity() {
                     onSaveSchedule = { schedule ->
                         val cappedWindow =
                             schedule.smartWindowMinutes
-                                .coerceIn(10, maxSmartWindowMinutes)
+                                .coerceIn(10, 30)
 
                         val capped = schedule.copy(
                             smartWindowMinutes = cappedWindow,
@@ -362,7 +339,35 @@ class MainActivity : ComponentActivity() {
                         persist(
                             schedules.map {
                                 if (it.id == schedule.id) {
-                                    it.copy(enabled = enabled)
+                                    val oneTimeDate =
+                                        schedule.oneTimeDate
+                                            ?.let { value ->
+                                                runCatching {
+                                                    java.time.LocalDate
+                                                        .parse(value)
+                                                }.getOrNull()
+                                            }
+
+                                    if (
+                                        enabled &&
+                                        oneTimeDate != null &&
+                                        !oneTimeDate.isAfter(
+                                            java.time.LocalDate.now()
+                                        )
+                                    ) {
+                                        schedule.copy(
+                                            enabled = true,
+                                            oneTimeDate =
+                                                java.time.LocalDate
+                                                    .now()
+                                                    .plusDays(1)
+                                                    .toString()
+                                        )
+                                    } else {
+                                        schedule.copy(
+                                            enabled = enabled
+                                        )
+                                    }
                                 } else {
                                     it
                                 }
@@ -407,11 +412,6 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     },
-                    onRequestAnalyticsAccess = {
-                        analyticsPermissionLauncher.launch(
-                            HealthConnectManager.analyticsPermissions
-                        )
-                    },
                     onRequestHistoryAccess = {
                         if (historyReadAvailable) {
                             historyPermissionLauncher.launch(
@@ -447,43 +447,6 @@ class MainActivity : ComponentActivity() {
                         goalsEnabled = enabled
                         appSettings.goalsEnabled = enabled
                     },
-                    onDashboardWidgetsChange = { widgets ->
-                        dashboardWidgets = widgets
-                        appSettings.dashboardWidgets = widgets
-                    },
-                    onDisplayNameChange = { },
-                    onMaxSmartWindowChange = { minutes ->
-                        maxSmartWindowMinutes = minutes
-                        appSettings.maxSmartWindowMinutes = minutes
-
-                        persist(
-                            schedules.map { schedule ->
-                                val capped =
-                                    schedule.smartWindowMinutes
-                                        .coerceAtMost(minutes)
-                                        .coerceAtLeast(10)
-                                schedule.copy(
-                                    smartWindowMinutes = capped,
-                                    smartOffsetMinutes =
-                                        if (schedule.mode == AlarmMode.STANDARD) {
-                                            0
-                                        } else {
-                                            schedule.smartOffsetMinutes
-                                                .coerceAtMost(capped)
-                                        }
-                                )
-                            }
-                        )
-                    },
-                    onRetainGeneratedExportsChange = { retain ->
-                        retainGeneratedExports = retain
-                        appSettings.retainGeneratedExports = retain
-                    },
-                    onClearGeneratedExports = {
-                        SleepExporter.clearGeneratedExports(
-                            this@MainActivity
-                        )
-                    }
                 )
             }
         }
@@ -494,6 +457,7 @@ class MainActivity : ComponentActivity() {
         if (::alarmScheduler.isInitialized) {
             exactAlarmAccessState.value =
                 alarmScheduler.canScheduleExactAlarms()
+            schedulesRefreshState.intValue += 1
         }
     }
 }

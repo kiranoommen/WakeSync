@@ -7,7 +7,7 @@
   <img alt="Android 28+" src="https://img.shields.io/badge/Android-28%2B-6F63FF?style=flat-square&logo=android&logoColor=white" />
   <img alt="Health Connect read only" src="https://img.shields.io/badge/Health%20Connect-read--only-9A84FF?style=flat-square" />
   <img alt="On-device processing" src="https://img.shields.io/badge/processing-on--device-FFB44A?style=flat-square" />
-  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-E9ECFF?style=flat-square&labelColor=15192A" />
+  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-E9ECFF?style=flat-square&labelColor=15192A" />
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@
 
 WakeSync now has two alarm modes:
 
-- **Smart Wake** — live sleep stage → saved historical fallback → guaranteed hard stop.
+- **Smart Wake** — live sleep stage → saved historical fallback → guaranteed must-be-awake time.
 - **Standard Alarm** — one exact alarm time with no Health Connect or sleep monitoring required.
 
 For a wake range of **6:20–7:00 AM**:
@@ -44,7 +44,7 @@ For a wake range of **6:20–7:00 AM**:
 | 6:20 AM | Earliest allowed wake |
 | 6:20–7:00 AM | Fresh Awake or Light sleep can trigger the alarm while live monitoring stays active |
 | 6:50–7:00 AM | A saved-history fallback may fire if live sleep has not already woken you |
-| 7:00 AM | Independent hard-stop alarm rings if the user has not explicitly ended the wake sequence |
+| 7:00 AM | Independent must-be-awake alarm rings if the user has not explicitly ended the wake sequence |
 
 WakeSync never intentionally wakes before the user's earliest time. If an early Smart Wake ring is simply dismissed, the hard deadline stays armed. The user must explicitly choose **I'm awake — stop remaining alarms** to end the sequence early.
 
@@ -55,7 +55,7 @@ WakeSync only treats a Health Connect sleep stage as live when it is:
 - still ongoing; or
 - no more than five minutes old.
 
-If the wearable or sleep app has not synced fresh data, WakeSync does not pretend it knows the current stage. It falls through to historical prediction and then the hard stop.
+If the wearable or sleep app has not synced fresh data, WakeSync does not pretend it knows the current stage. It falls through to historical prediction and then the must-be-awake time.
 
 ## 🧠 Historical prediction
 
@@ -74,23 +74,22 @@ Raw sleep records are read from Health Connect as needed rather than duplicated 
 - Android Health Connect sleep reads
 - read-only sleep-stage access
 - background Health Connect reads when supported
-- multiple recurring alarm schedules with weekday selection and skip-next controls
+- multiple wake schedules with Tomorrow only, Weekdays, Every day, and Custom day presets
 - each alarm independently selects Smart Wake or Standard Alarm
 - Smart Wake uses a user-controlled early window before its hard deadline
 - live Awake / Light wake logic
 - historical fallback limited to the final 10 minutes while live monitoring remains active
-- independent hard-stop alarm
+- independent must-be-awake alarm
 - exact alarm scheduling with recoverable permission setup from Settings
 - full-screen alarm handling
 - four-tab Home / Alarms / Sleep / Settings interface with swipe navigation
-- redesigned full-screen ringing UI with per-alarm label, mode/reason context, and snooze
+- swipe alarm cards right to toggle on/off and left to duplicate with haptic feedback
+- redesigned full-screen ringing UI with per-alarm label, mode/reason context, and explicit stop-all safety control
 - alarm sound and vibration
 - reboot, clock-change, and timezone-change schedule restoration
 - local wake settings and derived history
 - sleep analytics dashboard and richer sleep log
-- optional HRV and resting-heart-rate context
 - optional extended Health Connect history
-- local CSV, PDF, and shareable story exports
 - onboarding plus light/dark/system themes
 - Android CI build
 
@@ -115,7 +114,7 @@ Fitbit, Samsung Health, or another source may sync:
 - in batches;
 - only after the sleep session ends.
 
-That behavior determines whether the live layer can be useful on a given device/source. WakeSync is designed to degrade safely to prediction and the hard stop when live data is unavailable.
+That behavior determines whether the live layer can be useful on a given device/source. WakeSync is designed to degrade safely to prediction and the must-be-awake time when live data is unavailable.
 
 ## 🔒 Privacy
 

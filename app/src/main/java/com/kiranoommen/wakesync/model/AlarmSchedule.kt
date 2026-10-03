@@ -10,21 +10,33 @@ data class AlarmSchedule(
     val hour: Int,
     val minute: Int,
     val days: Set<Int>,
+    val oneTimeDate: String? = null,
     val mode: AlarmMode = AlarmMode.SMART_WAKE,
     val smartWindowMinutes: Int = 20,
     val smartOffsetMinutes: Int = 0,
     val enabled: Boolean = true,
     val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean = true,
-    val snoozeMinutes: Int = 5,
+    // Legacy persisted value retained temporarily so existing alarm records decode safely.
+    // Snooze is no longer exposed or scheduled by WakeSync.
+    val snoozeMinutes: Int = 0,
     val backupRingCount: Int = 0,
     val skippedDates: Set<String> = emptySet()
 ) {
     fun isScheduledOn(date: LocalDate): Boolean =
-        days.contains(date.dayOfWeek.value) && !skippedDates.contains(date.toString())
+        isBaseScheduledOn(date) &&
+            !skippedDates.contains(date.toString())
 
-    fun isBaseScheduledOn(date: LocalDate): Boolean =
-        days.contains(date.dayOfWeek.value)
+    fun isBaseScheduledOn(date: LocalDate): Boolean {
+        val oneTime = oneTimeDate
+            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+
+        return if (oneTime != null) {
+            oneTime == date
+        } else {
+            days.contains(date.dayOfWeek.value)
+        }
+    }
 
     fun nextDeadline(after: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime? =
         nextOccurrence(after = after, respectSkips = true)
@@ -51,21 +63,56 @@ data class AlarmSchedule(
         after: ZonedDateTime,
         respectSkips: Boolean
     ): ZonedDateTime? {
-        if (!enabled || days.isEmpty()) return null
+        if (!enabled) return null
 
-        // Search a full year so temporary skips can never make a valid recurring
-        // schedule appear to have disappeared from the Home screen.
+        val oneTime = oneTimeDate
+            ?.let {
+                runCatching {
+                    LocalDate.parse(it)
+                }.getOrNull()
+            }
+
+        if (oneTime != null) {
+            if (
+                respectSkips &&
+                skippedDates.contains(oneTime.toString())
+            ) {
+                return null
+            }
+
+            val candidate = oneTime
+                .atTime(hour, minute)
+                .atZone(after.zone)
+
+            return candidate.takeIf {
+                it.isAfter(after)
+            }
+        }
+
+        if (days.isEmpty()) return null
+
         for (offset in 0..370) {
-            val date = after.toLocalDate().plusDays(offset.toLong())
+            val date =
+                after.toLocalDate()
+                    .plusDays(offset.toLong())
+
             if (!isBaseScheduledOn(date)) continue
-            if (respectSkips && skippedDates.contains(date.toString())) continue
+            if (
+                respectSkips &&
+                skippedDates.contains(date.toString())
+            ) {
+                continue
+            }
 
             val candidate = date
                 .atTime(hour, minute)
                 .atZone(after.zone)
 
-            if (candidate.isAfter(after)) return candidate
+            if (candidate.isAfter(after)) {
+                return candidate
+            }
         }
+
         return null
     }
 

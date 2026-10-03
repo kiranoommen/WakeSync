@@ -37,9 +37,9 @@ Delivered:
 - sleep-session summaries;
 - alarm screen;
 - onboarding;
-- sleep analytics dashboard and log;
-- local CSV/PDF/story exports;
-- optional HRV/resting-heart-rate context.
+- simplified sleep context and log;
+- alarm-first Home experience;
+- four-tab swipe navigation.
 
 Remaining:
 - richer sleep-detail presentation;
@@ -97,7 +97,7 @@ Delivered:
 Remaining:
 - OEM battery-management testing;
 - repeated overnight device testing;
-- snooze strategy, if product requirements call for one.
+- continue OEM battery-management and overnight reliability validation.
 
 ## Milestone 6 — Real-world Fitbit testing
 
