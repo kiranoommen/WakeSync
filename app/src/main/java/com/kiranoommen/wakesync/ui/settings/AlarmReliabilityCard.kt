@@ -77,11 +77,31 @@ fun AlarmReliabilityCard(
                 label = "Full-screen alarms",
                 ready = readiness.fullScreenAllowed
             )
-            ReliabilityRow(
-                label = "Background Smart Wake",
-                ready =
-                    readiness.backgroundSleepPermission
-            )
+            if (readiness.backgroundFeatureAvailable) {
+                ReliabilityRow(
+                    label = "Background Smart Wake",
+                    ready =
+                        readiness.backgroundSleepPermission
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Background Smart Wake",
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Not supported",
+                        fontWeight = FontWeight.Bold,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -145,6 +165,7 @@ fun AlarmReliabilityCard(
 
             if (
                 readiness.sleepPermission &&
+                readiness.backgroundFeatureAvailable &&
                 !readiness.backgroundSleepPermission
             ) {
                 OutlinedButton(
