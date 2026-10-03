@@ -2,6 +2,7 @@ package com.kiranoommen.wakesync.model
 
 data class SmartWakeReadiness(
     val sleepPermission: Boolean = false,
+    val backgroundFeatureAvailable: Boolean = false,
     val backgroundSleepPermission: Boolean = false,
     val exactAlarmAccess: Boolean = false,
     val notificationsAllowed: Boolean = false,
@@ -19,6 +20,7 @@ data class SmartWakeReadiness(
     val liveSmartWakeReady: Boolean
         get() =
             sleepPermission &&
+                backgroundFeatureAvailable &&
                 backgroundSleepPermission &&
                 alarmReliabilityReady
 
