@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -22,14 +23,18 @@ import androidx.core.content.ContextCompat
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.lifecycleScope
 import com.kiranoommen.wakesync.alarm.AlarmScheduler
+import com.kiranoommen.wakesync.alarm.MultiAlarmController
 import com.kiranoommen.wakesync.alarm.PredictiveWakeEngine
 import com.kiranoommen.wakesync.data.AlarmStore
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.HealthConnectManager
+import com.kiranoommen.wakesync.data.WakeEventStore
 import com.kiranoommen.wakesync.data.WakeHistoryStore
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
+import com.kiranoommen.wakesync.model.LiveSleepSnapshot
 import com.kiranoommen.wakesync.model.SleepNight
+import com.kiranoommen.wakesync.model.WakeEvent
 import com.kiranoommen.wakesync.ui.OobeScreen
 import com.kiranoommen.wakesync.ui.WakeSyncScreen
 import kotlinx.coroutines.launch
@@ -42,9 +47,56 @@ class MainActivity : ComponentActivity() {
     private lateinit var alarmScheduler: AlarmScheduler
     private lateinit var appSettings: AppSettingsStore
     private lateinit var wakeHistoryStore: WakeHistoryStore
+    private lateinit var wakeEventStore: WakeEventStore
 
     private val exactAlarmAccessState = mutableStateOf(false)
+    private val notificationsAllowedState = mutableStateOf(true)
+    private val fullScreenAllowedState = mutableStateOf(true)
+    private val alarmVolumePercentState = mutableIntStateOf(100)
     private val schedulesRefreshState = mutableIntStateOf(0)
+
+    private fun refreshReliabilityState() {
+        notificationsAllowedState.value =
+            Build.VERSION.SDK_INT <
+                Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+
+        fullScreenAllowedState.value =
+            if (
+                Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            ) {
+                getSystemService(
+                    NotificationManager::class.java
+                ).canUseFullScreenIntent()
+            } else {
+                true
+            }
+
+        val audio =
+            getSystemService(
+                AudioManager::class.java
+            )
+        val max =
+            audio.getStreamMaxVolume(
+                AudioManager.STREAM_ALARM
+            ).coerceAtLeast(1)
+        val current =
+            audio.getStreamVolume(
+                AudioManager.STREAM_ALARM
+            )
+
+        alarmVolumePercentState.intValue =
+            (
+                current.toFloat() /
+                    max.toFloat() *
+                    100f
+                ).toInt()
+                .coerceIn(0, 100)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,10 +106,31 @@ class MainActivity : ComponentActivity() {
         alarmScheduler = AlarmScheduler(this)
         appSettings = AppSettingsStore(this)
         wakeHistoryStore = WakeHistoryStore(this)
-        exactAlarmAccessState.value = alarmScheduler.canScheduleExactAlarms()
+        wakeEventStore = WakeEventStore(this)
+        exactAlarmAccessState.value =
+            alarmScheduler.canScheduleExactAlarms()
+        refreshReliabilityState()
 
         setContent {
             var hasPermission by remember { mutableStateOf(false) }
+            var hasBackgroundReadPermission by remember {
+                mutableStateOf(false)
+            }
+            var latestSleepSnapshot by remember {
+                mutableStateOf<LiveSleepSnapshot?>(null)
+            }
+            var wakeEvents by remember {
+                mutableStateOf<List<WakeEvent>>(
+                    wakeEventStore.load()
+                )
+            }
+            var usableHistoryNights by remember {
+                mutableStateOf(
+                    wakeHistoryStore.load()
+                        ?.usableNights
+                        ?: 0
+                )
+            }
             var hasHistoryPermission by remember { mutableStateOf(false) }
             var nights by remember { mutableStateOf<List<SleepNight>>(emptyList()) }
             var schedules by remember { mutableStateOf(alarmStore.load()) }
@@ -143,6 +216,7 @@ class MainActivity : ComponentActivity() {
                 nights = input
                 val profile = PredictiveWakeEngine.buildProfile(input)
                 wakeHistoryStore.save(profile)
+                usableHistoryNights = profile.usableNights
 
                 val updated = withForecasts(schedules, input)
                 if (updated != schedules) {
@@ -179,6 +253,11 @@ class MainActivity : ComponentActivity() {
                 lifecycleScope.launch {
                     hasPermission =
                         healthConnectManager.hasRequiredPermissions()
+                    hasBackgroundReadPermission =
+                        runCatching {
+                            healthConnectManager
+                                .hasBackgroundReadPermission()
+                        }.getOrDefault(false)
                     hasHistoryPermission =
                         healthConnectManager.hasHistoryPermission()
 
@@ -206,6 +285,22 @@ class MainActivity : ComponentActivity() {
                 if (stored != schedules) {
                     schedules = stored
                 }
+
+                wakeEvents = wakeEventStore.load()
+
+                if (hasPermission) {
+                    latestSleepSnapshot =
+                        runCatching {
+                            healthConnectManager
+                                .readLatestSleepStage()
+                        }.getOrNull()
+
+                    hasBackgroundReadPermission =
+                        runCatching {
+                            healthConnectManager
+                                .hasBackgroundReadPermission()
+                        }.getOrDefault(false)
+                }
             }
 
             LaunchedEffect(Unit) {
@@ -223,6 +318,25 @@ class MainActivity : ComponentActivity() {
                 hasPermission = runCatching {
                     healthConnectManager.hasRequiredPermissions()
                 }.getOrDefault(false)
+                hasBackgroundReadPermission =
+                    runCatching {
+                        healthConnectManager
+                            .hasBackgroundReadPermission()
+                    }.getOrDefault(false)
+                latestSleepSnapshot =
+                    if (hasPermission) {
+                        runCatching {
+                            healthConnectManager
+                                .readLatestSleepStage()
+                        }.getOrNull()
+                    } else {
+                        null
+                    }
+                wakeEvents = wakeEventStore.load()
+                usableHistoryNights =
+                    wakeHistoryStore.load()
+                        ?.usableNights
+                        ?: 0
                 hasHistoryPermission = runCatching {
                     healthConnectManager.hasHistoryPermission()
                 }.getOrDefault(false)
@@ -260,6 +374,21 @@ class MainActivity : ComponentActivity() {
                     themeMode = themeMode,
                     hasPermission = hasPermission,
                     exactAlarmAccess = exactAlarmAccessState.value,
+                    onTestAlarm = {
+                        MultiAlarmController.testAlarm(
+                            this@MainActivity
+                        )
+                    },
+                    onWakeFeedback = {
+                            eventId,
+                            feedback ->
+                        wakeEventStore.setFeedback(
+                            eventId = eventId,
+                            feedback = feedback
+                        )
+                        wakeEvents =
+                            wakeEventStore.load()
+                    },
                     onThemeModeChange = { newMode ->
                         themeMode = newMode
                         appSettings.themeMode = newMode
@@ -295,6 +424,22 @@ class MainActivity : ComponentActivity() {
                     nights = nights,
                     schedules = schedules,
                     exactAlarmAccess = exactAlarmAccessState.value,
+                    notificationsAllowed =
+                        notificationsAllowedState.value,
+                    fullScreenAllowed =
+                        fullScreenAllowedState.value,
+                    alarmVolumePercent =
+                        alarmVolumePercentState.intValue,
+                    backgroundReadAvailable =
+                        healthConnectManager
+                            .backgroundReadAvailable(),
+                    hasBackgroundReadPermission =
+                        hasBackgroundReadPermission,
+                    usableHistoryNights =
+                        usableHistoryNights,
+                    latestSleepSnapshot =
+                        latestSleepSnapshot,
+                    wakeEvents = wakeEvents,
                     hasHistoryPermission = hasHistoryPermission,
                     historyReadAvailable = historyReadAvailable,
                     themeMode = themeMode,
@@ -457,6 +602,7 @@ class MainActivity : ComponentActivity() {
         if (::alarmScheduler.isInitialized) {
             exactAlarmAccessState.value =
                 alarmScheduler.canScheduleExactAlarms()
+            refreshReliabilityState()
             schedulesRefreshState.intValue += 1
         }
     }

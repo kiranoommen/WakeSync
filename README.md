@@ -7,7 +7,7 @@
   <img alt="Android 28+" src="https://img.shields.io/badge/Android-28%2B-6F63FF?style=flat-square&logo=android&logoColor=white" />
   <img alt="Health Connect read only" src="https://img.shields.io/badge/Health%20Connect-read--only-9A84FF?style=flat-square" />
   <img alt="On-device processing" src="https://img.shields.io/badge/processing-on--device-FFB44A?style=flat-square" />
-  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-E9ECFF?style=flat-square&labelColor=15192A" />
+  <img alt="Version 0.8.0" src="https://img.shields.io/badge/version-0.8.0-E9ECFF?style=flat-square&labelColor=15192A" />
 </p>
 
 <p align="center">
@@ -81,6 +81,10 @@ Raw sleep records are read from Health Connect as needed rather than duplicated 
 - historical fallback limited to the final 10 minutes while live monitoring remains active
 - independent must-be-awake alarm
 - exact alarm scheduling with recoverable permission setup from Settings
+- Smart Wake readiness card with live/history/reliability state
+- local Wake History explaining why alarms actually fired
+- Too early / Good / Too late morning feedback
+- Alarm Reliability card with volume status and real Test Alarm
 - full-screen alarm handling
 - four-tab Home / Alarms / Sleep / Settings interface with swipe navigation
 - swipe alarm cards right to toggle on/off and left to duplicate with haptic feedback

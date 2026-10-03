@@ -105,9 +105,13 @@ import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.domain.SleepAnalytics
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
+import com.kiranoommen.wakesync.model.LiveSleepSnapshot
+import com.kiranoommen.wakesync.model.WakeEvent
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
 import com.kiranoommen.wakesync.ui.alarms.AlarmEditorDialog
+import com.kiranoommen.wakesync.ui.home.SmartWakeStatusCard
+import com.kiranoommen.wakesync.ui.home.WakeHistoryCard
 import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Coral
 import com.kiranoommen.wakesync.ui.theme.Cyan
@@ -148,6 +152,14 @@ fun WakeSyncScreen(
     nights: List<SleepNight>,
     schedules: List<AlarmSchedule>,
     exactAlarmAccess: Boolean,
+    notificationsAllowed: Boolean,
+    fullScreenAllowed: Boolean,
+    alarmVolumePercent: Int,
+    backgroundReadAvailable: Boolean,
+    hasBackgroundReadPermission: Boolean,
+    usableHistoryNights: Int,
+    latestSleepSnapshot: LiveSleepSnapshot?,
+    wakeEvents: List<WakeEvent>,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
@@ -163,6 +175,8 @@ fun WakeSyncScreen(
     onClearSkips: (AlarmSchedule) -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
+    onTestAlarm: () -> Unit,
+    onWakeFeedback: (String, String) -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
     onGoalsEnabledChange: (Boolean) -> Unit
@@ -262,6 +276,18 @@ fun WakeSyncScreen(
                                     nights,
                                 schedules =
                                     schedules,
+                                exactAlarmAccess =
+                                    exactAlarmAccess,
+                                backgroundReadAvailable =
+                                    backgroundReadAvailable,
+                                hasBackgroundReadPermission =
+                                    hasBackgroundReadPermission,
+                                usableHistoryNights =
+                                    usableHistoryNights,
+                                latestSleepSnapshot =
+                                    latestSleepSnapshot,
+                                wakeEvents =
+                                    wakeEvents,
                                 errorMessage =
                                     errorMessage,
                                 onConnect =
@@ -276,6 +302,8 @@ fun WakeSyncScreen(
                                     onSkipNext,
                                 onClearSkips =
                                     onClearSkips,
+                                onWakeFeedback =
+                                    onWakeFeedback,
                                 onGoAlarms = {
                                     pagerScope.launch {
                                         pagerState
@@ -342,6 +370,12 @@ fun WakeSyncScreen(
                                     hasPermission,
                                 exactAlarmAccess =
                                     exactAlarmAccess,
+                                notificationsAllowed =
+                                    notificationsAllowed,
+                                fullScreenAllowed =
+                                    fullScreenAllowed,
+                                alarmVolumePercent =
+                                    alarmVolumePercent,
                                 hasHistoryPermission =
                                     hasHistoryPermission,
                                 historyReadAvailable =
@@ -360,6 +394,8 @@ fun WakeSyncScreen(
                                     onRequestHistoryAccess,
                                 onRequestExactAlarmAccess =
                                     onRequestExactAlarmAccess,
+                                onTestAlarm =
+                                    onTestAlarm,
                                 onThemeModeChange =
                                     onThemeModeChange,
                                 onSleepGoalChange =
@@ -459,12 +495,19 @@ private fun HomeTab(
     loading: Boolean,
     nights: List<SleepNight>,
     schedules: List<AlarmSchedule>,
+    exactAlarmAccess: Boolean,
+    backgroundReadAvailable: Boolean,
+    hasBackgroundReadPermission: Boolean,
+    usableHistoryNights: Int,
+    latestSleepSnapshot: LiveSleepSnapshot?,
+    wakeEvents: List<WakeEvent>,
     errorMessage: String?,
     onConnect: () -> Unit,
     onRefresh: () -> Unit,
     onEditSchedule: (AlarmSchedule) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit,
+    onWakeFeedback: (String, String) -> Unit,
     onGoAlarms: () -> Unit,
     sleepGoalMinutes: Int,
     goalsEnabled: Boolean
@@ -539,6 +582,35 @@ private fun HomeTab(
                     onUndo = { onSkipNext(nearestSkipped.first) }
                 )
             }
+        }
+
+        item {
+            SmartWakeStatusCard(
+                nextSchedule = next?.first,
+                sleepPermission = hasPermission,
+                backgroundReadAvailable =
+                    backgroundReadAvailable,
+                backgroundReadPermission =
+                    hasBackgroundReadPermission,
+                exactAlarmAccess = exactAlarmAccess,
+                notificationsAllowed =
+                    notificationsAllowed,
+                fullScreenAllowed =
+                    fullScreenAllowed,
+                alarmVolumePercent =
+                    alarmVolumePercent,
+                usableHistoryNights =
+                    usableHistoryNights,
+                latestSnapshot =
+                    latestSleepSnapshot
+            )
+        }
+
+        item {
+            WakeHistoryCard(
+                events = wakeEvents,
+                onFeedback = onWakeFeedback
+            )
         }
 
         if (
@@ -3269,6 +3341,9 @@ private fun SleepTab(
 private fun SettingsTab(
     hasPermission: Boolean,
     exactAlarmAccess: Boolean,
+    notificationsAllowed: Boolean,
+    fullScreenAllowed: Boolean,
+    alarmVolumePercent: Int,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
@@ -3278,6 +3353,7 @@ private fun SettingsTab(
     onConnect: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
+    onTestAlarm: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
     onGoalsEnabledChange: (Boolean) -> Unit
@@ -3562,7 +3638,7 @@ private fun SettingsTab(
 
         item {
             SettingsBentoCard(
-                title = "Permissions & Reliability",
+                title = "Alarm Reliability",
                 borderColor =
                     if (exactAlarmAccess) {
                         Mint.copy(alpha = 0.28f)
@@ -3635,20 +3711,96 @@ private fun SettingsTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 12.dp),
-                        onClick = onRequestExactAlarmAccess,
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Amber,
-                            contentColor = Color(0xFF15192A)
-                        )
+                        onClick =
+                            onRequestExactAlarmAccess,
+                        shape =
+                            RoundedCornerShape(999.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = Amber,
+                                contentColor =
+                                    Color(0xFF15192A)
+                            )
                     ) {
                         Text(
-                            text = "Grant exact alarm access",
-                            fontWeight = FontWeight.ExtraBold
+                            text =
+                                "Grant exact alarm access",
+                            fontWeight =
+                                FontWeight.ExtraBold
                         )
                     }
                 }
 
+                HorizontalDivider(
+                    modifier =
+                        Modifier.padding(vertical = 10.dp)
+                )
+
+                ReliabilityRow(
+                    label = "Notifications",
+                    value =
+                        if (notificationsAllowed) {
+                            "Ready"
+                        } else {
+                            "Permission needed"
+                        },
+                    ready = notificationsAllowed
+                )
+
+                ReliabilityRow(
+                    label = "Full-screen alarm",
+                    value =
+                        if (fullScreenAllowed) {
+                            "Ready"
+                        } else {
+                            "Permission needed"
+                        },
+                    ready = fullScreenAllowed
+                )
+
+                ReliabilityRow(
+                    label = "Alarm volume",
+                    value =
+                        alarmVolumePercent
+                            .coerceIn(0, 100)
+                            .toString() + "%",
+                    ready = alarmVolumePercent >= 30
+                )
+
+                if (alarmVolumePercent < 30) {
+                    Text(
+                        text =
+                            "Alarm volume is low. Raise Android's Alarm volume before relying on WakeSync overnight.",
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color = Sunrise
+                    )
+                }
+
+                Button(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    onClick = onTestAlarm,
+                    shape =
+                        RoundedCornerShape(999.dp)
+                ) {
+                    Text(
+                        text = "Test alarm",
+                        fontWeight =
+                            FontWeight.ExtraBold
+                    )
+                }
+
+                Text(
+                    text =
+                        "Test Alarm uses the real WakeSync ringing screen, alarm audio, vibration, and full-screen path without changing your schedules.",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme
+                            .onSurfaceVariant
+                )
             }
         }
 
@@ -4196,6 +4348,43 @@ private fun SettingsBentoCard(
                 content()
             }
         }
+    }
+}
+
+@Composable
+private fun ReliabilityRow(
+    label: String,
+    value: String,
+    ready: Boolean
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement =
+            Arrangement.SpaceBetween,
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style =
+                MaterialTheme.typography.bodyMedium,
+            color =
+                MaterialTheme.colorScheme
+                    .onSurfaceVariant
+        )
+
+        Text(
+            text = value,
+            style =
+                MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color =
+                if (ready) {
+                    Mint
+                } else {
+                    Sunrise
+                }
+        )
     }
 }
 
