@@ -67,6 +67,33 @@ class WakeEventStore(context: Context) {
         }.getOrDefault(emptyList())
     }
 
+    fun markSequenceCompleted(
+        scheduleId: String,
+        deadlineMillis: Long
+    ) {
+        val current = load()
+        val target = current
+            .filter {
+                it.scheduleId == scheduleId &&
+                    it.deadlineMillis == deadlineMillis
+            }
+            .maxByOrNull { it.firedAtMillis }
+            ?: return
+
+        save(
+            current.map { event ->
+                if (event.id == target.id) {
+                    event.copy(
+                        completedAtMillis =
+                            System.currentTimeMillis()
+                    )
+                } else {
+                    event
+                }
+            }
+        )
+    }
+
     fun setFeedback(
         eventId: String,
         feedback: WakeFeedback
@@ -115,6 +142,9 @@ class WakeEventStore(context: Context) {
             event.dataAgeMinutes?.let {
                 put("dataAgeMinutes", it)
             }
+            event.completedAtMillis?.let {
+                put("completedAtMillis", it)
+            }
             event.feedback?.let {
                 put("feedback", it.name)
             }
@@ -156,6 +186,16 @@ class WakeEventStore(context: Context) {
                     ) {
                         value.getLong(
                             "dataAgeMinutes"
+                        )
+                    } else {
+                        null
+                    },
+                completedAtMillis =
+                    if (
+                        value.has("completedAtMillis")
+                    ) {
+                        value.getLong(
+                            "completedAtMillis"
                         )
                     } else {
                         null
