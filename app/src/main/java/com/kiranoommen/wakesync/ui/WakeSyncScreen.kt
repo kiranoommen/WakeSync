@@ -2249,7 +2249,12 @@ private fun NextWakeCard(
                     ) {
                         Text(
                             modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
-                            text = "✨  SMART ALARM",
+                            text =
+                                if (schedule.mode == AlarmMode.SMART_WAKE) {
+                                    "✨  SMART WAKE"
+                                } else {
+                                    "⏰  STANDARD ALARM"
+                                },
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -2259,11 +2264,14 @@ private fun NextWakeCard(
 
                 Text(
                     modifier = Modifier.padding(top = 16.dp),
-                    text = if (schedule.smartWindowMinutes > 0) {
-                        windowStart.format(timeFormat) + " – " + deadline.format(timeFormat)
-                    } else {
-                        deadline.format(timeFormat)
-                    },
+                    text =
+                        if (schedule.mode == AlarmMode.SMART_WAKE) {
+                            windowStart.format(timeFormat) +
+                                " – " +
+                                deadline.format(timeFormat)
+                        } else {
+                            deadline.format(timeFormat)
+                        },
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White
@@ -2275,6 +2283,24 @@ private fun NextWakeCard(
                         " · " + deadline.format(dateFormat),
                     color = Color.White.copy(alpha = 0.80f)
                 )
+
+                if (schedule.backupRingCount > 0) {
+                    Text(
+                        modifier = Modifier.padding(top = 4.dp),
+                        text =
+                            schedule.backupRingCount.toString() +
+                                " backup alarm" +
+                                if (schedule.backupRingCount == 1) {
+                                    ""
+                                } else {
+                                    "s"
+                                } +
+                                " · every 5 min after " +
+                                deadline.format(timeFormat),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.68f)
+                    )
+                }
 
                 Card(
                     modifier = Modifier
@@ -2299,7 +2325,7 @@ private fun NextWakeCard(
                                     schedule.smartOffsetMinutes > 0 ->
                                         "Historical fallback forecast"
                                     else ->
-                                        "Hard deadline"
+                                        "Must be awake by"
                                 },
                                 color = Color.White.copy(alpha = 0.72f),
                                 style = MaterialTheme.typography.bodySmall
@@ -2329,7 +2355,7 @@ private fun NextWakeCard(
                         ) {
                             Text(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                text = "● Ready",
+                                text = "● Scheduled",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -2358,14 +2384,19 @@ private fun NextWakeCard(
                         )
                     }
 
-                    OutlinedButton(
-                        onClick = onSkip,
-                        shape = RoundedCornerShape(999.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White
-                        )
-                    ) {
+                    if (schedule.oneTimeDate == null) {
+                        OutlinedButton(
+                            onClick = onSkip,
+                            shape = RoundedCornerShape(999.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                Color.White.copy(alpha = 0.28f)
+                            ),
+                            colors =
+                                ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color.White
+                                )
+                        ) {
                         Text(
                             if (schedule.isNextOccurrenceSkipped()) {
                                 "Undo skip"
@@ -2373,6 +2404,7 @@ private fun NextWakeCard(
                                 "Skip once"
                             }
                         )
+                    }
                     }
                 }
             }
