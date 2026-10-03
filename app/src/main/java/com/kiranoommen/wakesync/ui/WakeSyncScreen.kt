@@ -593,6 +593,12 @@ private fun HomeTab(
                 backgroundReadPermission =
                     hasBackgroundReadPermission,
                 exactAlarmAccess = exactAlarmAccess,
+                notificationsAllowed =
+                    notificationsAllowed,
+                fullScreenAllowed =
+                    fullScreenAllowed,
+                alarmVolumePercent =
+                    alarmVolumePercent,
                 usableHistoryNights =
                     usableHistoryNights,
                 latestSnapshot =
