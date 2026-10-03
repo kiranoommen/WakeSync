@@ -74,13 +74,17 @@ fun WakeHistoryCard(
                             .onSurfaceVariant
                 )
             } else {
-                events.take(5).forEachIndexed {
-                        index,
-                        event ->
+                val visible = events.take(5)
+                val feedbackEventId =
+                    visible.firstOrNull {
+                        !it.isBackup
+                    }?.id
+
+                visible.forEach { event ->
                     WakeEventRow(
                         event = event,
-                        askFeedback = index == 0 &&
-                            !event.isBackup,
+                        askFeedback =
+                            event.id == feedbackEventId,
                         onFeedback = onFeedback
                     )
                 }
@@ -258,6 +262,12 @@ private fun detail(
                 " sleep"
     }
 
+    event.sourcePackage
+        ?.takeIf { it.isNotBlank() }
+        ?.let { source ->
+            pieces += sourceFriendlyName(source)
+        }
+
     event.dataAgeSeconds?.let { seconds ->
         pieces +=
             if (seconds < 60) {
@@ -293,4 +303,27 @@ private fun detail(
     }
 
     return pieces.joinToString(" · ")
+}
+
+private fun sourceFriendlyName(
+    packageName: String
+): String {
+    val lower = packageName.lowercase()
+
+    return when {
+        "fitbit" in lower ->
+            "Fitbit"
+        "samsung" in lower ||
+            "sec.android" in lower ->
+            "Samsung Health"
+        "oura" in lower ->
+            "Oura"
+        "garmin" in lower ->
+            "Garmin"
+        "zepp" in lower ||
+            "amazfit" in lower ->
+            "Zepp"
+        else ->
+            "Health Connect"
+    }
 }
