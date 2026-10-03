@@ -86,6 +86,8 @@ fun SmartWakeStatusCard(
                         when {
                             !readiness.sleepPermission ->
                                 "Health Connect not connected"
+                            !readiness.backgroundFeatureAvailable ->
+                                "Live background stages unavailable"
                             !readiness.backgroundSleepPermission ->
                                 "Background access needed"
                             readiness.latestStageAgeMinutes != null &&
