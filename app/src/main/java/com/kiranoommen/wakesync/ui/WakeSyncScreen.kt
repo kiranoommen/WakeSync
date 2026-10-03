@@ -107,7 +107,13 @@ import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
+import com.kiranoommen.wakesync.model.SmartWakeReadiness
+import com.kiranoommen.wakesync.model.WakeEvent
+import com.kiranoommen.wakesync.model.WakeFeedback
 import com.kiranoommen.wakesync.ui.alarms.AlarmEditorDialog
+import com.kiranoommen.wakesync.ui.home.SmartWakeStatusCard
+import com.kiranoommen.wakesync.ui.home.WakeHistorySection
+import com.kiranoommen.wakesync.ui.settings.AlarmReliabilityCard
 import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Coral
 import com.kiranoommen.wakesync.ui.theme.Cyan
@@ -148,6 +154,9 @@ fun WakeSyncScreen(
     nights: List<SleepNight>,
     schedules: List<AlarmSchedule>,
     exactAlarmAccess: Boolean,
+    smartWakeReadiness: SmartWakeReadiness,
+    alarmVolumePercent: Int,
+    wakeEvents: List<WakeEvent>,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
@@ -162,6 +171,10 @@ fun WakeSyncScreen(
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit,
     onRequestHistoryAccess: () -> Unit,
+    onWakeFeedback: (String, WakeFeedback) -> Unit,
+    onClearWakeHistory: () -> Unit,
+    onTestAlarm: () -> Unit,
+    onOpenAlarmVolumeSettings: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
@@ -288,6 +301,14 @@ fun WakeSyncScreen(
                                     sleepGoalMinutes,
                                 goalsEnabled =
                                     goalsEnabled,
+                                smartWakeReadiness =
+                                    smartWakeReadiness,
+                                wakeEvents =
+                                    wakeEvents,
+                                onWakeFeedback =
+                                    onWakeFeedback,
+                                onClearWakeHistory =
+                                    onClearWakeHistory,
                             )
 
                         AppTab.ALARMS ->
@@ -342,6 +363,10 @@ fun WakeSyncScreen(
                                     hasPermission,
                                 exactAlarmAccess =
                                     exactAlarmAccess,
+                                smartWakeReadiness =
+                                    smartWakeReadiness,
+                                alarmVolumePercent =
+                                    alarmVolumePercent,
                                 hasHistoryPermission =
                                     hasHistoryPermission,
                                 historyReadAvailable =
@@ -360,6 +385,10 @@ fun WakeSyncScreen(
                                     onRequestHistoryAccess,
                                 onRequestExactAlarmAccess =
                                     onRequestExactAlarmAccess,
+                                onTestAlarm =
+                                    onTestAlarm,
+                                onOpenAlarmVolumeSettings =
+                                    onOpenAlarmVolumeSettings,
                                 onThemeModeChange =
                                     onThemeModeChange,
                                 onSleepGoalChange =
@@ -467,7 +496,11 @@ private fun HomeTab(
     onClearSkips: (AlarmSchedule) -> Unit,
     onGoAlarms: () -> Unit,
     sleepGoalMinutes: Int,
-    goalsEnabled: Boolean
+    goalsEnabled: Boolean,
+    smartWakeReadiness: SmartWakeReadiness,
+    wakeEvents: List<WakeEvent>,
+    onWakeFeedback: (String, WakeFeedback) -> Unit,
+    onClearWakeHistory: () -> Unit
 ) {
     val next = remember(schedules) { nextSchedule(schedules) }
     val nearestSkipped = remember(schedules) { nearestUpcomingSkipped(schedules) }
