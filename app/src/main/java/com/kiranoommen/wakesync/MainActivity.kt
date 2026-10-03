@@ -2,6 +2,7 @@ package com.kiranoommen.wakesync
 
 import android.Manifest
 import android.app.NotificationManager
+import android.media.AudioManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -22,14 +23,19 @@ import androidx.core.content.ContextCompat
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.lifecycleScope
 import com.kiranoommen.wakesync.alarm.AlarmScheduler
+import com.kiranoommen.wakesync.alarm.MultiAlarmController
 import com.kiranoommen.wakesync.alarm.PredictiveWakeEngine
 import com.kiranoommen.wakesync.data.AlarmStore
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.HealthConnectManager
 import com.kiranoommen.wakesync.data.WakeHistoryStore
+import com.kiranoommen.wakesync.data.WakeEventStore
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.model.SleepNight
+import com.kiranoommen.wakesync.model.SmartWakeReadiness
+import com.kiranoommen.wakesync.model.WakeEvent
+import com.kiranoommen.wakesync.model.WakeFeedback
 import com.kiranoommen.wakesync.ui.OobeScreen
 import com.kiranoommen.wakesync.ui.WakeSyncScreen
 import kotlinx.coroutines.launch
@@ -42,6 +48,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var alarmScheduler: AlarmScheduler
     private lateinit var appSettings: AppSettingsStore
     private lateinit var wakeHistoryStore: WakeHistoryStore
+    private lateinit var wakeEventStore: WakeEventStore
 
     private val exactAlarmAccessState = mutableStateOf(false)
     private val schedulesRefreshState = mutableIntStateOf(0)
@@ -54,6 +61,7 @@ class MainActivity : ComponentActivity() {
         alarmScheduler = AlarmScheduler(this)
         appSettings = AppSettingsStore(this)
         wakeHistoryStore = WakeHistoryStore(this)
+        wakeEventStore = WakeEventStore(this)
         exactAlarmAccessState.value = alarmScheduler.canScheduleExactAlarms()
 
         setContent {
