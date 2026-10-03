@@ -32,6 +32,8 @@ fun SmartWakeStatusCard(
 
     val status =
         when {
+            nextSchedule == null ->
+                "No alarm scheduled"
             !smart ->
                 "Standard alarm scheduled"
             readiness.liveSmartWakeReady ->
@@ -45,6 +47,8 @@ fun SmartWakeStatusCard(
 
     val accent =
         when {
+            nextSchedule == null ->
+                MaterialTheme.colorScheme.onSurfaceVariant
             !smart -> Amber
             readiness.liveSmartWakeReady -> Mint
             readiness.alarmReliabilityReady -> Amber
@@ -79,7 +83,16 @@ fun SmartWakeStatusCard(
                 color = accent
             )
 
-            if (smart) {
+            if (nextSchedule == null) {
+                Text(
+                    text =
+                        "Add a wake schedule to arm WakeSync.",
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (smart) {
                 StatusRow(
                     label = "Live sleep",
                     value =
