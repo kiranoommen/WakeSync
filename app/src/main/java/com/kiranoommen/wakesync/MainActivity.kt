@@ -66,7 +66,30 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var hasPermission by remember { mutableStateOf(false) }
+            var hasBackgroundPermission by remember {
+                mutableStateOf(false)
+            }
             var hasHistoryPermission by remember { mutableStateOf(false) }
+            var notificationsAllowed by remember {
+                mutableStateOf(false)
+            }
+            var fullScreenAllowed by remember {
+                mutableStateOf(false)
+            }
+            var alarmVolumePercent by remember {
+                mutableStateOf(0)
+            }
+            var latestStageSource by remember {
+                mutableStateOf<String?>(null)
+            }
+            var latestStageAgeMinutes by remember {
+                mutableStateOf<Long?>(null)
+            }
+            var wakeEvents by remember {
+                mutableStateOf<List<WakeEvent>>(
+                    wakeEventStore.load()
+                )
+            }
             var nights by remember { mutableStateOf<List<SleepNight>>(emptyList()) }
             var schedules by remember { mutableStateOf(alarmStore.load()) }
             val scheduleRefreshTick =
@@ -89,6 +112,96 @@ class MainActivity : ComponentActivity() {
             }
 
             val historyReadAvailable = healthConnectManager.historyReadAvailable()
+
+            fun notificationAccessGranted(): Boolean {
+                val manager =
+                    getSystemService(NotificationManager::class.java)
+
+                val runtimeGranted =
+                    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                        ContextCompat.checkSelfPermission(
+                            this@MainActivity,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                return runtimeGranted &&
+                    manager.areNotificationsEnabled()
+            }
+
+            fun fullScreenAccessGranted(): Boolean {
+                if (Build.VERSION.SDK_INT < 34) return true
+
+                return runCatching {
+                    getSystemService(
+                        NotificationManager::class.java
+                    ).canUseFullScreenIntent()
+                }.getOrDefault(false)
+            }
+
+            fun currentAlarmVolumePercent(): Int {
+                val audio =
+                    getSystemService(AudioManager::class.java)
+                val max =
+                    audio.getStreamMaxVolume(
+                        AudioManager.STREAM_ALARM
+                    ).coerceAtLeast(1)
+                val current =
+                    audio.getStreamVolume(
+                        AudioManager.STREAM_ALARM
+                    )
+
+                return (
+                    current.toDouble() /
+                        max.toDouble() *
+                        100.0
+                    ).toInt().coerceIn(0, 100)
+            }
+
+            fun refreshReliabilityState() {
+                notificationsAllowed =
+                    notificationAccessGranted()
+                fullScreenAllowed =
+                    fullScreenAccessGranted()
+                alarmVolumePercent =
+                    currentAlarmVolumePercent()
+                wakeEvents =
+                    wakeEventStore.load()
+
+                lifecycleScope.launch {
+                    hasBackgroundPermission =
+                        runCatching {
+                            healthConnectManager
+                                .hasBackgroundReadPermission()
+                        }.getOrDefault(false)
+
+                    val snapshot =
+                        runCatching {
+                            healthConnectManager
+                                .readLatestSleepStage()
+                        }.getOrNull()
+
+                    latestStageSource =
+                        snapshot?.sourcePackage
+                    latestStageAgeMinutes =
+                        snapshot?.let {
+                            if (
+                                it.stageEnd.isAfter(
+                                    java.time.Instant.now()
+                                )
+                            ) {
+                                0L
+                            } else {
+                                java.time.Duration
+                                    .between(
+                                        it.stageEnd,
+                                        java.time.Instant.now()
+                                    )
+                                    .toMinutes()
+                                    .coerceAtLeast(0L)
+                            }
+                        }
+                }
+            }
 
             fun withForecasts(
                 input: List<AlarmSchedule>,
@@ -205,15 +318,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val notificationPermissionLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestPermission()
-            ) { }
+            val notificationPermissionLauncher =
+                rememberLauncherForActivityResult(
+                    contract =
+                        ActivityResultContracts.RequestPermission()
+                ) {
+                    refreshReliabilityState()
+                }
 
             LaunchedEffect(scheduleRefreshTick) {
                 val stored = alarmStore.load()
                 if (stored != schedules) {
                     schedules = stored
                 }
+                refreshReliabilityState()
             }
 
             LaunchedEffect(Unit) {
@@ -234,7 +352,12 @@ class MainActivity : ComponentActivity() {
                 hasHistoryPermission = runCatching {
                     healthConnectManager.hasHistoryPermission()
                 }.getOrDefault(false)
+                hasBackgroundPermission = runCatching {
+                    healthConnectManager
+                        .hasBackgroundReadPermission()
+                }.getOrDefault(false)
 
+                refreshReliabilityState()
                 alarmScheduler.scheduleAll(schedules)
 
                 if (hasPermission) {
