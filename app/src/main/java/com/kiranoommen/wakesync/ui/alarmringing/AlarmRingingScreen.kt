@@ -43,6 +43,7 @@ fun AlarmRingingScreen(
         }
     }
 
+    val testAlarm = kind == "test"
     val smart =
         schedule?.mode == AlarmMode.SMART_WAKE
     val backupIndex =
@@ -73,10 +74,13 @@ fun AlarmRingingScreen(
                 )
 
     val modeLabel =
-        if (smart) {
-            "SMART WAKE"
-        } else {
-            "STANDARD ALARM"
+        when {
+            testAlarm ->
+                "TEST ALARM"
+            smart ->
+                "SMART WAKE"
+            else ->
+                "STANDARD ALARM"
         }
 
     val label =
@@ -341,6 +345,9 @@ fun AlarmRingingScreen(
 
 private fun alarmReasonCopy(reason: String): String =
     when {
+        reason == "Test alarm" ->
+            "Testing alarm sound and full-screen behavior."
+
         reason == "Standard alarm" ->
             "Your standard alarm is ringing."
 
