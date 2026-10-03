@@ -103,9 +103,9 @@ The personal nightly target is optional and stored as total minutes. The Setting
 
 It is a user-facing planning metric, not a physiological measurement of an exact biological debt.
 
-## HRV and resting heart rate
+## Physiological metrics
 
-HRV and resting heart rate are optional.
+WakeSync does not request HRV or resting-heart-rate permissions. The product is intentionally focused on alarm timing, sleep-stage context, and wake reliability rather than becoming a general recovery tracker.
 
 WakeSync requests these Health Connect permissions separately so the sleep/alarm experience still works when the user does not want to share recovery metrics.
 
