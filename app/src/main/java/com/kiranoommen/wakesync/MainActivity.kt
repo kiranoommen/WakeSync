@@ -25,7 +25,6 @@ import com.kiranoommen.wakesync.alarm.PredictiveWakeEngine
 import com.kiranoommen.wakesync.data.AlarmStore
 import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.data.HealthConnectManager
-import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.data.WakeHistoryStore
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
@@ -57,7 +56,6 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var hasPermission by remember { mutableStateOf(false) }
-            var hasAnalyticsPermission by remember { mutableStateOf(false) }
             var hasHistoryPermission by remember { mutableStateOf(false) }
             var nights by remember { mutableStateOf<List<SleepNight>>(emptyList()) }
             var schedules by remember { mutableStateOf(alarmStore.load()) }
@@ -70,14 +68,8 @@ class MainActivity : ComponentActivity() {
             var goalsEnabled by remember {
                 mutableStateOf(appSettings.goalsEnabled)
             }
-            var dashboardWidgets by remember {
-                mutableStateOf(appSettings.dashboardWidgets)
-            }
             var maxSmartWindowMinutes by remember {
                 mutableStateOf(appSettings.maxSmartWindowMinutes)
-            }
-            var retainGeneratedExports by remember {
-                mutableStateOf(appSettings.retainGeneratedExports)
             }
             var oobeCompleted by remember {
                 mutableStateOf(
@@ -186,22 +178,9 @@ class MainActivity : ComponentActivity() {
                 lifecycleScope.launch {
                     hasPermission =
                         healthConnectManager.hasRequiredPermissions()
-                    hasAnalyticsPermission =
-                        healthConnectManager.hasAnalyticsPermissions()
                     hasHistoryPermission =
                         healthConnectManager.hasHistoryPermission()
 
-                    if (hasPermission) refreshSleep()
-                }
-            }
-
-            val analyticsPermissionLauncher = rememberLauncherForActivityResult(
-                contract =
-                    PermissionController.createRequestPermissionResultContract()
-            ) {
-                lifecycleScope.launch {
-                    hasAnalyticsPermission =
-                        healthConnectManager.hasAnalyticsPermissions()
                     if (hasPermission) refreshSleep()
                 }
             }
@@ -235,9 +214,6 @@ class MainActivity : ComponentActivity() {
 
                 hasPermission = runCatching {
                     healthConnectManager.hasRequiredPermissions()
-                }.getOrDefault(false)
-                hasAnalyticsPermission = runCatching {
-                    healthConnectManager.hasAnalyticsPermissions()
                 }.getOrDefault(false)
                 hasHistoryPermission = runCatching {
                     healthConnectManager.hasHistoryPermission()
@@ -274,7 +250,6 @@ class MainActivity : ComponentActivity() {
                 OobeScreen(
                     sdkStatus = healthConnectManager.sdkStatus(),
                     themeMode = themeMode,
-                    displayName = "",
                     hasPermission = hasPermission,
                     exactAlarmAccess = exactAlarmAccessState.value,
                     onThemeModeChange = { newMode ->
@@ -313,16 +288,13 @@ class MainActivity : ComponentActivity() {
                     nights = nights,
                     schedules = schedules,
                     exactAlarmAccess = exactAlarmAccessState.value,
-                    hasAnalyticsPermission = hasAnalyticsPermission,
                     hasHistoryPermission = hasHistoryPermission,
                     historyReadAvailable = historyReadAvailable,
                     themeMode = themeMode,
                     sleepGoalMinutes = sleepGoalMinutes,
                     goalsEnabled = goalsEnabled,
-                    dashboardWidgets = dashboardWidgets,
                     displayName = "",
                     maxSmartWindowMinutes = maxSmartWindowMinutes,
-                    retainGeneratedExports = retainGeneratedExports,
                     errorMessage = errorMessage,
                     onConnect = {
                         healthPermissionLauncher.launch(
@@ -407,11 +379,6 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     },
-                    onRequestAnalyticsAccess = {
-                        analyticsPermissionLauncher.launch(
-                            HealthConnectManager.analyticsPermissions
-                        )
-                    },
                     onRequestHistoryAccess = {
                         if (historyReadAvailable) {
                             historyPermissionLauncher.launch(
@@ -447,11 +414,6 @@ class MainActivity : ComponentActivity() {
                         goalsEnabled = enabled
                         appSettings.goalsEnabled = enabled
                     },
-                    onDashboardWidgetsChange = { widgets ->
-                        dashboardWidgets = widgets
-                        appSettings.dashboardWidgets = widgets
-                    },
-                    onDisplayNameChange = { },
                     onMaxSmartWindowChange = { minutes ->
                         maxSmartWindowMinutes = minutes
                         appSettings.maxSmartWindowMinutes = minutes
@@ -475,15 +437,6 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     },
-                    onRetainGeneratedExportsChange = { retain ->
-                        retainGeneratedExports = retain
-                        appSettings.retainGeneratedExports = retain
-                    },
-                    onClearGeneratedExports = {
-                        SleepExporter.clearGeneratedExports(
-                            this@MainActivity
-                        )
-                    }
                 )
             }
         }
