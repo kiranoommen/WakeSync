@@ -8,6 +8,24 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+## 0.7.0 — 2026-10-02
+
+### Changed
+- shifted Home back toward an alarm-first experience instead of a customizable sleep dashboard;
+- renamed user-facing **Guardrail Wake Time** language to **Must be awake by**;
+- renamed **Backup Rings** to the clearer **Backup Alarms**;
+- simplified the Sleep experience and removed export/share actions from the active UI;
+- simplified privacy settings now that generated report retention is no longer exposed;
+- onboarding now explains that Smart Wake depends on Health Connect and is most useful with a fitness tracker or smartwatch that syncs sleep stages overnight.
+
+### Removed
+- Snooze from the alarm editor and ringing screen;
+- dashboard customization from the active Home experience;
+- CSV, PDF, and story-card export controls from the active Sleep experience.
+
+### Product direction
+WakeSync is an alarm app first. Sleep data exists to improve and explain Smart Wake, not to compete with full sleep-tracking apps.
+
 ## 0.6.0 — 2026-10-02
 
 ### Added
