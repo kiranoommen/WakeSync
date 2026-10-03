@@ -120,10 +120,7 @@ fun SleepAnalyticsScreen(
     loading: Boolean,
     targetSleepMinutes: Int,
     goalsEnabled: Boolean,
-    onRefresh: () -> Unit,
-    onShareCsv: (List<NightAnalytics>) -> Unit,
-    onSharePdf: (PeriodAnalytics) -> Unit,
-    onShareStory: (PeriodAnalytics) -> Unit
+    onRefresh: () -> Unit
 ) {
     var range by remember { mutableStateOf(SleepRange.TWO_WEEKS) }
     var compare by remember { mutableStateOf(false) }
@@ -133,7 +130,6 @@ fun SleepAnalyticsScreen(
     var customEnd by remember { mutableStateOf<LocalDate?>(null) }
     var showCustomRange by remember { mutableStateOf(false) }
     var selectedNight by remember { mutableStateOf<NightAnalytics?>(null) }
-    var showExportPreview by remember { mutableStateOf(false) }
     var showScoreBreakdown by remember { mutableStateOf(false) }
     var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
 
@@ -376,19 +372,6 @@ fun SleepAnalyticsScreen(
                 }
             )
 
-            ExportCard(
-                onOpenPreview = {
-                    showExportPreview = true
-                },
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Export & share",
-                        meaning = "WakeSync can generate a PDF summary, CSV log or shareable visual card only when you explicitly request it.",
-                        measurement = "Exports are created locally from the currently selected period.",
-                        importance = "The preview tells you exactly what leaves the app before Android's share sheet opens."
-                    )
-                }
-            )
         }
     }
 
@@ -413,33 +396,6 @@ fun SleepAnalyticsScreen(
             goalsEnabled = goalsEnabled,
             onDismiss = {
                 selectedNight = null
-            }
-        )
-    }
-
-    if (showExportPreview) {
-        ExportPreviewSheet(
-            analytics = analytics,
-            onDismiss = {
-                showExportPreview = false
-            },
-            onPdf = {
-                showExportPreview = false
-                onSharePdf(analytics)
-            },
-            onCsv = {
-                showExportPreview = false
-                onShareCsv(
-                    sortedNights(
-                        analytics.nights,
-                        sort,
-                        sortDescending
-                    )
-                )
-            },
-            onStory = {
-                showExportPreview = false
-                onShareStory(analytics)
             }
         )
     }
