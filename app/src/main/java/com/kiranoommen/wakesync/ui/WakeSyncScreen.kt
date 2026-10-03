@@ -2129,6 +2129,10 @@ private fun DashboardCustomizeDialog(
         )
     }
 
+    var showMoreOptions by remember(schedule.id) {
+        mutableStateOf(false)
+    }
+
     val schedulePreset =
         when {
             draft.oneTimeDate != null ->
@@ -2239,7 +2243,7 @@ private fun DashboardCustomizeDialog(
                     onSave(working)
                 }
             ) {
-                Text("Save")
+                Text("Done")
             }
         },
         dismissButton = {
@@ -5008,26 +5012,6 @@ private fun AlarmEditorDialog(
                 }
 
                 item {
-                    ToggleSettingRow(
-                    title = "Sound",
-                    checked = draft.soundEnabled,
-                        onCheckedChange = { draft = draft.copy(soundEnabled = it) }
-                    )
-                }
-
-                item {
-                    ToggleSettingRow(
-                    title = "Vibration",
-                    checked = draft.vibrationEnabled,
-                        onCheckedChange = { draft = draft.copy(vibrationEnabled = it) }
-                    )
-                }
-
-                item {
-                    HorizontalDivider()
-                }
-
-                item {
                     Column {
                         Text(
                             text = "Backup alarms",
@@ -5096,6 +5080,63 @@ private fun AlarmEditorDialog(
                         color =
                             MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+
+                item {
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            showMoreOptions = !showMoreOptions
+                        }
+                    ) {
+                        Text(
+                            text =
+                                if (showMoreOptions) {
+                                    "Hide more options"
+                                } else {
+                                    "More options"
+                                },
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                if (showMoreOptions) {
+                    item {
+                        HorizontalDivider()
+                    }
+
+                    item {
+                        ToggleSettingRow(
+                            title = "Alarm sound",
+                            checked = draft.soundEnabled,
+                            onCheckedChange = {
+                                draft = draft.copy(
+                                    soundEnabled = it
+                                )
+                            }
+                        )
+                    }
+
+                    item {
+                        ToggleSettingRow(
+                            title = "Vibration",
+                            checked = draft.vibrationEnabled,
+                            onCheckedChange = {
+                                draft = draft.copy(
+                                    vibrationEnabled = it
+                                )
+                            }
+                        )
+                    }
+
+                    item {
+                        Text(
+                            text = "Sound selection and gradual volume are coming in the next alarm-audio pass.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 item {
