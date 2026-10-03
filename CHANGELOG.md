@@ -8,6 +8,25 @@ All notable WakeSync changes should be recorded here.
 
 ## Unreleased
 
+## 0.8.0 — 2026-10-02
+
+### Added
+- Smart Wake readiness card showing live-sleep readiness, wake-history maturity, and alarm-reliability status;
+- local Wake History with the actual ring path: live Smart Wake, historical fallback, must-be-awake alarm, Standard Alarm, or Backup Alarm;
+- live Smart Wake history records include Health Connect source and stage freshness when available;
+- optional morning feedback: **Too early / Good / Too late**;
+- alarm reliability card with exact-alarm, notification, full-screen, background-read, and alarm-volume checks;
+- **Test Alarm** action using the real full-screen/sound/vibration path;
+- alarm-volume shortcut.
+
+### Simplified
+- removed HRV/resting-heart-rate permissions and active recovery UI;
+- Smart Wake health access is now limited to sleep data and optional extended sleep history;
+- completed user-facing **Must be awake by** wording in the alarm editor.
+
+### Product direction
+WakeSync now explains whether Smart Wake is ready and why it actually rang, instead of asking the user to trust hidden alarm logic.
+
 ## 0.7.0 — 2026-10-02
 
 ### Changed
