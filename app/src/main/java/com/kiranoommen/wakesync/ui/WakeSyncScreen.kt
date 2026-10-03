@@ -2129,22 +2129,6 @@ private fun DashboardCustomizeDialog(
         )
     }
 
-    var showMoreOptions by remember(schedule.id) {
-        mutableStateOf(false)
-    }
-
-    val schedulePreset =
-        when {
-            draft.oneTimeDate != null ->
-                "TOMORROW"
-            draft.days == AlarmSchedule.WEEKDAYS ->
-                "WEEKDAYS"
-            draft.days.size == 7 ->
-                "EVERY_DAY"
-            else ->
-                "CUSTOM"
-        }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -4629,6 +4613,22 @@ private fun AlarmEditorDialog(
             )
         )
     }
+
+    var showMoreOptions by remember(schedule.id) {
+        mutableStateOf(false)
+    }
+
+    val schedulePreset =
+        when {
+            draft.oneTimeDate != null ->
+                "TOMORROW"
+            draft.days == AlarmSchedule.WEEKDAYS ->
+                "WEEKDAYS"
+            draft.days.size == 7 ->
+                "EVERY_DAY"
+            else ->
+                "CUSTOM"
+        }
 
     AlertDialog(
         onDismissRequest = onDismiss,
