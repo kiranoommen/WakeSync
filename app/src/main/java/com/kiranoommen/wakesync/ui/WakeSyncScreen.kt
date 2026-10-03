@@ -105,9 +105,13 @@ import com.kiranoommen.wakesync.data.AppSettingsStore
 import com.kiranoommen.wakesync.domain.SleepAnalytics
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
+import com.kiranoommen.wakesync.model.LiveSleepSnapshot
+import com.kiranoommen.wakesync.model.WakeEvent
 import com.kiranoommen.wakesync.model.SleepNight
 import com.kiranoommen.wakesync.model.SleepStageType
 import com.kiranoommen.wakesync.ui.alarms.AlarmEditorDialog
+import com.kiranoommen.wakesync.ui.home.SmartWakeStatusCard
+import com.kiranoommen.wakesync.ui.home.WakeHistoryCard
 import com.kiranoommen.wakesync.ui.theme.Amber
 import com.kiranoommen.wakesync.ui.theme.Coral
 import com.kiranoommen.wakesync.ui.theme.Cyan
@@ -148,6 +152,11 @@ fun WakeSyncScreen(
     nights: List<SleepNight>,
     schedules: List<AlarmSchedule>,
     exactAlarmAccess: Boolean,
+    backgroundReadAvailable: Boolean,
+    hasBackgroundReadPermission: Boolean,
+    usableHistoryNights: Int,
+    latestSleepSnapshot: LiveSleepSnapshot?,
+    wakeEvents: List<WakeEvent>,
     hasHistoryPermission: Boolean,
     historyReadAvailable: Boolean,
     themeMode: String,
@@ -163,6 +172,7 @@ fun WakeSyncScreen(
     onClearSkips: (AlarmSchedule) -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
+    onWakeFeedback: (String, String) -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
     onGoalsEnabledChange: (Boolean) -> Unit
@@ -262,6 +272,18 @@ fun WakeSyncScreen(
                                     nights,
                                 schedules =
                                     schedules,
+                                exactAlarmAccess =
+                                    exactAlarmAccess,
+                                backgroundReadAvailable =
+                                    backgroundReadAvailable,
+                                hasBackgroundReadPermission =
+                                    hasBackgroundReadPermission,
+                                usableHistoryNights =
+                                    usableHistoryNights,
+                                latestSleepSnapshot =
+                                    latestSleepSnapshot,
+                                wakeEvents =
+                                    wakeEvents,
                                 errorMessage =
                                     errorMessage,
                                 onConnect =
@@ -276,6 +298,8 @@ fun WakeSyncScreen(
                                     onSkipNext,
                                 onClearSkips =
                                     onClearSkips,
+                                onWakeFeedback =
+                                    onWakeFeedback,
                                 onGoAlarms = {
                                     pagerScope.launch {
                                         pagerState
@@ -459,12 +483,19 @@ private fun HomeTab(
     loading: Boolean,
     nights: List<SleepNight>,
     schedules: List<AlarmSchedule>,
+    exactAlarmAccess: Boolean,
+    backgroundReadAvailable: Boolean,
+    hasBackgroundReadPermission: Boolean,
+    usableHistoryNights: Int,
+    latestSleepSnapshot: LiveSleepSnapshot?,
+    wakeEvents: List<WakeEvent>,
     errorMessage: String?,
     onConnect: () -> Unit,
     onRefresh: () -> Unit,
     onEditSchedule: (AlarmSchedule) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit,
+    onWakeFeedback: (String, String) -> Unit,
     onGoAlarms: () -> Unit,
     sleepGoalMinutes: Int,
     goalsEnabled: Boolean
@@ -539,6 +570,29 @@ private fun HomeTab(
                     onUndo = { onSkipNext(nearestSkipped.first) }
                 )
             }
+        }
+
+        item {
+            SmartWakeStatusCard(
+                nextSchedule = next?.first,
+                sleepPermission = hasPermission,
+                backgroundReadAvailable =
+                    backgroundReadAvailable,
+                backgroundReadPermission =
+                    hasBackgroundReadPermission,
+                exactAlarmAccess = exactAlarmAccess,
+                usableHistoryNights =
+                    usableHistoryNights,
+                latestSnapshot =
+                    latestSleepSnapshot
+            )
+        }
+
+        item {
+            WakeHistoryCard(
+                events = wakeEvents,
+                onFeedback = onWakeFeedback
+            )
         }
 
         if (
