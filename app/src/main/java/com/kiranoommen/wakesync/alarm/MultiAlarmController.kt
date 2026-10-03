@@ -114,24 +114,6 @@ object MultiAlarmController {
         dismissCurrent(appContext)
     }
 
-    fun snooze(
-        context: Context,
-        scheduleId: String,
-        minutes: Int,
-        deadlineMillis: Long
-    ) {
-        if (minutes <= 0) return
-
-        AlarmScheduler(context.applicationContext)
-            .snooze(
-                scheduleId = scheduleId,
-                minutes = minutes,
-                sequenceDeadlineMillis = deadlineMillis
-            )
-
-        dismissCurrent(context)
-    }
-
     private fun scheduleNextOccurrence(
         context: Context,
         scheduler: AlarmScheduler,
