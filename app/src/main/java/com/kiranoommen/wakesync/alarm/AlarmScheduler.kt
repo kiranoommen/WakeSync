@@ -40,7 +40,13 @@ class AlarmScheduler(private val context: Context) {
         after: ZonedDateTime = ZonedDateTime.now(),
         clearExisting: Boolean = true
     ) {
-        if (!schedule.enabled || schedule.days.isEmpty()) return
+        if (
+            !schedule.enabled ||
+            (
+                schedule.oneTimeDate == null &&
+                    schedule.days.isEmpty()
+                )
+        ) return
 
         val deadline = schedule.nextDeadline(after) ?: return
 
