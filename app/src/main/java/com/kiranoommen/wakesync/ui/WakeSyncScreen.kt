@@ -518,8 +518,6 @@ private fun HomeTab(
 ) {
     val next = remember(schedules) { nextSchedule(schedules) }
     val nearestSkipped = remember(schedules) { nearestUpcomingSkipped(schedules) }
-    var showCustomize by remember { mutableStateOf(false) }
-    var showScoreBreakdown by remember { mutableStateOf(false) }
     var infoSheet by remember { mutableStateOf<MetricInfo?>(null) }
     val dashboardNights = remember(nights) {
         val cutoff =
@@ -549,47 +547,6 @@ private fun HomeTab(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        if (hasPermission && dashboardAnalytics.nights.isNotEmpty()) {
-            item {
-                MorningBriefingCard(
-                    analytics = dashboardAnalytics,
-                    displayName = displayName,
-                    goalsEnabled = goalsEnabled,
-                    onScoreClick = {
-                        showScoreBreakdown = true
-                    },
-                    onStatusClick = {
-                        infoSheet =
-                            if (
-                                goalsEnabled &&
-                                dashboardAnalytics.sleepDebtMinutes > 0
-                            ) {
-                                sleepDebtInfo()
-                            } else {
-                                MetricInfo(
-                                    title = "Daily recovery status",
-                                    meaning = "A quick label based on the current WakeSync Sleep Score and, when targets are enabled, recent sleep debt.",
-                                    measurement = "The Daily Score is separate from cumulative Sleep Debt.",
-                                    importance = "Use the label as a summary, then open the score breakdown for the underlying components."
-                                )
-                            }
-                    },
-                    onInfo = {
-                        infoSheet = MetricInfo(
-                            title = "Morning briefing",
-                            meaning = "A quick status view of your latest sleep period and recent recovery trend.",
-                            measurement = if (goalsEnabled) {
-                                "WakeSync uses your recent Sleep Score, sleep-debt estimate and selected personal sleep target."
-                            } else {
-                                "WakeSync uses recent sleep duration, efficiency, stages and consistency without target/debt indicators."
-                            },
-                            importance = "The briefing gives a quick recovery snapshot without requiring you to dig through charts."
-                        )
-                    }
-                )
-            }
-        }
-
         item {
             if (next != null) {
                 NextWakeCard(
@@ -648,50 +605,26 @@ private fun HomeTab(
         if (hasPermission) {
             item {
                 SectionHeader(
-                    title = "Your Dashboard",
-                    action = "Customize",
-                    onAction = {
-                        showCustomize = true
-                    }
+                    title = "Last night",
+                    action = "Refresh",
+                    onAction = onRefresh
                 )
             }
 
             item {
-                DashboardBentoGrid(
-                    widgets = dashboardWidgets,
-                    analytics = dashboardAnalytics,
-                    nights = nights,
-                    schedules = schedules,
+                LastNightDashboardTile(
+                    modifier = Modifier.fillMaxWidth(),
+                    night = nights.maxByOrNull { it.end },
                     loading = loading,
-                    goalsEnabled = goalsEnabled,
-                    sleepGoalMinutes = sleepGoalMinutes,
-                    onEditSchedule = onEditSchedule,
-                    onSkipNext = onSkipNext,
-                    onGoAlarms = onGoAlarms,
                     onInfo = {
-                        infoSheet = it
-                    }
-                )
-            }
-
-            item {
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = onRefresh
-                    ) {
-                        Text(
-                            text =
-                                "Refresh sleep data",
-                            color =
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                        infoSheet = MetricInfo(
+                            title = "Last night",
+                            meaning = "A compact summary of the most recent Health Connect sleep session.",
+                            measurement = "WakeSync keeps sleep context secondary to the alarm and shows only the latest useful summary here.",
+                            importance = "The full Sleep tab remains available for trends without turning Home into a sleep-tracking dashboard."
                         )
                     }
-                }
+                )
             }
         }
 
@@ -701,7 +634,7 @@ private fun HomeTab(
                     infoSheet = MetricInfo(
                         title = "On-device privacy",
                         meaning = "WakeSync reads permitted Health Connect data locally and does not operate a health-data cloud database.",
-                        measurement = "Sleep analytics and wake recommendations are calculated on the device. Export only happens after you choose a share action.",
+                        measurement = "Sleep context and wake recommendations are calculated on the device.",
                         importance = "Keeping raw health data local reduces unnecessary exposure and keeps the app usable without a paid server API."
                     )
                 }
@@ -720,34 +653,11 @@ private fun HomeTab(
         item { Spacer(Modifier.height(10.dp)) }
     }
 
-    if (showCustomize) {
-        DashboardCustomizeDialog(
-            current = dashboardWidgets,
-            goalsEnabled = goalsEnabled,
-            onDismiss = { showCustomize = false },
-            onSave = {
-                onDashboardWidgetsChange(it)
-                showCustomize = false
-            }
-        )
-    }
-
     MetricInfoBottomSheet(
         info = infoSheet,
         onDismiss = { infoSheet = null }
     )
 
-    if (showScoreBreakdown) {
-        ScoreBreakdownSheet(
-            analytics = dashboardAnalytics,
-            dailyNight =
-                dashboardAnalytics.nights
-                    .firstOrNull(),
-            onDismiss = {
-                showScoreBreakdown = false
-            }
-        )
-    }
 }
 
 @Composable
@@ -1057,11 +967,11 @@ private fun DashboardWidgetTile(
                             title =
                                 "Smart Alarm Status",
                             meaning =
-                                "Guardrail Wake Time (Hard Deadline) is the latest time the alarm will sound. Smart Wake Window (Early Window) is the optional earlier interval WakeSync can use.",
+                                "Must be awake by is the latest time the alarm will sound. Smart Wake Window (Early Window) is the optional earlier interval WakeSync can use.",
                             measurement =
-                                "WakeSync schedules the hard deadline with Android and may choose an earlier wake point only inside the configured window.",
+                                "WakeSync schedules the must-be-awake time with Android and may choose an earlier wake point only inside the configured window.",
                             importance =
-                                "The guardrail prevents the smart feature from making you late."
+                                "The deadline prevents the smart feature from making you late."
                         )
                     )
                 }
@@ -1521,7 +1431,7 @@ private fun SmartAlarmDashboardTile(
                     FontWeight.ExtraBold
             )
             Text(
-                text = "Guardrail Wake Time",
+                text = "Must be awake by",
                 style =
                     MaterialTheme.typography.bodySmall,
                 color =
@@ -2770,7 +2680,7 @@ private fun EmptyAlarmCard(
                 )
                 Text(
                     modifier = Modifier.padding(top = 7.dp),
-                    text = "Set your Guardrail Wake Time — the latest time the alarm will sound. WakeSync can wake you gently inside the Smart Wake Window before it.",
+                    text = "Set your Must be awake by — the latest time the alarm will sound. WakeSync can wake you gently inside the Smart Wake Window before it.",
                     color = Color.White.copy(alpha = 0.78f)
                 )
 
@@ -2839,7 +2749,7 @@ private fun AlarmsTab(
                     infoSheet = MetricInfo(
                         title = "Weekly alarm overview",
                         meaning = "A rolling seven-day view beginning today, rather than a fixed Monday-to-Sunday calendar block.",
-                        measurement = "WakeSync maps each of the next seven dates to enabled recurring schedules and shows the earliest Guardrail Wake Time if schedules overlap.",
+                        measurement = "WakeSync maps each of the next seven dates to enabled recurring schedules and shows the earliest Must be awake by if schedules overlap.",
                         importance = "The rolling view makes the next actual alarms, days off and changing weekday times obvious at a glance."
                     )
                 }
@@ -2867,7 +2777,7 @@ private fun AlarmsTab(
                         title = "Wake schedule",
                         meaning = "A recurring wake-by deadline with optional smart-window flexibility.",
                         measurement = "WakeSync stores the selected weekdays, wake-by time and allowed early-wake window locally, then schedules the protected deadline with Android.",
-                        importance = "The schedule is the guardrail: WakeSync can optimize inside the window but cannot intentionally wake you later than the deadline."
+                        importance = "The schedule is the deadline: WakeSync can optimize inside the window but cannot intentionally wake you later than the deadline."
                     )
                 }
             )
@@ -3639,7 +3549,7 @@ private fun SettingsTab(
                 title = "Smart Alarm Guardrails",
                 onInfo = {
                     infoSheet = MetricInfo(
-                        title = "Smart alarm guardrail",
+                        title = "Smart alarm deadline",
                         meaning = "The maximum amount of time any WakeSync alarm is allowed to move earlier than its protected wake-by deadline.",
                         measurement = "Each alarm can choose a smaller smart window, but no schedule may exceed this global maximum.",
                         importance = "This prevents a smart alarm from waking you dramatically earlier than you are comfortable with."
@@ -3693,7 +3603,7 @@ private fun SettingsTab(
                     modifier =
                         Modifier.padding(top = 8.dp),
                     text =
-                        "The wake-by deadline always wins. Existing wider schedules are capped when you lower this guardrail.",
+                        "The wake-by deadline always wins. Existing wider schedules are capped when you lower this deadline.",
                     style =
                         MaterialTheme.typography.bodySmall,
                     color =
@@ -3840,7 +3750,7 @@ private fun SettingsTab(
                 onInfo = {
                     infoSheet = MetricInfo(
                         title = "Exact alarm reliability",
-                        meaning = "Android exact-alarm access lets WakeSync protect the Guardrail Wake Time with precise OS scheduling.",
+                        meaning = "Android exact-alarm access lets WakeSync protect the Must be awake by with precise OS scheduling.",
                         measurement = "WakeSync checks Android's exact-alarm capability. If access was skipped during onboarding, you can grant it here at any time.",
                         importance = "Without exact-alarm access, Android power management can delay time-critical alarms."
                     )
@@ -4954,7 +4864,7 @@ private fun AlarmEditorDialog(
                         Text(
                             modifier = Modifier.padding(top = 3.dp),
                             text = if (draft.mode == AlarmMode.SMART_WAKE) {
-                                "How early WakeSync is allowed to wake you before the hard deadline."
+                                "How early WakeSync is allowed to wake you before the must-be-awake time."
                             } else {
                                 "Not used for Standard Alarm."
                             },
@@ -4991,19 +4901,6 @@ private fun AlarmEditorDialog(
                     }
                 }
 
-                if (draft.backupRingCount > 0) {
-                    item {
-                        Text(
-                            text =
-                                "Snooze is paused while Backup rings are enabled so two alarm sequences cannot collide.",
-                            style =
-                                MaterialTheme.typography.bodySmall,
-                            color =
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
                 item {
                     Text(
                         text =
@@ -5012,7 +4909,7 @@ private fun AlarmEditorDialog(
                                     formatClock(draft.hour, draft.minute) + "."
                             } else {
                                 when (draft.smartWindowMinutes) {
-                                    10 -> "Tight: up to 10 minutes before the hard deadline."
+                                    10 -> "Tight: up to 10 minutes before the must-be-awake time."
                                     15 -> "Gentle: up to 15 minutes early."
                                     20 -> "Balanced: up to 20 minutes early."
                                     30 -> "Flexible: up to 30 minutes early."
@@ -5051,16 +4948,16 @@ private fun AlarmEditorDialog(
                 item {
                     Column {
                         Text(
-                            text = "Backup rings",
+                            text = "Backup alarms",
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             modifier = Modifier.padding(top = 3.dp),
                             text =
                                 if (draft.mode == AlarmMode.SMART_WAKE) {
-                                    "After the Smart Wake attempt, the hard deadline stays armed. Add extra rings after the deadline for more wake-up protection."
+                                    "After the Smart Wake attempt, the must-be-awake time stays armed. Add extra alarms after the deadline if you tend to dismiss the first alarm half-asleep."
                                 } else {
-                                    "Add extra rings after the exact alarm time so dismissing one half-asleep does not end the whole sequence."
+                                    "Add extra alarms after the exact alarm time so dismissing one half-asleep does not end the whole sequence."
                                 },
                             style = MaterialTheme.typography.bodySmall,
                             color =
@@ -5105,47 +5002,18 @@ private fun AlarmEditorDialog(
                                 "Off. One normal dismiss ends the active ring."
                             } else {
                                 draft.backupRingCount.toString() +
-                                    " extra ring" +
+                                    " extra alarm" +
                                     if (draft.backupRingCount == 1) {
                                         ""
                                     } else {
                                         "s"
                                     } +
-                                    " · every 5 minutes. “Dismiss this ring” keeps the rest armed; “I’m awake” stops them."
+                                    " · every 5 minutes. Dismissing one alarm keeps the rest armed; “I’m awake” stops them."
                             },
                         style = MaterialTheme.typography.bodySmall,
                         color =
                             MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-
-                item {
-                    Text(
-                        text = "Snooze",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                    listOf(0, 5, 10).forEach { minutes ->
-                        FilterChip(
-                            selected = draft.snoozeMinutes == minutes,
-                            enabled = draft.backupRingCount == 0,
-                            onClick = {
-                                draft = draft.copy(
-                                    snoozeMinutes = minutes
-                                )
-                            },
-                            label = {
-                                Text(if (minutes == 0) "Off" else minutes.toString() + "m")
-                            }
-                        )
-                    }
-                    }
                 }
 
                 item {
@@ -5158,7 +5026,7 @@ private fun AlarmEditorDialog(
                             } else {
                                 "Smart Wake: live sleep can wake you inside the selected window; historical fallback is limited to the final 10 minutes. " +
                                     formatClock(draft.hour, draft.minute) +
-                                    " remains the hard deadline."
+                                    " remains the must-be-awake time."
                             },
                         style = MaterialTheme.typography.bodySmall
                     )
