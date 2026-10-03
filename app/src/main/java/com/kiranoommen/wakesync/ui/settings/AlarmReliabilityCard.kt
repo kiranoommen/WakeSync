@@ -28,6 +28,9 @@ fun AlarmReliabilityCard(
     readiness: SmartWakeReadiness,
     alarmVolumePercent: Int,
     onGrantExactAlarmAccess: () -> Unit,
+    onRequestBackgroundSmartWakeAccess: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
+    onOpenFullScreenSettings: () -> Unit,
     onOpenAlarmVolumeSettings: () -> Unit,
     onTestAlarm: () -> Unit
 ) {
@@ -117,6 +120,40 @@ fun AlarmReliabilityCard(
                         text = "Fix exact alarm access",
                         fontWeight = FontWeight.ExtraBold
                     )
+                }
+            }
+
+            if (!readiness.notificationsAllowed) {
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onOpenNotificationSettings,
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Text("Fix notification access")
+                }
+            }
+
+            if (!readiness.fullScreenAllowed) {
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onOpenFullScreenSettings,
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Text("Fix full-screen alarm access")
+                }
+            }
+
+            if (
+                readiness.sleepPermission &&
+                !readiness.backgroundSleepPermission
+            ) {
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick =
+                        onRequestBackgroundSmartWakeAccess,
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Text("Fix background Smart Wake access")
                 }
             }
 
