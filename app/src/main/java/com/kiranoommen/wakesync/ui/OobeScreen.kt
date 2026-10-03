@@ -414,7 +414,7 @@ private fun OobePermissions(
 
         Text(
             text =
-                "Health Connect enables Smart Wake and sleep insights. Standard Alarm works without it. Exact Alarm access keeps your configured alarm time precise.",
+                "Smart Wake is what WakeSync is built for. It uses Health Connect for sleep data and works best with a fitness tracker or smartwatch that syncs overnight. A phone by itself usually cannot provide live sleep-stage data. Exact Alarm access keeps your must-be-awake time precise.",
             color =
                 colors.onSurfaceVariant
         )
@@ -444,7 +444,7 @@ private fun OobePermissions(
                 if (healthUnavailable) {
                     "Health Connect is not currently available on this device. You can finish setup and connect later from Settings."
                 } else {
-                    "Optional read-only access enables Smart Wake and sleep insights from compatible Health Connect sources. Standard Alarm does not require it."
+                    "Read-only Health Connect access powers Smart Wake. For live wake decisions, use a fitness tracker or smartwatch that can sync sleep stages overnight; phone-only data is usually not live enough."
                 },
             actionLabel =
                 if (
@@ -475,7 +475,7 @@ private fun OobePermissions(
                     Sunrise
                 },
             body =
-                "Android restricts exact timers by default. Granting Exact Alarm access helps your Guardrail Wake Time fire precisely without battery-saver delays.",
+                "Android restricts exact timers by default. Granting Exact Alarm access helps your Must be awake by fire precisely without battery-saver delays.",
             actionLabel =
                 if (exactAlarmGranted) {
                     null
