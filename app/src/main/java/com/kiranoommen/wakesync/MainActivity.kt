@@ -111,7 +111,29 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            val historyReadAvailable = healthConnectManager.historyReadAvailable()
+            val historyReadAvailable =
+                healthConnectManager.historyReadAvailable()
+
+            val smartWakeReadiness =
+                SmartWakeReadiness(
+                    sleepPermission = hasPermission,
+                    backgroundSleepPermission =
+                        hasBackgroundPermission,
+                    exactAlarmAccess =
+                        exactAlarmAccessState.value,
+                    notificationsAllowed =
+                        notificationsAllowed,
+                    fullScreenAllowed =
+                        fullScreenAllowed,
+                    usableHistoryNights =
+                        wakeHistoryStore.load()
+                            ?.usableNights
+                            ?: 0,
+                    latestStageSource =
+                        latestStageSource,
+                    latestStageAgeMinutes =
+                        latestStageAgeMinutes
+                )
 
             fun notificationAccessGranted(): Boolean {
                 val manager =
@@ -400,6 +422,31 @@ class MainActivity : ComponentActivity() {
                             healthConnectManager.requestedPermissions()
                         )
                     },
+                    onWakeFeedback = { eventId, feedback ->
+                        wakeEventStore.setFeedback(
+                            eventId,
+                            feedback
+                        )
+                        wakeEvents = wakeEventStore.load()
+                    },
+                    onClearWakeHistory = {
+                        wakeEventStore.clear()
+                        wakeEvents = emptyList()
+                    },
+                    onTestAlarm = {
+                        MultiAlarmController.testAlarm(
+                            this@MainActivity
+                        )
+                    },
+                    onOpenAlarmVolumeSettings = {
+                        runCatching {
+                            startActivity(
+                                Intent(
+                                    Settings.ACTION_SOUND_SETTINGS
+                                )
+                            )
+                        }
+                    },
                     onRequestExactAlarmAccess = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             runCatching {
@@ -426,6 +473,9 @@ class MainActivity : ComponentActivity() {
                     nights = nights,
                     schedules = schedules,
                     exactAlarmAccess = exactAlarmAccessState.value,
+                    smartWakeReadiness = smartWakeReadiness,
+                    alarmVolumePercent = alarmVolumePercent,
+                    wakeEvents = wakeEvents,
                     hasHistoryPermission = hasHistoryPermission,
                     historyReadAvailable = historyReadAvailable,
                     themeMode = themeMode,
