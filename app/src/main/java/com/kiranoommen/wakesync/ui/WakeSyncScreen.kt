@@ -3797,55 +3797,20 @@ private fun SettingsTab(
 
         item {
             SettingsBentoCard(
-                title = "Privacy & Local Storage",
+                title = "Privacy",
                 onInfo = {
                     infoSheet = MetricInfo(
-                        title = "Local storage",
-                        meaning = "Raw Health Connect sleep records are read on-device. WakeSync only retains generated export files if you explicitly enable it.",
-                        measurement = "When retention is off, share files are generated in Android cache. When enabled, generated exports are stored in WakeSync's private app files until you clear them.",
-                        importance = "You control whether shareable reports remain on the device after they are generated."
+                        title = "On-device privacy",
+                        meaning = "WakeSync reads permitted Health Connect data locally and does not require an account or health-data cloud.",
+                        measurement = "Alarm decisions, sleep context, and wake history remain on this device.",
+                        importance = "The app only asks for data needed to support Smart Wake and its local sleep context."
                     )
                 }
             ) {
-                SettingsToggleRow(
-                    title =
-                        "Keep generated exports",
-                    subtitle =
-                        if (
-                            retainGeneratedExports
-                        ) {
-                            "PDF, CSV and story cards remain in WakeSync private storage"
-                        } else {
-                            "Exports use temporary app cache"
-                        },
-                    checked =
-                        retainGeneratedExports,
-                    enabled = true,
-                    onCheckedChange =
-                        onRetainGeneratedExportsChange
-                )
-
-                TextButton(
-                    modifier =
-                        Modifier.padding(top = 4.dp),
-                    onClick =
-                        onClearGeneratedExports
-                ) {
-                    Text(
-                        text =
-                            "Clear generated exports",
-                        color =
-                            MaterialTheme.colorScheme.error
-                    )
-                }
-
                 Text(
-                    text =
-                        "Raw Health Connect data is not copied into a WakeSync cloud database.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "WakeSync processes Smart Wake and sleep context on this device. Raw Health Connect data is not copied into a WakeSync cloud database.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
