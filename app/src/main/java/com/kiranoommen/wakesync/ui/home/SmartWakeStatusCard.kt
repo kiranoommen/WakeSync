@@ -29,6 +29,9 @@ fun SmartWakeStatusCard(
     backgroundReadAvailable: Boolean,
     backgroundReadPermission: Boolean,
     exactAlarmAccess: Boolean,
+    notificationsAllowed: Boolean,
+    fullScreenAllowed: Boolean,
+    alarmVolumePercent: Int,
     usableHistoryNights: Int,
     latestSnapshot: LiveSleepSnapshot?
 ) {
@@ -41,7 +44,10 @@ fun SmartWakeStatusCard(
                 "No alarm scheduled"
             !smart ->
                 "Standard alarm scheduled"
-            !exactAlarmAccess ->
+            !exactAlarmAccess ||
+                !notificationsAllowed ||
+                !fullScreenAllowed ||
+                alarmVolumePercent < 30 ->
                 "Alarm reliability needs attention"
             !sleepPermission ->
                 "Smart Wake needs Health Connect"
@@ -57,6 +63,9 @@ fun SmartWakeStatusCard(
             nextSchedule == null ->
                 MaterialTheme.colorScheme.onSurfaceVariant
             !exactAlarmAccess ||
+                !notificationsAllowed ||
+                !fullScreenAllowed ||
+                alarmVolumePercent < 30 ||
                 (smart && !sleepPermission) ||
                 (smart &&
                     backgroundReadAvailable &&
@@ -170,6 +179,31 @@ fun SmartWakeStatusCard(
                     },
                 accent =
                     if (exactAlarmAccess) {
+                        Mint
+                    } else {
+                        Amber
+                    }
+            )
+
+            StatusLine(
+                label = "Alarm path",
+                value =
+                    when {
+                        !notificationsAllowed ->
+                            "Notifications need attention"
+                        !fullScreenAllowed ->
+                            "Full-screen access needed"
+                        alarmVolumePercent < 30 ->
+                            "Volume low · $alarmVolumePercent%"
+                        else ->
+                            "Ready · volume $alarmVolumePercent%"
+                    },
+                accent =
+                    if (
+                        notificationsAllowed &&
+                        fullScreenAllowed &&
+                        alarmVolumePercent >= 30
+                    ) {
                         Mint
                     } else {
                         Amber
