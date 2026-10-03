@@ -315,6 +315,20 @@ fun WakeSyncScreen(
                                     editingSchedule =
                                         it
                                 },
+                                onDuplicate = { source ->
+                                    creatingNew = true
+                                    editingSchedule = source.copy(
+                                        id =
+                                            UUID.randomUUID()
+                                                .toString(),
+                                        label =
+                                            source.label
+                                                .ifBlank { "Wake up" }
+                                                .take(23) +
+                                                " copy",
+                                        skippedDates = emptySet()
+                                    )
+                                },
                                 onToggle =
                                     onToggleSchedule,
                                 onSkipNext =
@@ -2695,6 +2709,7 @@ private fun AlarmsTab(
     schedules: List<AlarmSchedule>,
     onAdd: () -> Unit,
     onEdit: (AlarmSchedule) -> Unit,
+    onDuplicate: (AlarmSchedule) -> Unit,
     onToggle: (AlarmSchedule, Boolean) -> Unit,
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit
@@ -2752,6 +2767,7 @@ private fun AlarmsTab(
             AlarmScheduleCard(
                 schedule = schedule,
                 onEdit = { onEdit(schedule) },
+                onDuplicate = { onDuplicate(schedule) },
                 onToggle = { onToggle(schedule, it) },
                 onSkip = { onSkipNext(schedule) },
                 onClearSkips = { onClearSkips(schedule) },
@@ -3007,6 +3023,7 @@ private fun WeeklyAlarmOverview(
 private fun AlarmScheduleCard(
     schedule: AlarmSchedule,
     onEdit: () -> Unit,
+    onDuplicate: () -> Unit,
     onToggle: (Boolean) -> Unit,
     onSkip: () -> Unit,
     onClearSkips: () -> Unit,
@@ -3226,13 +3243,26 @@ private fun AlarmScheduleCard(
                         modifier = Modifier.padding(top = 7.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        TextButton(onClick = onSkip) {
+                        TextButton(onClick = onDuplicate) {
+                            Text(
+                                "Duplicate",
+                                color = Lavender
+                            )
+                        }
+
+                        if (schedule.oneTimeDate == null) {
+                            TextButton(onClick = onSkip) {
                             Text(
                                 if (nextSkipped) "Undo skip" else "Skip next",
                                 color = Lavender
                             )
+                            }
                         }
-                        if (futureSkips.size > 1) {
+
+                        if (
+                            schedule.oneTimeDate == null &&
+                            futureSkips.size > 1
+                        ) {
                             TextButton(onClick = onClearSkips) {
                                 Text("Clear skips", color = colors.onSurfaceVariant)
                             }
@@ -3252,21 +3282,33 @@ private fun AlarmScheduleCard(
             textContentColor = colors.onSurfaceVariant,
             title = {
                 Text(
-                    if (nextSkipped) "Turn this schedule off?"
-                    else "Skip once or turn schedule off?"
+                    when {
+                        schedule.oneTimeDate != null ->
+                            "Turn this alarm off?"
+                        nextSkipped ->
+                            "Turn this schedule off?"
+                        else ->
+                            "Skip once or turn schedule off?"
+                    }
                 )
             },
             text = {
                 Text(
-                    if (nextSkipped) {
-                        "The next occurrence is already skipped. Turning this off disables the recurring schedule until you switch it back on."
-                    } else {
-                        "Skip once keeps this recurring schedule active and automatically resumes it on the next matching day."
+                    when {
+                        schedule.oneTimeDate != null ->
+                            "This tomorrow-only alarm will stay available but will not ring until you turn it back on or edit its schedule."
+                        nextSkipped ->
+                            "The next occurrence is already skipped. Turning this off disables the recurring schedule until you switch it back on."
+                        else ->
+                            "Skip once keeps this recurring schedule active and automatically resumes it on the next matching day."
                     }
                 )
             },
             confirmButton = {
-                if (!nextSkipped) {
+                if (
+                    schedule.oneTimeDate == null &&
+                    !nextSkipped
+                ) {
                     Button(
                         onClick = {
                             onSkip()
