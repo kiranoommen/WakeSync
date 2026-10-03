@@ -78,10 +78,6 @@ private fun WakeHistoryCard(
                 ?: event.firedAtMillis
         ).atZone(ZoneId.systemDefault())
 
-    val fired =
-        Instant.ofEpochMilli(
-            event.firedAtMillis
-        ).atZone(ZoneId.systemDefault())
     val deadline =
         if (event.deadlineMillis > 0L) {
             Instant.ofEpochMilli(
@@ -93,7 +89,7 @@ private fun WakeHistoryCard(
     val minutesEarly =
         deadline?.let {
             java.time.Duration
-                .between(fired, it)
+                .between(wokeAt, it)
                 .toMinutes()
         }?.takeIf { it > 0 }
 
