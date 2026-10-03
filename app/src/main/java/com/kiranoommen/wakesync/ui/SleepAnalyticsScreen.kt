@@ -1944,68 +1944,6 @@ private fun ArchitectureCard(
 }
 
 @Composable
-private fun RecoveryCard(
-    modifier: Modifier = Modifier,
-    analytics: PeriodAnalytics,
-    onInfo: () -> Unit
-) {
-    BentoCard(
-        modifier = modifier,
-        borderColor = Indigo.copy(alpha = 0.26f)
-    ) {
-        Column {
-            CardTitleRow(
-                title = "Biometric recovery",
-                onInfo = onInfo
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(10.dp)
-            )
-
-            MetricLine(
-                "HRV",
-                analytics.averageHrvMs
-                    ?.let {
-                        it.roundToInt()
-                            .toString() +
-                            " ms avg"
-                    }
-                    ?: "Not available"
-            )
-            MetricLine(
-                "Resting heart rate",
-                analytics.averageRestingHeartRateBpm
-                    ?.let {
-                        it.roundToInt()
-                            .toString() +
-                            " bpm avg"
-                    }
-                    ?: "Not available"
-            )
-
-            Text(
-                modifier = Modifier.padding(top = 8.dp),
-                text =
-                    if (
-                        analytics.averageHrvMs == null &&
-                        analytics.averageRestingHeartRateBpm == null
-                    ) {
-                        "HRV = Heart Rate Variability. RHR = Resting Heart Rate. Grant optional recovery access in Settings if your Health Connect source provides these records."
-                    } else {
-                        "HRV = Heart Rate Variability · RHR = Resting Heart Rate. Use both primarily relative to your own baseline."
-                    },
-                style =
-                    MaterialTheme.typography.bodySmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
 private fun SleepLogCard(
     analytics: PeriodAnalytics,
     sort: SleepSort,
@@ -2974,46 +2912,6 @@ private fun NightBreakdownSheet(
                                 ?: "—"
                     )
                 }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(8.dp)
-            ) {
-                MiniMetric(
-                    modifier = Modifier.weight(1f),
-                    label = "HRV",
-                    value =
-                        night.night.averageHrvMs
-                            ?.roundToInt()
-                            ?.toString()
-                            ?.plus(" ms")
-                            ?: "—"
-                )
-                MiniMetric(
-                    modifier = Modifier.weight(1f),
-                    label = "RHR",
-                    value =
-                        night.night.restingHeartRateBpm
-                            ?.toString()
-                            ?.plus(" bpm")
-                            ?: "—"
-                )
-            }
-
-            if (
-                night.night.averageHrvMs != null ||
-                night.night.restingHeartRateBpm != null
-            ) {
-                Text(
-                    text =
-                        "HRV = Heart Rate Variability, a beat-to-beat recovery trend. RHR = Resting Heart Rate. WakeSync currently receives nightly recovery values rather than a full trace, so it does not fabricate overlay graphs.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
             TextButton(
