@@ -17,7 +17,9 @@ data class AlarmSchedule(
     val enabled: Boolean = true,
     val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean = true,
-    val snoozeMinutes: Int = 5,
+    // Legacy persisted value retained temporarily so existing alarm records decode safely.
+    // Snooze is no longer exposed or scheduled by WakeSync.
+    val snoozeMinutes: Int = 0,
     val backupRingCount: Int = 0,
     val skippedDates: Set<String> = emptySet()
 ) {
