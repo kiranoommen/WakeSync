@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.kiranoommen.wakesync.data.AlarmStore
+import com.kiranoommen.wakesync.data.WakeEventStore
+import com.kiranoommen.wakesync.model.WakeEvent
+import java.util.UUID
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -21,7 +24,10 @@ object MultiAlarmController {
         scheduleId: String,
         kind: String,
         deadlineMillis: Long,
-        reason: String
+        reason: String,
+        sleepStage: String? = null,
+        sourcePackage: String? = null,
+        dataAgeSeconds: Long? = null
     ) {
         val appContext = context.applicationContext
         val store = AlarmStore(appContext)
@@ -29,6 +35,24 @@ object MultiAlarmController {
             store.load().firstOrNull { it.id == scheduleId }
                 ?: return
         val scheduler = AlarmScheduler(appContext)
+
+        WakeEventStore(appContext).record(
+            WakeEvent(
+                id = UUID.randomUUID().toString(),
+                scheduleId = schedule.id,
+                label =
+                    schedule.label.ifBlank { "Wake up" },
+                firedAtMillis =
+                    System.currentTimeMillis(),
+                deadlineMillis = deadlineMillis,
+                mode = schedule.mode,
+                kind = kind,
+                reason = reason,
+                sleepStage = sleepStage,
+                sourcePackage = sourcePackage,
+                dataAgeSeconds = dataAgeSeconds
+            )
+        )
 
         when {
             kind == KIND_LIVE ||
