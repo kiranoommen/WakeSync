@@ -153,7 +153,6 @@ fun WakeSyncScreen(
     themeMode: String,
     sleepGoalMinutes: Int,
     goalsEnabled: Boolean,
-    maxSmartWindowMinutes: Int,
     errorMessage: String?,
     onConnect: () -> Unit,
     onRefresh: () -> Unit,
@@ -166,8 +165,7 @@ fun WakeSyncScreen(
     onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
-    onGoalsEnabledChange: (Boolean) -> Unit,
-    onMaxSmartWindowChange: (Int) -> Unit
+    onGoalsEnabledChange: (Boolean) -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
     val darkTheme = when (themeMode) {
@@ -354,8 +352,6 @@ fun WakeSyncScreen(
                                     sleepGoalMinutes,
                                 goalsEnabled =
                                     goalsEnabled,
-                                maxSmartWindowMinutes =
-                                    maxSmartWindowMinutes,
                                 nights =
                                     nights,
                                 onConnect =
@@ -370,8 +366,6 @@ fun WakeSyncScreen(
                                     onSleepGoalChange,
                                 onGoalsEnabledChange =
                                     onGoalsEnabledChange,
-                                onMaxSmartWindowChange =
-                                    onMaxSmartWindowChange
                             )
                     }
                 }
@@ -396,7 +390,7 @@ fun WakeSyncScreen(
             AlarmEditorDialog(
                 schedule = schedule,
                 isNew = creatingNew,
-                maxSmartWindowMinutes = maxSmartWindowMinutes,
+                maxSmartWindowMinutes = 30,
                 onDismiss = {
                     editingSchedule = null
                     creatingNew = false
@@ -3280,15 +3274,13 @@ private fun SettingsTab(
     themeMode: String,
     sleepGoalMinutes: Int,
     goalsEnabled: Boolean,
-    maxSmartWindowMinutes: Int,
     nights: List<SleepNight>,
     onConnect: () -> Unit,
     onRequestHistoryAccess: () -> Unit,
     onRequestExactAlarmAccess: () -> Unit,
     onThemeModeChange: (String) -> Unit,
     onSleepGoalChange: (Int) -> Unit,
-    onGoalsEnabledChange: (Boolean) -> Unit,
-    onMaxSmartWindowChange: (Int) -> Unit
+    onGoalsEnabledChange: (Boolean) -> Unit
 ) {
     var infoSheet by remember {
         mutableStateOf<MetricInfo?>(null)
@@ -3457,74 +3449,6 @@ private fun SettingsTab(
                             MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-        }
-
-        item {
-            SettingsBentoCard(
-                title = "Smart Alarm Guardrails",
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Smart alarm deadline",
-                        meaning = "The maximum amount of time any WakeSync alarm is allowed to move earlier than its protected wake-by deadline.",
-                        measurement = "Each alarm can choose a smaller smart window, but no schedule may exceed this global maximum.",
-                        importance = "This prevents a smart alarm from waking you dramatically earlier than you are comfortable with."
-                    )
-                }
-            ) {
-                Text(
-                    text =
-                        "Maximum smart-window flexibility",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Row(
-                    modifier = Modifier
-                        .horizontalScroll(
-                            rememberScrollState()
-                        )
-                        .padding(top = 10.dp),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(7.dp)
-                ) {
-                    listOf(
-                        10,
-                        15,
-                        20,
-                        30
-                    ).forEach { minutes ->
-                        FilterChip(
-                            selected =
-                                maxSmartWindowMinutes ==
-                                    minutes,
-                            onClick = {
-                                onMaxSmartWindowChange(
-                                    minutes
-                                )
-                            },
-                            label = {
-                                Text(
-                                    minutes.toString() +
-                                        " min"
-                                )
-                            }
-                        )
-                    }
-                }
-
-                Text(
-                    modifier =
-                        Modifier.padding(top = 8.dp),
-                    text =
-                        "The wake-by deadline always wins. Existing wider schedules are capped when you lower this deadline.",
-                    style =
-                        MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
 
