@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +23,7 @@ import androidx.core.content.ContextCompat
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.lifecycleScope
 import com.kiranoommen.wakesync.alarm.AlarmScheduler
+import com.kiranoommen.wakesync.alarm.MultiAlarmController
 import com.kiranoommen.wakesync.alarm.PredictiveWakeEngine
 import com.kiranoommen.wakesync.data.AlarmStore
 import com.kiranoommen.wakesync.data.AppSettingsStore
@@ -48,7 +50,53 @@ class MainActivity : ComponentActivity() {
     private lateinit var wakeEventStore: WakeEventStore
 
     private val exactAlarmAccessState = mutableStateOf(false)
+    private val notificationsAllowedState = mutableStateOf(true)
+    private val fullScreenAllowedState = mutableStateOf(true)
+    private val alarmVolumePercentState = mutableIntStateOf(100)
     private val schedulesRefreshState = mutableIntStateOf(0)
+
+    private fun refreshReliabilityState() {
+        notificationsAllowedState.value =
+            Build.VERSION.SDK_INT <
+                Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+
+        fullScreenAllowedState.value =
+            if (
+                Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            ) {
+                getSystemService(
+                    NotificationManager::class.java
+                ).canUseFullScreenIntent()
+            } else {
+                true
+            }
+
+        val audio =
+            getSystemService(
+                AudioManager::class.java
+            )
+        val max =
+            audio.getStreamMaxVolume(
+                AudioManager.STREAM_ALARM
+            ).coerceAtLeast(1)
+        val current =
+            audio.getStreamVolume(
+                AudioManager.STREAM_ALARM
+            )
+
+        alarmVolumePercentState.intValue =
+            (
+                current.toFloat() /
+                    max.toFloat() *
+                    100f
+                ).toInt()
+                .coerceIn(0, 100)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,7 +107,9 @@ class MainActivity : ComponentActivity() {
         appSettings = AppSettingsStore(this)
         wakeHistoryStore = WakeHistoryStore(this)
         wakeEventStore = WakeEventStore(this)
-        exactAlarmAccessState.value = alarmScheduler.canScheduleExactAlarms()
+        exactAlarmAccessState.value =
+            alarmScheduler.canScheduleExactAlarms()
+        refreshReliabilityState()
 
         setContent {
             var hasPermission by remember { mutableStateOf(false) }
@@ -324,6 +374,11 @@ class MainActivity : ComponentActivity() {
                     themeMode = themeMode,
                     hasPermission = hasPermission,
                     exactAlarmAccess = exactAlarmAccessState.value,
+                    onTestAlarm = {
+                        MultiAlarmController.testAlarm(
+                            this@MainActivity
+                        )
+                    },
                     onWakeFeedback = {
                             eventId,
                             feedback ->
@@ -369,6 +424,12 @@ class MainActivity : ComponentActivity() {
                     nights = nights,
                     schedules = schedules,
                     exactAlarmAccess = exactAlarmAccessState.value,
+                    notificationsAllowed =
+                        notificationsAllowedState.value,
+                    fullScreenAllowed =
+                        fullScreenAllowedState.value,
+                    alarmVolumePercent =
+                        alarmVolumePercentState.intValue,
                     backgroundReadAvailable =
                         healthConnectManager
                             .backgroundReadAvailable(),
@@ -541,6 +602,7 @@ class MainActivity : ComponentActivity() {
         if (::alarmScheduler.isInitialized) {
             exactAlarmAccessState.value =
                 alarmScheduler.canScheduleExactAlarms()
+            refreshReliabilityState()
             schedulesRefreshState.intValue += 1
         }
     }
