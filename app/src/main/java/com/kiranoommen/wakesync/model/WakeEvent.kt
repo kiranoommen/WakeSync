@@ -17,5 +17,6 @@ data class WakeEvent(
     val deadlineMillis: Long,
     val sourcePackage: String? = null,
     val dataAgeMinutes: Long? = null,
+    val completedAtMillis: Long? = null,
     val feedback: WakeFeedback? = null
 )
