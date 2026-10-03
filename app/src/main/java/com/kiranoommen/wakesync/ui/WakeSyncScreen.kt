@@ -97,7 +97,6 @@ import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Settings
 import androidx.health.connect.client.HealthConnectClient
 import com.kiranoommen.wakesync.data.AppSettingsStore
-import com.kiranoommen.wakesync.data.SleepExporter
 import com.kiranoommen.wakesync.domain.SleepAnalytics
 import com.kiranoommen.wakesync.model.AlarmMode
 import com.kiranoommen.wakesync.model.AlarmSchedule
@@ -326,40 +325,12 @@ fun WakeSyncScreen(
 
                         AppTab.SLEEP ->
                             SleepTab(
-                                nights =
-                                    nights,
-                                loading =
-                                    loading,
+                                nights = nights,
+                                loading = loading,
                                 sleepGoalMinutes =
                                     sleepGoalMinutes,
-                                goalsEnabled =
-                                    goalsEnabled,
-                                onRefresh =
-                                    onRefresh,
-                                onShareCsv = {
-                                    SleepExporter
-                                        .shareCsv(
-                                            context,
-                                            it,
-                                            retainGeneratedExports
-                                        )
-                                },
-                                onSharePdf = {
-                                    SleepExporter
-                                        .sharePdf(
-                                            context,
-                                            it,
-                                            retainGeneratedExports
-                                        )
-                                },
-                                onShareStory = {
-                                    SleepExporter
-                                        .shareStoryCard(
-                                            context,
-                                            it,
-                                            retainGeneratedExports
-                                        )
-                                }
+                                goalsEnabled = goalsEnabled,
+                                onRefresh = onRefresh
                             )
 
                         AppTab.SETTINGS ->
@@ -3322,10 +3293,7 @@ private fun SleepTab(
     loading: Boolean,
     sleepGoalMinutes: Int,
     goalsEnabled: Boolean,
-    onRefresh: () -> Unit,
-    onShareCsv: (List<com.kiranoommen.wakesync.domain.NightAnalytics>) -> Unit,
-    onSharePdf: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit,
-    onShareStory: (com.kiranoommen.wakesync.domain.PeriodAnalytics) -> Unit
+    onRefresh: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -3337,10 +3305,7 @@ private fun SleepTab(
                 loading = loading,
                 targetSleepMinutes = sleepGoalMinutes,
                 goalsEnabled = goalsEnabled,
-                onRefresh = onRefresh,
-                onShareCsv = onShareCsv,
-                onSharePdf = onSharePdf,
-                onShareStory = onShareStory
+                onRefresh = onRefresh
             )
         }
 
