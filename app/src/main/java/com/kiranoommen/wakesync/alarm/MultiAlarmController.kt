@@ -43,6 +43,7 @@ object MultiAlarmController {
                     AlarmScheduler.backupIndex(kind) ?: 0
                 if (index >= schedule.backupRingCount) {
                     scheduleNextOccurrence(
+                        context = appContext,
                         scheduler = scheduler,
                         schedule = schedule,
                         deadlineMillis = deadlineMillis
@@ -53,6 +54,7 @@ object MultiAlarmController {
             kind == AlarmScheduler.KIND_DEADLINE -> {
                 if (schedule.backupRingCount <= 0) {
                     scheduleNextOccurrence(
+                        context = appContext,
                         scheduler = scheduler,
                         schedule = schedule,
                         deadlineMillis = deadlineMillis
@@ -102,6 +104,7 @@ object MultiAlarmController {
 
         if (schedule != null && schedule.enabled) {
             scheduleNextOccurrence(
+                context = appContext,
                 scheduler = scheduler,
                 schedule = schedule,
                 deadlineMillis = deadlineMillis
@@ -130,10 +133,25 @@ object MultiAlarmController {
     }
 
     private fun scheduleNextOccurrence(
+        context: Context,
         scheduler: AlarmScheduler,
         schedule: com.kiranoommen.wakesync.model.AlarmSchedule,
         deadlineMillis: Long
     ) {
+        if (schedule.oneTimeDate != null) {
+            val store = AlarmStore(context)
+            val updated = store.load().map {
+                if (it.id == schedule.id) {
+                    it.copy(enabled = false)
+                } else {
+                    it
+                }
+            }
+            store.save(updated)
+            scheduler.cancel(schedule.id)
+            return
+        }
+
         val after =
             if (deadlineMillis > 0L) {
                 ZonedDateTime.ofInstant(
