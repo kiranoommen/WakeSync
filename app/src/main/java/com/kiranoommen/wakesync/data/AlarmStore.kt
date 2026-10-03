@@ -39,7 +39,8 @@ class AlarmStore(context: Context) {
             schedule.vibrationEnabled.toString(),
             schedule.snoozeMinutes.toString(),
             schedule.mode.name,
-            schedule.backupRingCount.coerceIn(0, 3).toString()
+            schedule.backupRingCount.coerceIn(0, 3).toString(),
+            schedule.oneTimeDate.orEmpty()
         ).joinToString("|")
     }
 
@@ -83,7 +84,10 @@ class AlarmStore(context: Context) {
                     parts.getOrNull(13)
                         ?.toIntOrNull()
                         ?.coerceIn(0, 3)
-                        ?: 0
+                        ?: 0,
+                oneTimeDate =
+                    parts.getOrNull(14)
+                        ?.takeIf { it.isNotBlank() }
             )
         }.getOrNull()
     }
