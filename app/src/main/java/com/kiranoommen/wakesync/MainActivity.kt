@@ -586,6 +586,41 @@ class MainActivity : ComponentActivity() {
                         wakeEventStore.clear()
                         wakeEvents = emptyList()
                     },
+                    onRequestBackgroundSmartWakeAccess = {
+                        healthPermissionLauncher.launch(
+                            healthConnectManager.requestedPermissions()
+                        )
+                    },
+                    onOpenNotificationSettings = {
+                        runCatching {
+                            startActivity(
+                                Intent(
+                                    Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                                ).apply {
+                                    putExtra(
+                                        Settings.EXTRA_APP_PACKAGE,
+                                        packageName
+                                    )
+                                }
+                            )
+                        }
+                    },
+                    onOpenFullScreenSettings = {
+                        if (Build.VERSION.SDK_INT >= 34) {
+                            runCatching {
+                                startActivity(
+                                    Intent(
+                                        "android.settings.MANAGE_APP_USE_FULL_SCREEN_INTENT"
+                                    ).apply {
+                                        data =
+                                            Uri.parse(
+                                                "package:$packageName"
+                                            )
+                                    }
+                                )
+                            }
+                        }
+                    },
                     onTestAlarm = {
                         MultiAlarmController.testAlarm(
                             this@MainActivity
