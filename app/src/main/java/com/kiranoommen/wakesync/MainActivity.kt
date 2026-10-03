@@ -422,31 +422,6 @@ class MainActivity : ComponentActivity() {
                             healthConnectManager.requestedPermissions()
                         )
                     },
-                    onWakeFeedback = { eventId, feedback ->
-                        wakeEventStore.setFeedback(
-                            eventId,
-                            feedback
-                        )
-                        wakeEvents = wakeEventStore.load()
-                    },
-                    onClearWakeHistory = {
-                        wakeEventStore.clear()
-                        wakeEvents = emptyList()
-                    },
-                    onTestAlarm = {
-                        MultiAlarmController.testAlarm(
-                            this@MainActivity
-                        )
-                    },
-                    onOpenAlarmVolumeSettings = {
-                        runCatching {
-                            startActivity(
-                                Intent(
-                                    Settings.ACTION_SOUND_SETTINGS
-                                )
-                            )
-                        }
-                    },
                     onRequestExactAlarmAccess = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             runCatching {
@@ -597,6 +572,31 @@ class MainActivity : ComponentActivity() {
                         if (historyReadAvailable) {
                             historyPermissionLauncher.launch(
                                 HealthConnectManager.historyPermissions
+                            )
+                        }
+                    },
+                    onWakeFeedback = { eventId, feedback ->
+                        wakeEventStore.setFeedback(
+                            eventId,
+                            feedback
+                        )
+                        wakeEvents = wakeEventStore.load()
+                    },
+                    onClearWakeHistory = {
+                        wakeEventStore.clear()
+                        wakeEvents = emptyList()
+                    },
+                    onTestAlarm = {
+                        MultiAlarmController.testAlarm(
+                            this@MainActivity
+                        )
+                    },
+                    onOpenAlarmVolumeSettings = {
+                        runCatching {
+                            startActivity(
+                                Intent(
+                                    Settings.ACTION_SOUND_SETTINGS
+                                )
                             )
                         }
                     },
