@@ -1,6 +1,12 @@
 package com.kiranoommen.wakesync.ui.alarms
 
 import android.app.TimePickerDialog
+import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -54,6 +60,81 @@ fun AlarmEditorDialog(
     var showMoreOptions by remember(schedule.id) {
         mutableStateOf(false)
     }
+
+    val audioFileLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri != null) {
+                runCatching {
+                    context.contentResolver
+                        .takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                }
+
+                val displayName =
+                    runCatching {
+                        context.contentResolver.query(
+                            uri,
+                            arrayOf(OpenableColumns.DISPLAY_NAME),
+                            null,
+                            null,
+                            null
+                        )?.use { cursor ->
+                            val index =
+                                cursor.getColumnIndex(
+                                    OpenableColumns.DISPLAY_NAME
+                                )
+                            if (
+                                index >= 0 &&
+                                cursor.moveToFirst()
+                            ) {
+                                cursor.getString(index)
+                            } else {
+                                null
+                            }
+                        }
+                    }.getOrNull()
+
+                draft = draft.copy(
+                    soundEnabled = true,
+                    soundUri = uri.toString(),
+                    soundName =
+                        displayName ?: "Custom audio"
+                )
+            }
+        }
+
+    val systemToneLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            @Suppress("DEPRECATION")
+            val uri =
+                result.data
+                    ?.getParcelableExtra<Uri>(
+                        RingtoneManager.EXTRA_RINGTONE_PICKED_URI
+                    )
+
+            if (uri != null) {
+                val title =
+                    runCatching {
+                        RingtoneManager
+                            .getRingtone(context, uri)
+                            ?.getTitle(context)
+                    }.getOrNull()
+
+                draft = draft.copy(
+                    soundEnabled = true,
+                    soundUri = uri.toString(),
+                    soundName =
+                        title ?: "System alarm tone"
+                )
+            }
+        }
 
     val schedulePreset =
         when {
@@ -567,12 +648,133 @@ fun AlarmEditorDialog(
                         )
                     }
 
-                    item {
-                        Text(
-                            text = "Sound selection and gradual volume are coming in the next alarm-audio pass.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    if (draft.soundEnabled) {
+                        item {
+                            Card(
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+                                shape =
+                                    RoundedCornerShape(18.dp),
+                                colors =
+                                    CardDefaults.cardColors(
+                                        containerColor =
+                                            MaterialTheme.colorScheme
+                                                .surfaceVariant
+                                                .copy(alpha = 0.42f)
+                                    )
+                            ) {
+                                Column(
+                                    modifier =
+                                        Modifier.padding(14.dp),
+                                    verticalArrangement =
+                                        Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(
+                                        text = "Alarm sound",
+                                        style =
+                                            MaterialTheme.typography.labelMedium,
+                                        color =
+                                            MaterialTheme.colorScheme
+                                                .onSurfaceVariant
+                                    )
+
+                                    Text(
+                                        text =
+                                            draft.soundName
+                                                ?: "System default",
+                                        style =
+                                            MaterialTheme.typography.titleMedium,
+                                        fontWeight =
+                                            FontWeight.ExtraBold
+                                    )
+
+                                    Row(
+                                        modifier =
+                                            Modifier.fillMaxWidth(),
+                                        horizontalArrangement =
+                                            Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            modifier =
+                                                Modifier.weight(1f),
+                                            onClick = {
+                                                val currentUri =
+                                                    draft.soundUri
+                                                        ?.let(Uri::parse)
+                                                        ?: RingtoneManager
+                                                            .getActualDefaultRingtoneUri(
+                                                                context,
+                                                                RingtoneManager.TYPE_ALARM
+                                                            )
+
+                                                systemToneLauncher.launch(
+                                                    Intent(
+                                                        RingtoneManager
+                                                            .ACTION_RINGTONE_PICKER
+                                                    ).apply {
+                                                        putExtra(
+                                                            RingtoneManager
+                                                                .EXTRA_RINGTONE_TYPE,
+                                                            RingtoneManager
+                                                                .TYPE_ALARM
+                                                        )
+                                                        putExtra(
+                                                            RingtoneManager
+                                                                .EXTRA_RINGTONE_TITLE,
+                                                            "Choose alarm sound"
+                                                        )
+                                                        putExtra(
+                                                            RingtoneManager
+                                                                .EXTRA_RINGTONE_SHOW_DEFAULT,
+                                                            true
+                                                        )
+                                                        putExtra(
+                                                            RingtoneManager
+                                                                .EXTRA_RINGTONE_SHOW_SILENT,
+                                                            false
+                                                        )
+                                                        putExtra(
+                                                            RingtoneManager
+                                                                .EXTRA_RINGTONE_EXISTING_URI,
+                                                            currentUri
+                                                        )
+                                                    }
+                                                )
+                                            }
+                                        ) {
+                                            Text("System tones")
+                                        }
+
+                                        OutlinedButton(
+                                            modifier =
+                                                Modifier.weight(1f),
+                                            onClick = {
+                                                audioFileLauncher.launch(
+                                                    arrayOf("audio/*")
+                                                )
+                                            }
+                                        ) {
+                                            Text("Choose file")
+                                        }
+                                    }
+
+                                    if (draft.soundUri != null) {
+                                        TextButton(
+                                            modifier =
+                                                Modifier.fillMaxWidth(),
+                                            onClick = {
+                                                draft = draft.copy(
+                                                    soundUri = null,
+                                                    soundName = null
+                                                )
+                                            }
+                                        ) {
+                                            Text("Use system default")
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 

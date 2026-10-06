@@ -24,6 +24,9 @@ class AlarmStore(context: Context) {
         val safeLabel = schedule.label
             .replace("|", " ")
             .replace("\n", " ")
+        val safeSoundName = schedule.soundName
+            ?.replace("|", " ")
+            ?.replace("\n", " ")
 
         return listOf(
             schedule.id,
@@ -40,7 +43,9 @@ class AlarmStore(context: Context) {
             schedule.snoozeMinutes.toString(),
             schedule.mode.name,
             schedule.backupRingCount.coerceIn(0, 3).toString(),
-            schedule.oneTimeDate.orEmpty()
+            schedule.oneTimeDate.orEmpty(),
+            schedule.soundUri.orEmpty(),
+            safeSoundName.orEmpty()
         ).joinToString("|")
     }
 
@@ -67,6 +72,12 @@ class AlarmStore(context: Context) {
                     .filter { it.isNotBlank() }
                     .toSet(),
                 soundEnabled = parts.getOrNull(9)?.toBooleanStrictOrNull() ?: true,
+                soundUri =
+                    parts.getOrNull(15)
+                        ?.takeIf { it.isNotBlank() },
+                soundName =
+                    parts.getOrNull(16)
+                        ?.takeIf { it.isNotBlank() },
                 vibrationEnabled = parts.getOrNull(10)?.toBooleanStrictOrNull() ?: true,
                 snoozeMinutes = parts.getOrNull(11)?.toIntOrNull() ?: 5,
                 mode = parts.getOrNull(12)

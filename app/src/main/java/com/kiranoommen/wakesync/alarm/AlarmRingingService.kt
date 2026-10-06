@@ -58,7 +58,7 @@ class AlarmRingingService : Service() {
         )
 
         if (schedule?.soundEnabled != false) {
-            startAlarmSound()
+            startAlarmSound(schedule?.soundUri)
         }
         if (schedule?.vibrationEnabled != false) {
             startVibration()
@@ -148,19 +148,31 @@ class AlarmRingingService : Service() {
         }
     }
 
-    private fun startAlarmSound() {
+    private fun startAlarmSound(selectedSoundUri: String?) {
         if (mediaPlayer?.isPlaying == true) return
 
-        val alarmUri = RingtoneManager.getActualDefaultRingtoneUri(
-            this,
-            RingtoneManager.TYPE_ALARM
-        ) ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val defaultAlarmUri =
+            RingtoneManager.getActualDefaultRingtoneUri(
+                this,
+                RingtoneManager.TYPE_ALARM
+            ) ?: RingtoneManager.getDefaultUri(
+                RingtoneManager.TYPE_ALARM
+            ) ?: RingtoneManager.getDefaultUri(
+                RingtoneManager.TYPE_NOTIFICATION
+            )
 
-        if (alarmUri == null) return
+        val requestedUri =
+            selectedSoundUri
+                ?.takeIf { it.isNotBlank() }
+                ?.let(android.net.Uri::parse)
 
-        mediaPlayer = runCatching {
-            MediaPlayer().apply {
+        val candidates =
+            listOfNotNull(requestedUri, defaultAlarmUri)
+                .distinct()
+
+        mediaPlayer = candidates.firstNotNullOfOrNull { alarmUri ->
+            runCatching {
+                MediaPlayer().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ALARM)
@@ -173,12 +185,13 @@ class AlarmRingingService : Service() {
                     applicationContext,
                     PowerManager.PARTIAL_WAKE_LOCK
                 )
-                setDataSource(applicationContext, alarmUri)
-                isLooping = true
-                prepare()
-                start()
-            }
-        }.getOrNull()
+                    setDataSource(applicationContext, alarmUri)
+                    isLooping = true
+                    prepare()
+                    start()
+                }
+            }.getOrNull()
+        }
     }
 
     @Suppress("DEPRECATION")
