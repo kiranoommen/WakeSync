@@ -202,12 +202,14 @@ fun WakeSyncScreen(
             LocalContext.current
         val tabs =
             remember {
-                AppTab.values().toList()
+                listOf(
+                    AppTab.ALARMS,
+                    AppTab.SETTINGS
+                )
             }
         val pagerState =
             rememberPagerState(
-                initialPage =
-                    AppTab.HOME.ordinal,
+                initialPage = 0,
                 pageCount = {
                     tabs.size
                 }
@@ -296,7 +298,7 @@ fun WakeSyncScreen(
                                     pagerScope.launch {
                                         pagerState
                                             .animateScrollToPage(
-                                                AppTab.ALARMS.ordinal
+                                                tabs.indexOf(AppTab.ALARMS)
                                             )
                                     }
                                 },
@@ -416,7 +418,8 @@ fun WakeSyncScreen(
                         pagerScope.launch {
                             pagerState
                                 .animateScrollToPage(
-                                    tab.ordinal
+                                    tabs.indexOf(tab)
+                                        .coerceAtLeast(0)
                                 )
                         }
                     }
@@ -479,9 +482,9 @@ private fun AppHeader(
             Text(
                 text = when (tab) {
                     AppTab.HOME -> "Better mornings, in sync with you"
-                    AppTab.ALARMS -> "Wake by your schedule — not ours"
+                    AppTab.ALARMS -> "Simple alarms with Smart Wake when you want it"
                     AppTab.SLEEP -> "Understand your sleep pattern"
-                    AppTab.SETTINGS -> "Privacy, preferences & reliability"
+                    AppTab.SETTINGS -> "Alarm reliability & preferences"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
@@ -2606,31 +2609,17 @@ private fun AlarmsTab(
             ) {
                 Text(
                     modifier = Modifier.padding(vertical = 5.dp),
-                    text = "+ Add wake schedule",
+                    text = "+ Add alarm",
                     fontWeight = FontWeight.ExtraBold
                 )
             }
         }
 
-        item {
-            WeeklyAlarmOverview(
-                schedules = schedules,
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Weekly alarm overview",
-                        meaning = "A rolling seven-day view beginning today, rather than a fixed Monday-to-Sunday calendar block.",
-                        measurement = "WakeSync maps each of the next seven dates to enabled recurring schedules and shows the earliest Must be awake by if schedules overlap.",
-                        importance = "The rolling view makes the next actual alarms, days off and changing weekday times obvious at a glance."
-                    )
-                }
-            )
-        }
-
         if (schedules.isEmpty()) {
             item {
                 InfoCard(
-                    title = "Build your week",
-                    body = "Set one time for Mon/Tue/Thu/Fri, another for Wednesday, and leave weekends completely off."
+                    title = "No alarms yet",
+                    body = "Tap + Add alarm to create a Standard Alarm or turn on Smart Wake."
                 )
             }
         }
@@ -4409,19 +4398,9 @@ private fun BottomNav(
     val tabs =
         listOf(
             Triple(
-                AppTab.HOME,
-                "Home",
-                Icons.Default.Home
-            ),
-            Triple(
                 AppTab.ALARMS,
                 "Alarms",
                 Icons.Default.AccessAlarm
-            ),
-            Triple(
-                AppTab.SLEEP,
-                "Sleep",
-                Icons.Default.Bedtime
             ),
             Triple(
                 AppTab.SETTINGS,
