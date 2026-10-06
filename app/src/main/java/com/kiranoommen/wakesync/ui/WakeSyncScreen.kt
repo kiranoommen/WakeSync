@@ -3284,10 +3284,7 @@ private fun SettingsTab(
                 onOpenNotificationSettings =
                     onOpenNotificationSettings,
                 onOpenFullScreenSettings =
-                    onOpenFullScreenSettings,
-                onOpenAlarmVolumeSettings =
-                    onOpenAlarmVolumeSettings,
-                onTestAlarm = onTestAlarm
+                    onOpenFullScreenSettings
             )
         }
 
