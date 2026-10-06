@@ -83,10 +83,6 @@ fun AlarmRingingScreen(
                 "STANDARD ALARM"
         }
 
-    val label =
-        schedule?.label
-            ?.takeIf { it.isNotBlank() }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -188,7 +184,7 @@ fun AlarmRingingScreen(
             Text(
                 modifier =
                     Modifier.padding(top = 24.dp),
-                text = label ?: "Good morning",
+                text = "Good morning",
                 style =
                     MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
