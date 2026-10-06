@@ -3,6 +3,7 @@ package com.kiranoommen.wakesync.ui.alarms
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
@@ -15,6 +16,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -80,6 +82,29 @@ fun AlarmEditorDialog(
         remember(context) {
             loadAlarmTones(context)
         }
+
+    val audioManager =
+        remember(context) {
+            context.getSystemService(AudioManager::class.java)
+        }
+    var alarmVolumePercent by remember {
+        val max =
+            audioManager
+                .getStreamMaxVolume(
+                    AudioManager.STREAM_ALARM
+                )
+                .coerceAtLeast(1)
+        val current =
+            audioManager
+                .getStreamVolume(
+                    AudioManager.STREAM_ALARM
+                )
+        mutableFloatStateOf(
+            current.toFloat() /
+                max.toFloat() *
+                100f
+        )
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -845,7 +870,64 @@ fun AlarmEditorDialog(
                 Text("Ringtone")
             },
             text = {
-                LazyColumn(
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween,
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Alarm volume",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text =
+                                alarmVolumePercent
+                                    .toInt()
+                                    .toString() +
+                                    "%"
+                        )
+                    }
+
+                    Slider(
+                        value = alarmVolumePercent,
+                        onValueChange = { requested ->
+                            val max =
+                                audioManager
+                                    .getStreamMaxVolume(
+                                        AudioManager.STREAM_ALARM
+                                    )
+                                    .coerceAtLeast(1)
+                            val level =
+                                ((requested / 100f) * max)
+                                    .toInt()
+                                    .coerceIn(0, max)
+
+                            audioManager.setStreamVolume(
+                                AudioManager.STREAM_ALARM,
+                                level,
+                                0
+                            )
+
+                            alarmVolumePercent =
+                                (
+                                    audioManager
+                                        .getStreamVolume(
+                                            AudioManager.STREAM_ALARM
+                                        )
+                                        .toFloat() /
+                                        max.toFloat() *
+                                        100f
+                                    ).coerceIn(0f, 100f)
+                        },
+                        valueRange = 0f..100f
+                    )
+
+                    LazyColumn(
                     modifier = Modifier.heightIn(max = 420.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
@@ -878,7 +960,7 @@ fun AlarmEditorDialog(
                             )
                             if (pendingSoundUri == null) {
                                 Text(
-                                    text = "Playing",
+                                    text = "Selected",
                                     style =
                                         MaterialTheme.typography.labelMedium,
                                     color = Amber
@@ -888,12 +970,11 @@ fun AlarmEditorDialog(
                     }
 
                     items(
-                        count = alarmTones.size,
-                        key = { index ->
-                            alarmTones[index].uri.toString()
+                        items = alarmTones,
+                        key = { tone ->
+                            tone.uri.toString()
                         }
-                    ) { index ->
-                        val tone = alarmTones[index]
+                    ) { tone ->
                         val selected =
                             pendingSoundUri ==
                                 tone.uri.toString()
@@ -937,6 +1018,7 @@ fun AlarmEditorDialog(
                             }
                         }
                     }
+                }
                 }
             },
             confirmButton = {
