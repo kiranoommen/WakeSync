@@ -133,6 +133,7 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private enum class AppTab {
@@ -202,12 +203,14 @@ fun WakeSyncScreen(
             LocalContext.current
         val tabs =
             remember {
-                AppTab.values().toList()
+                listOf(
+                    AppTab.ALARMS,
+                    AppTab.SETTINGS
+                )
             }
         val pagerState =
             rememberPagerState(
-                initialPage =
-                    AppTab.HOME.ordinal,
+                initialPage = 0,
                 pageCount = {
                     tabs.size
                 }
@@ -296,7 +299,7 @@ fun WakeSyncScreen(
                                     pagerScope.launch {
                                         pagerState
                                             .animateScrollToPage(
-                                                AppTab.ALARMS.ordinal
+                                                tabs.indexOf(AppTab.ALARMS)
                                             )
                                     }
                                 },
@@ -334,11 +337,7 @@ fun WakeSyncScreen(
                                         id =
                                             UUID.randomUUID()
                                                 .toString(),
-                                        label =
-                                            source.label
-                                                .ifBlank { "Wake up" }
-                                                .take(23) +
-                                                " copy",
+                                        label = "",
                                         skippedDates = emptySet()
                                     )
                                 },
@@ -416,7 +415,8 @@ fun WakeSyncScreen(
                         pagerScope.launch {
                             pagerState
                                 .animateScrollToPage(
-                                    tab.ordinal
+                                    tabs.indexOf(tab)
+                                        .coerceAtLeast(0)
                                 )
                         }
                     }
@@ -479,9 +479,9 @@ private fun AppHeader(
             Text(
                 text = when (tab) {
                     AppTab.HOME -> "Better mornings, in sync with you"
-                    AppTab.ALARMS -> "Wake by your schedule — not ours"
+                    AppTab.ALARMS -> "Simple alarms with Smart Wake when you want it"
                     AppTab.SLEEP -> "Understand your sleep pattern"
-                    AppTab.SETTINGS -> "Privacy, preferences & reliability"
+                    AppTab.SETTINGS -> "Alarm reliability & preferences"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
@@ -2332,8 +2332,7 @@ private fun NextWakeCard(
 
                 Text(
                     modifier = Modifier.padding(top = 4.dp),
-                    text = schedule.label.ifBlank { "Wake schedule" } +
-                        " · " + deadline.format(dateFormat),
+                    text = deadline.format(dateFormat),
                     color = Color.White.copy(alpha = 0.80f)
                 )
 
@@ -2586,51 +2585,41 @@ private fun AlarmsTab(
     onSkipNext: (AlarmSchedule) -> Unit,
     onClearSkips: (AlarmSchedule) -> Unit
 ) {
-    var infoSheet by remember {
-        mutableStateOf<MetricInfo?>(null)
+    var now by remember {
+        mutableStateOf(LocalTime.now())
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = LocalTime.now()
+            delay(1_000)
+        }
     }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onAdd,
-                shape = RoundedCornerShape(999.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF0F172A)
-                )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    modifier = Modifier.padding(vertical = 5.dp),
-                    text = "+ Add wake schedule",
+                    text = now.format(
+                        DateTimeFormatter.ofPattern("h:mm")
+                    ),
+                    style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.ExtraBold
                 )
-            }
-        }
-
-        item {
-            WeeklyAlarmOverview(
-                schedules = schedules,
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Weekly alarm overview",
-                        meaning = "A rolling seven-day view beginning today, rather than a fixed Monday-to-Sunday calendar block.",
-                        measurement = "WakeSync maps each of the next seven dates to enabled recurring schedules and shows the earliest Must be awake by if schedules overlap.",
-                        importance = "The rolling view makes the next actual alarms, days off and changing weekday times obvious at a glance."
-                    )
-                }
-            )
-        }
-
-        if (schedules.isEmpty()) {
-            item {
-                InfoCard(
-                    title = "Build your week",
-                    body = "Set one time for Mon/Tue/Thu/Fri, another for Wednesday, and leave weekends completely off."
+                Text(
+                    text = now.format(
+                        DateTimeFormatter.ofPattern("a")
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -2643,26 +2632,38 @@ private fun AlarmsTab(
                 onToggle = { onToggle(schedule, it) },
                 onSkip = { onSkipNext(schedule) },
                 onClearSkips = { onClearSkips(schedule) },
-                onInfo = {
-                    infoSheet = MetricInfo(
-                        title = "Wake schedule",
-                        meaning = "A wake schedule can be tomorrow-only or recurring, with optional Smart Wake flexibility.",
-                        measurement = "WakeSync stores the selected schedule, must-be-awake time and allowed early-wake window locally, then schedules the protected alarm with Android.",
-                        importance = "Swipe right to quickly turn an alarm on or off. Swipe left to duplicate it and edit the copy."
-                    )
-                }
+                onInfo = {}
             )
+        }
+
+        item {
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp),
+                onClick = onAdd,
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = "+ Add alarm",
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+        }
+
+        if (schedules.isEmpty()) {
+            item {
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = "No alarms yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         item { Spacer(Modifier.height(10.dp)) }
     }
-
-    MetricInfoBottomSheet(
-        info = infoSheet,
-        onDismiss = {
-            infoSheet = null
-        }
-    )
 }
 
 @Composable
@@ -3020,6 +3021,15 @@ private fun AlarmScheduleCard(
         if (schedule.hour < 12) "AM" else "PM"
     )
 
+    val smartStart =
+        LocalTime.of(schedule.hour, schedule.minute)
+            .minusMinutes(
+                schedule.smartWindowMinutes
+                    .coerceAtLeast(0)
+                    .toLong()
+            )
+    val repeatText = scheduleDaysLabel(schedule)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -3040,194 +3050,88 @@ private fun AlarmScheduleCard(
                 modifier = Modifier.matchParentSize()
             )
 
-            if (schedule.enabled) {
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    drawCircle(
-                        color = Lavender.copy(alpha = 0.08f),
-                        radius = size.minDimension * 0.70f,
-                        center = Offset(size.width * 0.96f, size.height * 0.05f)
-                    )
-                }
-            }
-
-            Column(modifier = Modifier.padding(18.dp)) {
+            Column(
+                modifier = Modifier.padding(
+                    horizontal = 18.dp,
+                    vertical = 16.dp
+                )
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text(
                             text = time,
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = cardContent
                         )
-                        Text(
-                            modifier = Modifier.padding(top = 2.dp),
-                            text = schedule.label.ifBlank { "Alarm" },
-                            color = colors.onSurfaceVariant
-                        )
-                    }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        InfoTrigger(onClick = onInfo)
-                        Switch(
-                            checked = schedule.enabled,
-                            onCheckedChange = { checked ->
-                                if (checked) {
-                                    onToggle(true)
-                                } else {
-                                    showDisableChoice = true
-                                }
-                            }
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier
-                        .horizontalScroll(rememberScrollState())
-                        .padding(top = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(7.dp)
-                ) {
-                    Card(
-                        shape = RoundedCornerShape(999.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Lavender.copy(alpha = 0.13f),
-                            contentColor = Lavender
-                        )
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            text = if (schedule.smartWindowMinutes == 0) {
-                                "Exact time"
-                            } else {
-                                schedule.smartWindowMinutes.toString() + "m smart window"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Card(
-                        shape = RoundedCornerShape(999.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = colors.surfaceVariant.copy(alpha = 0.60f),
-                            contentColor = colors.onSurfaceVariant
-                        )
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            text = scheduleDaysLabel(schedule),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                if (schedule.enabled) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 14.dp),
-                        shape = RoundedCornerShape(22.dp),
-                        border = BorderStroke(1.dp, colors.outlineVariant),
-                        colors = CardDefaults.cardColors(
-                            containerColor = colors.surfaceVariant.copy(alpha = 0.46f),
-                            contentColor = colors.onSurface
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(9.dp)
-                                    .background(
-                                        color = if (nextSkipped) Sunrise else Mint,
-                                        shape = CircleShape
-                                    )
-                            )
-
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 10.dp)
-                            ) {
-                                when {
-                                    nextSkipped && nextBase != null -> {
-                                        Text(
-                                            text = "Next occurrence skipped",
-                                            fontWeight = FontWeight.Bold,
-                                            color = Sunrise
-                                        )
-                                        Text(
-                                            modifier = Modifier.padding(top = 2.dp),
-                                            text = nextBase.format(
-                                                DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a")
-                                            ),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = colors.onSurfaceVariant
-                                        )
-                                        if (nextActual != null) {
-                                            Text(
-                                                modifier = Modifier.padding(top = 2.dp),
-                                                text = "Resumes " + nextActual.format(
-                                                    DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a")
-                                                ),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = colors.onSurface
-                                            )
-                                        }
-                                    }
-
-                                    nextActual != null -> {
-                                        Text(
-                                            text = "Next alarm",
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            modifier = Modifier.padding(top = 2.dp),
-                                            text = nextActual.format(
-                                                DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a")
-                                            ),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = colors.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.padding(top = 7.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (schedule.oneTimeDate == null) {
-                            TextButton(onClick = onSkip) {
+                        if (schedule.label.isNotBlank()) {
                             Text(
-                                if (nextSkipped) "Undo skip" else "Skip next",
-                                color = Lavender
+                                modifier = Modifier.padding(top = 2.dp),
+                                text = schedule.label,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.onSurfaceVariant
                             )
-                            }
-                        }
-
-                        if (
-                            schedule.oneTimeDate == null &&
-                            futureSkips.size > 1
-                        ) {
-                            TextButton(onClick = onClearSkips) {
-                                Text("Clear skips", color = colors.onSurfaceVariant)
-                            }
                         }
                     }
+
+                    Switch(
+                        checked = schedule.enabled,
+                        onCheckedChange = { checked ->
+                            if (checked) {
+                                onToggle(true)
+                            } else {
+                                showDisableChoice = true
+                            }
+                        }
+                    )
                 }
+
+                Text(
+                    modifier = Modifier.padding(top = 10.dp),
+                    text = repeatText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant
+                )
+
+                Text(
+                    modifier = Modifier.padding(top = 4.dp),
+                    text =
+                        if (schedule.mode == AlarmMode.SMART_WAKE) {
+                            "Smart Wake · " +
+                                formatClock(
+                                    smartStart.hour,
+                                    smartStart.minute
+                                ) +
+                                "–" +
+                                formatClock(
+                                    schedule.hour,
+                                    schedule.minute
+                                )
+                        } else {
+                            "Regular alarm"
+                        },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight =
+                        if (schedule.mode == AlarmMode.SMART_WAKE) {
+                            FontWeight.SemiBold
+                        } else {
+                            FontWeight.Normal
+                        },
+                    color =
+                        if (schedule.mode == AlarmMode.SMART_WAKE) {
+                            Lavender
+                        } else {
+                            colors.onSurfaceVariant
+                        }
+                )
             }
         }
     }
@@ -4409,19 +4313,9 @@ private fun BottomNav(
     val tabs =
         listOf(
             Triple(
-                AppTab.HOME,
-                "Home",
-                Icons.Default.Home
-            ),
-            Triple(
                 AppTab.ALARMS,
                 "Alarms",
                 Icons.Default.AccessAlarm
-            ),
-            Triple(
-                AppTab.SLEEP,
-                "Sleep",
-                Icons.Default.Bedtime
             ),
             Triple(
                 AppTab.SETTINGS,
@@ -5227,7 +5121,7 @@ private fun sourceFriendlyName(
 private fun defaultSchedule(): AlarmSchedule =
     AlarmSchedule(
         id = UUID.randomUUID().toString(),
-        label = "Wake up",
+        label = "",
         hour = 7,
         minute = 0,
         days = AlarmSchedule.WEEKDAYS,

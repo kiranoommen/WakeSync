@@ -1,5 +1,6 @@
 package com.kiranoommen.wakesync.ui.alarmringing
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -81,10 +82,6 @@ fun AlarmRingingScreen(
             else ->
                 "STANDARD ALARM"
         }
-
-    val label =
-        schedule?.label
-            ?.takeIf { it.isNotBlank() }
 
     Box(
         modifier = Modifier
@@ -187,7 +184,7 @@ fun AlarmRingingScreen(
             Text(
                 modifier =
                     Modifier.padding(top = 24.dp),
-                text = label ?: "Good morning",
+                text = "Good morning",
                 style =
                     MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
@@ -276,55 +273,56 @@ fun AlarmRingingScreen(
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(76.dp),
+                    .height(96.dp),
                 shape =
-                    RoundedCornerShape(26.dp),
+                    RoundedCornerShape(30.dp),
                 colors =
                     ButtonDefaults.buttonColors(
                         containerColor = Amber,
                         contentColor =
                             Color(0xFF15192A)
                     ),
-                onClick =
-                    if (remainingSequence) {
-                        onDismissCurrent
-                    } else {
-                        onStopSequence
-                    }
+                onClick = onStopSequence
             ) {
                 Text(
-                    text =
-                        if (remainingSequence) {
-                            "DISMISS — NEXT ALARM STAYS ON"
-                        } else {
-                            "I’M AWAKE"
-                        },
-                    fontSize = 20.sp,
+                    text = "I’M AWAKE",
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
 
             if (remainingSequence) {
-                TextButton(
-                    modifier =
-                        Modifier.padding(top = 6.dp),
-                    onClick = onStopSequence
+                OutlinedButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp)
+                        .height(62.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        ),
+                    border = BorderStroke(
+                        1.dp,
+                        Color.White.copy(alpha = 0.28f)
+                    ),
+                    onClick = onDismissCurrent
                 ) {
                     Text(
-                        text =
-                            "I’M AWAKE — STOP REMAINING ALARMS",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        text = "Dismiss — keep backup alarms on",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
                 Text(
+                    modifier = Modifier.padding(top = 8.dp),
                     text =
-                        "Dismiss keeps your remaining alarms armed.",
+                        "I’m Awake stops the full alarm sequence. Dismiss keeps your remaining alarms armed.",
                     style =
                         MaterialTheme.typography.bodySmall,
                     color =
-                        Color.White.copy(alpha = 0.52f)
+                        Color.White.copy(alpha = 0.56f)
                 )
             } else {
                 Text(

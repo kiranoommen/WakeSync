@@ -29,6 +29,7 @@ import com.kiranoommen.wakesync.model.AlarmSchedule
 import com.kiranoommen.wakesync.ui.theme.Amber
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 
 @Composable
 fun AlarmEditorDialog(
@@ -151,20 +152,10 @@ fun AlarmEditorDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(if (isNew) "New wake schedule" else "Edit wake schedule")
+            Text(if (isNew) "New alarm" else "Edit alarm")
         },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                item {
-                    OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = draft.label,
-                    onValueChange = { draft = draft.copy(label = it.take(28)) },
-                    label = { Text("Alarm name") },
-                    singleLine = true
-                    )
-                }
-
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -228,7 +219,7 @@ fun AlarmEditorDialog(
                                     .padding(start = 13.dp)
                             ) {
                                 Text(
-                                    text = "MUST BE AWAKE BY",
+                                    text = "ALARM TIME",
                                     style =
                                         MaterialTheme.typography.labelSmall,
                                     fontWeight =
@@ -256,9 +247,9 @@ fun AlarmEditorDialog(
                                             draft.mode ==
                                             AlarmMode.SMART_WAKE
                                         ) {
-                                            "Latest wake time · Tap to change"
+                                            "Tap to change"
                                         } else {
-                                            "Exact alarm time · Tap to change"
+                                            "Tap to change"
                                         },
                                     style =
                                         MaterialTheme.typography.bodySmall,
@@ -280,64 +271,80 @@ fun AlarmEditorDialog(
                 }
 
                 item {
-                    Text(
-                        text = "Alarm type",
-                        fontWeight = FontWeight.SemiBold
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = draft.label,
+                        onValueChange = {
+                            draft = draft.copy(
+                                label = it.take(28)
+                            )
+                        },
+                        label = { Text("Label (optional)") },
+                        placeholder = { Text("Work, Weekend, Kids…") },
+                        singleLine = true
                     )
                 }
 
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        FilterChip(
-                            modifier = Modifier.weight(1f),
-                            selected = draft.mode == AlarmMode.SMART_WAKE,
-                            onClick = {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Smart Wake",
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                modifier = Modifier.padding(top = 2.dp),
+                                text = "Wake during lighter sleep before the alarm time.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Switch(
+                            checked =
+                                draft.mode == AlarmMode.SMART_WAKE,
+                            onCheckedChange = { enabled ->
                                 draft = draft.copy(
-                                    mode = AlarmMode.SMART_WAKE,
+                                    mode =
+                                        if (enabled) {
+                                            AlarmMode.SMART_WAKE
+                                        } else {
+                                            AlarmMode.STANDARD
+                                        },
                                     smartWindowMinutes =
-                                        draft.smartWindowMinutes.coerceAtLeast(10)
+                                        if (enabled) {
+                                            draft.smartWindowMinutes
+                                                .coerceAtLeast(10)
+                                        } else {
+                                            draft.smartWindowMinutes
+                                        },
+                                    smartOffsetMinutes =
+                                        if (enabled) {
+                                            draft.smartOffsetMinutes
+                                        } else {
+                                            0
+                                        }
                                 )
-                            },
-                            label = { Text("Smart Wake") }
-                        )
-                        FilterChip(
-                            modifier = Modifier.weight(1f),
-                            selected = draft.mode == AlarmMode.STANDARD,
-                            onClick = {
-                                draft = draft.copy(
-                                    mode = AlarmMode.STANDARD,
-                                    smartOffsetMinutes = 0
-                                )
-                            },
-                            label = { Text("Standard Alarm") }
+                            }
                         )
                     }
                 }
 
                 item {
-                    Text(
-                        text = if (draft.mode == AlarmMode.SMART_WAKE) {
-                            "Live sleep stays primary inside the early window. History is only a fallback near the deadline."
-                        } else {
-                            "Rings at the exact selected time with no Health Connect sleep monitoring."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                item {
                     Column {
                         Text(
-                            text = "Schedule",
+                            text = "Repeat",
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             modifier = Modifier.padding(top = 3.dp),
-                            text = "Choose a quick preset or customize the days.",
+                            text = "Choose when this alarm repeats.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -462,15 +469,15 @@ fun AlarmEditorDialog(
                 item {
                     Column {
                         Text(
-                            text = "Smart Wake Window",
+                            text = "Wake window",
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             modifier = Modifier.padding(top = 3.dp),
                             text = if (draft.mode == AlarmMode.SMART_WAKE) {
-                                "How early WakeSync is allowed to wake you before the must-be-awake time."
+                                "Choose how early WakeSync may wake you."
                             } else {
-                                "Not used for Standard Alarm."
+                                "Turn on Smart Wake to use a wake window."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -779,19 +786,44 @@ fun AlarmEditorDialog(
                 }
 
                 item {
-                    Text(
-                        text =
-                            if (draft.mode == AlarmMode.STANDARD) {
-                                "Standard Alarm: " +
-                                    formatClock(draft.hour, draft.minute) +
-                                    " is the exact alarm time."
-                            } else {
-                                "Smart Wake: live sleep can wake you inside the selected window; historical fallback is limited to the final 10 minutes. " +
-                                    formatClock(draft.hour, draft.minute) +
-                                    " remains the must-be-awake time."
-                            },
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    if (draft.mode == AlarmMode.SMART_WAKE) {
+                        val start =
+                            LocalTime.of(
+                                draft.hour,
+                                draft.minute
+                            ).minusMinutes(
+                                draft.smartWindowMinutes.toLong()
+                            )
+
+                        Column {
+                            Text(
+                                text =
+                                    "Wake me between " +
+                                        formatClock(
+                                            start.hour,
+                                            start.minute
+                                        ) +
+                                        "–" +
+                                        formatClock(
+                                            draft.hour,
+                                            draft.minute
+                                        ),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                modifier = Modifier.padding(top = 3.dp),
+                                text =
+                                    "WakeSync will try to wake you during lighter sleep. " +
+                                        formatClock(
+                                            draft.hour,
+                                            draft.minute
+                                        ) +
+                                        " is guaranteed.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         },
