@@ -151,20 +151,10 @@ fun AlarmEditorDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(if (isNew) "New wake schedule" else "Edit wake schedule")
+            Text(if (isNew) "New alarm" else "Edit alarm")
         },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                item {
-                    OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = draft.label,
-                    onValueChange = { draft = draft.copy(label = it.take(28)) },
-                    label = { Text("Alarm name") },
-                    singleLine = true
-                    )
-                }
-
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -281,7 +271,7 @@ fun AlarmEditorDialog(
 
                 item {
                     Text(
-                        text = "Alarm type",
+                        text = "Alarm",
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -312,7 +302,7 @@ fun AlarmEditorDialog(
                                     smartOffsetMinutes = 0
                                 )
                             },
-                            label = { Text("Standard Alarm") }
+                            label = { Text("Standard") }
                         )
                     }
                 }
@@ -332,12 +322,12 @@ fun AlarmEditorDialog(
                 item {
                     Column {
                         Text(
-                            text = "Schedule",
+                            text = "Repeat",
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             modifier = Modifier.padding(top = 3.dp),
-                            text = "Choose a quick preset or customize the days.",
+                            text = "Choose when this alarm repeats.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
