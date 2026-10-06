@@ -16,6 +16,8 @@ data class AlarmSchedule(
     val smartOffsetMinutes: Int = 0,
     val enabled: Boolean = true,
     val soundEnabled: Boolean = true,
+    val soundUri: String? = null,
+    val soundName: String? = null,
     val vibrationEnabled: Boolean = true,
     // Legacy persisted value retained temporarily so existing alarm records decode safely.
     // Snooze is no longer exposed or scheduled by WakeSync.
