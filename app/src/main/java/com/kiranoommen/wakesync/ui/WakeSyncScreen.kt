@@ -336,11 +336,7 @@ fun WakeSyncScreen(
                                         id =
                                             UUID.randomUUID()
                                                 .toString(),
-                                        label =
-                                            source.label
-                                                .ifBlank { "Wake up" }
-                                                .take(23) +
-                                                " copy",
+                                        label = "",
                                         skippedDates = emptySet()
                                     )
                                 },
@@ -2335,8 +2331,7 @@ private fun NextWakeCard(
 
                 Text(
                     modifier = Modifier.padding(top = 4.dp),
-                    text = schedule.label.ifBlank { "Wake schedule" } +
-                        " · " + deadline.format(dateFormat),
+                    text = deadline.format(dateFormat),
                     color = Color.White.copy(alpha = 0.80f)
                 )
 
@@ -3054,7 +3049,12 @@ private fun AlarmScheduleCard(
                         )
                         Text(
                             modifier = Modifier.padding(top = 2.dp),
-                            text = schedule.label.ifBlank { "Alarm" },
+                            text =
+                                if (schedule.mode == AlarmMode.SMART_WAKE) {
+                                    "Smart Wake"
+                                } else {
+                                    "Standard"
+                                },
                             color = colors.onSurfaceVariant
                         )
                     }
@@ -5206,7 +5206,7 @@ private fun sourceFriendlyName(
 private fun defaultSchedule(): AlarmSchedule =
     AlarmSchedule(
         id = UUID.randomUUID().toString(),
-        label = "Wake up",
+        label = "",
         hour = 7,
         minute = 0,
         days = AlarmSchedule.WEEKDAYS,
