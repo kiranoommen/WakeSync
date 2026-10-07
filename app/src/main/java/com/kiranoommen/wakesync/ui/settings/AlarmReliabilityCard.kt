@@ -1,5 +1,6 @@
 package com.kiranoommen.wakesync.ui.settings
 
+import android.media.AudioManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kiranoommen.wakesync.model.SmartWakeReadiness
@@ -30,13 +37,19 @@ fun AlarmReliabilityCard(
     onGrantExactAlarmAccess: () -> Unit,
     onRequestBackgroundSmartWakeAccess: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
-    onOpenFullScreenSettings: () -> Unit,
-    onOpenAlarmVolumeSettings: () -> Unit,
-    onTestAlarm: () -> Unit
+    onOpenFullScreenSettings: () -> Unit
 ) {
+    val context = LocalContext.current
+    val audioManager =
+        remember(context) {
+            context.getSystemService(AudioManager::class.java)
+        }
+    var volumePercent by remember(alarmVolumePercent) {
+        mutableFloatStateOf(alarmVolumePercent.toFloat())
+    }
     val ready =
         readiness.alarmReliabilityReady &&
-            alarmVolumePercent > 0
+            volumePercent > 0f
     val accent =
         if (ready) Mint else Sunrise
 
@@ -114,16 +127,51 @@ fun AlarmReliabilityCard(
                         MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "$alarmVolumePercent%",
+                    text = volumePercent.toInt().toString() + "%",
                     fontWeight = FontWeight.Bold,
                     color =
-                        if (alarmVolumePercent > 0) {
+                        if (volumePercent > 0f) {
                             MaterialTheme.colorScheme.onSurface
                         } else {
                             Sunrise
                         }
                 )
             }
+
+            Slider(
+                modifier = Modifier.fillMaxWidth(),
+                value = volumePercent,
+                onValueChange = { requested ->
+                    val max =
+                        audioManager
+                            .getStreamMaxVolume(
+                                AudioManager.STREAM_ALARM
+                            )
+                            .coerceAtLeast(1)
+                    val level =
+                        ((requested / 100f) * max)
+                            .toInt()
+                            .coerceIn(0, max)
+
+                    audioManager.setStreamVolume(
+                        AudioManager.STREAM_ALARM,
+                        level,
+                        0
+                    )
+
+                    volumePercent =
+                        (
+                            audioManager
+                                .getStreamVolume(
+                                    AudioManager.STREAM_ALARM
+                                )
+                                .toFloat() /
+                                max.toFloat() *
+                                100f
+                            ).coerceIn(0f, 100f)
+                },
+                valueRange = 0f..100f
+            )
 
             if (!readiness.exactAlarmAccess) {
                 Button(
@@ -178,32 +226,10 @@ fun AlarmReliabilityCard(
                 }
             }
 
-            OutlinedButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onOpenAlarmVolumeSettings,
-                shape = RoundedCornerShape(999.dp)
-            ) {
-                Text("Adjust alarm volume")
-            }
-
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onTestAlarm,
-                shape = RoundedCornerShape(999.dp)
-            ) {
-                Text(
-                    text = "Test alarm",
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
-
             Text(
-                text =
-                    "The test uses the same full-screen alarm service, sound path and vibration path as a real WakeSync alarm.",
-                style =
-                    MaterialTheme.typography.bodySmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Alarm volume is controlled here in WakeSync and uses Android’s alarm audio stream.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

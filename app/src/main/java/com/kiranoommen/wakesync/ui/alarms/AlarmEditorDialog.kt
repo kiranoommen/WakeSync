@@ -1,17 +1,22 @@
 package com.kiranoommen.wakesync.ui.alarms
 
 import android.app.TimePickerDialog
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
+import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -61,6 +66,76 @@ fun AlarmEditorDialog(
     var showMoreOptions by remember(schedule.id) {
         mutableStateOf(false)
     }
+    var showSoundPicker by remember(schedule.id) {
+        mutableStateOf(false)
+    }
+    var previewRingtone by remember {
+        mutableStateOf<Ringtone?>(null)
+    }
+    var pendingSoundUri by remember(schedule.id) {
+        mutableStateOf<String?>(null)
+    }
+    var pendingSoundName by remember(schedule.id) {
+        mutableStateOf<String?>(null)
+    }
+    val alarmTones =
+        remember(context) {
+            loadAlarmTones(context)
+        }
+
+    val audioManager =
+        remember(context) {
+            context.getSystemService(AudioManager::class.java)
+        }
+    var alarmVolumePercent by remember {
+        val max =
+            audioManager
+                .getStreamMaxVolume(
+                    AudioManager.STREAM_ALARM
+                )
+                .coerceAtLeast(1)
+        val current =
+            audioManager
+                .getStreamVolume(
+                    AudioManager.STREAM_ALARM
+                )
+        mutableFloatStateOf(
+            current.toFloat() /
+                max.toFloat() *
+                100f
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            previewRingtone?.stop()
+            previewRingtone = null
+        }
+    }
+
+    fun stopPreview() {
+        previewRingtone?.stop()
+        previewRingtone = null
+    }
+
+    fun previewSound(uri: Uri?) {
+        stopPreview()
+        val actualUri =
+            uri ?: RingtoneManager
+                .getActualDefaultRingtoneUri(
+                    context,
+                    RingtoneManager.TYPE_ALARM
+                )
+
+        if (actualUri != null) {
+            previewRingtone =
+                runCatching {
+                    RingtoneManager
+                        .getRingtone(context, actualUri)
+                        ?.also { it.play() }
+                }.getOrNull()
+        }
+    }
 
     val audioFileLauncher =
         rememberLauncherForActivityResult(
@@ -104,35 +179,6 @@ fun AlarmEditorDialog(
                     soundUri = uri.toString(),
                     soundName =
                         displayName ?: "Custom audio"
-                )
-            }
-        }
-
-    val systemToneLauncher =
-        rememberLauncherForActivityResult(
-            contract =
-                ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            @Suppress("DEPRECATION")
-            val uri =
-                result.data
-                    ?.getParcelableExtra<Uri>(
-                        RingtoneManager.EXTRA_RINGTONE_PICKED_URI
-                    )
-
-            if (uri != null) {
-                val title =
-                    runCatching {
-                        RingtoneManager
-                            .getRingtone(context, uri)
-                            ?.getTitle(context)
-                    }.getOrNull()
-
-                draft = draft.copy(
-                    soundEnabled = true,
-                    soundUri = uri.toString(),
-                    soundName =
-                        title ?: "System alarm tone"
                 )
             }
         }
@@ -705,51 +751,14 @@ fun AlarmEditorDialog(
                                             modifier =
                                                 Modifier.weight(1f),
                                             onClick = {
-                                                val currentUri =
+                                                pendingSoundUri =
                                                     draft.soundUri
-                                                        ?.let(Uri::parse)
-                                                        ?: RingtoneManager
-                                                            .getActualDefaultRingtoneUri(
-                                                                context,
-                                                                RingtoneManager.TYPE_ALARM
-                                                            )
-
-                                                systemToneLauncher.launch(
-                                                    Intent(
-                                                        RingtoneManager
-                                                            .ACTION_RINGTONE_PICKER
-                                                    ).apply {
-                                                        putExtra(
-                                                            RingtoneManager
-                                                                .EXTRA_RINGTONE_TYPE,
-                                                            RingtoneManager
-                                                                .TYPE_ALARM
-                                                        )
-                                                        putExtra(
-                                                            RingtoneManager
-                                                                .EXTRA_RINGTONE_TITLE,
-                                                            "Choose alarm sound"
-                                                        )
-                                                        putExtra(
-                                                            RingtoneManager
-                                                                .EXTRA_RINGTONE_SHOW_DEFAULT,
-                                                            true
-                                                        )
-                                                        putExtra(
-                                                            RingtoneManager
-                                                                .EXTRA_RINGTONE_SHOW_SILENT,
-                                                            false
-                                                        )
-                                                        putExtra(
-                                                            RingtoneManager
-                                                                .EXTRA_RINGTONE_EXISTING_URI,
-                                                            currentUri
-                                                        )
-                                                    }
-                                                )
+                                                pendingSoundName =
+                                                    draft.soundName
+                                                showSoundPicker = true
                                             }
                                         ) {
-                                            Text("System tones")
+                                            Text("Ringtone")
                                         }
 
                                         OutlinedButton(
@@ -850,6 +859,195 @@ fun AlarmEditorDialog(
             }
         }
     )
+
+    if (showSoundPicker) {
+        AlertDialog(
+            onDismissRequest = {
+                stopPreview()
+                showSoundPicker = false
+            },
+            title = {
+                Text("Ringtone")
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween,
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Alarm volume",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text =
+                                alarmVolumePercent
+                                    .toInt()
+                                    .toString() +
+                                    "%"
+                        )
+                    }
+
+                    Slider(
+                        value = alarmVolumePercent,
+                        onValueChange = { requested ->
+                            val max =
+                                audioManager
+                                    .getStreamMaxVolume(
+                                        AudioManager.STREAM_ALARM
+                                    )
+                                    .coerceAtLeast(1)
+                            val level =
+                                ((requested / 100f) * max)
+                                    .toInt()
+                                    .coerceIn(0, max)
+
+                            audioManager.setStreamVolume(
+                                AudioManager.STREAM_ALARM,
+                                level,
+                                0
+                            )
+
+                            alarmVolumePercent =
+                                (
+                                    audioManager
+                                        .getStreamVolume(
+                                            AudioManager.STREAM_ALARM
+                                        )
+                                        .toFloat() /
+                                        max.toFloat() *
+                                        100f
+                                    ).coerceIn(0f, 100f)
+                        },
+                        valueRange = 0f..100f
+                    )
+
+                    LazyColumn(
+                    modifier = Modifier.heightIn(max = 420.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    pendingSoundUri = null
+                                    pendingSoundName = null
+                                    previewSound(null)
+                                }
+                                .padding(
+                                    horizontal = 6.dp,
+                                    vertical = 14.dp
+                                ),
+                            horizontalArrangement =
+                                Arrangement.SpaceBetween,
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "System default",
+                                fontWeight =
+                                    if (pendingSoundUri == null) {
+                                        FontWeight.ExtraBold
+                                    } else {
+                                        FontWeight.Normal
+                                    }
+                            )
+                            if (pendingSoundUri == null) {
+                                Text(
+                                    text = "Selected",
+                                    style =
+                                        MaterialTheme.typography.labelMedium,
+                                    color = Amber
+                                )
+                            }
+                        }
+                    }
+
+                    items(
+                        items = alarmTones,
+                        key = { tone ->
+                            tone.uri.toString()
+                        }
+                    ) { tone ->
+                        val selected =
+                            pendingSoundUri ==
+                                tone.uri.toString()
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    pendingSoundUri =
+                                        tone.uri.toString()
+                                    pendingSoundName =
+                                        tone.name
+                                    previewSound(tone.uri)
+                                }
+                                .padding(
+                                    horizontal = 6.dp,
+                                    vertical = 14.dp
+                                ),
+                            horizontalArrangement =
+                                Arrangement.SpaceBetween,
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
+                            Text(
+                                modifier = Modifier.weight(1f),
+                                text = tone.name,
+                                fontWeight =
+                                    if (selected) {
+                                        FontWeight.ExtraBold
+                                    } else {
+                                        FontWeight.Normal
+                                    }
+                            )
+                            if (selected) {
+                                Text(
+                                    text = "Playing",
+                                    style =
+                                        MaterialTheme.typography.labelMedium,
+                                    color = Amber
+                                )
+                            }
+                        }
+                    }
+                }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        stopPreview()
+                        draft = draft.copy(
+                            soundEnabled = true,
+                            soundUri = pendingSoundUri,
+                            soundName = pendingSoundName
+                        )
+                        showSoundPicker = false
+                    }
+                ) {
+                    Text("Done")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        stopPreview()
+                        showSoundPicker = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 
@@ -872,6 +1070,50 @@ private fun ToggleSettingRow(
     }
 }
 
+
+private data class AlarmToneOption(
+    val name: String,
+    val uri: Uri
+)
+
+private fun loadAlarmTones(
+    context: Context
+): List<AlarmToneOption> {
+    val manager =
+        RingtoneManager(context).apply {
+            setType(RingtoneManager.TYPE_ALARM)
+        }
+    val cursor = manager.cursor
+    val tones = mutableListOf<AlarmToneOption>()
+
+    try {
+        for (index in 0 until cursor.count) {
+            val uri =
+                manager.getRingtoneUri(index)
+                    ?: continue
+            val name =
+                runCatching {
+                    RingtoneManager
+                        .getRingtone(context, uri)
+                        ?.getTitle(context)
+                }.getOrNull()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "Alarm " + (index + 1)
+
+            tones +=
+                AlarmToneOption(
+                    name = name,
+                    uri = uri
+                )
+        }
+    } finally {
+        cursor.close()
+    }
+
+    return tones.distinctBy {
+        it.uri.toString()
+    }
+}
 
 private fun dayItems(): List<Pair<Int, String>> =
     listOf(
